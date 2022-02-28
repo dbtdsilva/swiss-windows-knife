@@ -1,1 +1,1 @@
-pyudev
+pywin32
