@@ -5,15 +5,15 @@ import pythoncom
 import wmi
 import atexit
 
-class DeviceController(QtCore.QObject):
+class DeviceListener(QtCore.QObject):
 
     change_detected = QtCore.Signal(bool, str)
 
     def __init__(self, parent: Optional[QtCore.QObject] = None) -> None:
         super().__init__(parent)
-        self.connect_listener = DeviceConnectListener(parent=self)
+        self.connect_listener = _DeviceConnectListener(parent=self)
         self.connect_listener.start()
-        self.disconnect_listener = DeviceDisconnectListener(parent=self)
+        self.disconnect_listener = _DeviceDisconnectListener(parent=self)
         self.disconnect_listener.start()
 
         self.disconnect_listener.disconnect_signal.connect(lambda usb: self.device_change(False, usb))
@@ -30,10 +30,8 @@ class DeviceController(QtCore.QObject):
 
         self.connect_listener.wait()
         self.disconnect_listener.wait()
-        print("Stopped all threads")
 
-
-class DeviceDisconnectListener(QtCore.QThread):
+class _DeviceDisconnectListener(QtCore.QThread):
     
     disconnect_signal = QtCore.Signal(str)
 
@@ -51,7 +49,7 @@ class DeviceDisconnectListener(QtCore.QThread):
                 pass
         pythoncom.CoUninitialize()
 
-class DeviceConnectListener(QtCore.QThread):
+class _DeviceConnectListener(QtCore.QThread):
     
     connect_signal = QtCore.Signal(str)
 
