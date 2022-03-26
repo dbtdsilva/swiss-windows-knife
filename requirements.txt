@@ -1,2 +1,5 @@
 pywin32
+wmi
 pyinstaller
+monitorcontrol
+pyside6
