@@ -1,14 +1,16 @@
-from operator import truediv
 from PySide6.QtCore import Slot, QCoreApplication
 from PySide6.QtGui import QAction, QIcon
-from PySide6.QtWidgets import (QDialog, QMenu, QSystemTrayIcon, QVBoxLayout)
+from PySide6.QtWidgets import QMenu, QSystemTrayIcon, QVBoxLayout, QMainWindow
 
 import rc_systray
+from device_listener import DeviceController
 
 
-class Window(QDialog):
+class Window(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
+        
+        self.device_controller = DeviceController(self)
 
         self._minimize_action = QAction()
         self._maximize_action = QAction()
@@ -53,7 +55,7 @@ class Window(QDialog):
 
     @Slot()
     def middle_click(self):
-        pass
+        self.device_controller.stop()
 
     def create_actions(self):
         self._minimize_action = QAction("Minimize", self)
@@ -66,7 +68,12 @@ class Window(QDialog):
         self._restore_action.triggered.connect(self.showNormal)
 
         self._quit_action = QAction("Quit", self)
-        self._quit_action.triggered.connect(QCoreApplication.quit)
+        self._quit_action.triggered.connect(self.close)
+
+    @Slot()
+    def close(self):
+        QCoreApplication.exit()
+
 
     def create_tray_icon(self):
         self._tray_icon_menu = QMenu(self)
