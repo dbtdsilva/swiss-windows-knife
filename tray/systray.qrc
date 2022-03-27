@@ -1,9 +1,0 @@
-<!DOCTYPE RCC>
-<RCC version="1.0">
-   <qresource prefix="/">
-      <file>images/eye-solid.svg</file>
-      <file>images/eye-slash-solid.svg</file>
-      <file>images/eye-fill.svg</file>
-      <file>images/eye-slash-fill.svg</file>
-   </qresource>
-</RCC>
