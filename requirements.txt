@@ -3,3 +3,4 @@ wmi
 pyinstaller
 monitorcontrol
 pyside6
+astral

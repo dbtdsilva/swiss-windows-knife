@@ -1,7 +1,8 @@
-from cx_Freeze import setup, Executable
+import cx_Freeze
 import os
 import sys
 
+# So we can access app_info.py
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
 def build_resources():
@@ -19,17 +20,22 @@ def build_resources():
         exit(1)
 
 def build_exe():
-    build_options = {'packages': [], 'excludes': [], 'include_files': []}
+    sys.argv = sys.argv[:1] + ['build']
+
+    icon_path = os.path.join("icons", 'eye-fill.ico')
 
     executables = [
-        Executable(
+        cx_Freeze.Executable(
             os.path.join(os.path.dirname(__file__), "src", "main.py"), 
-            targetName="tray.exe",
+            target_name="main.exe",
+            icon=icon_path,
             base='Win32GUI')
     ]
-
-    setup(name='tray',
-        version = '1.0',
+    
+    build_options = {'packages': [], 'excludes': [], 'include_files': [ icon_path ]}
+    cx_Freeze.setup(
+        name='tray',
+        version = '1.0.0',
         description = '',
         options = {'build_exe': build_options},
         executables = executables)
