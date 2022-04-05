@@ -8,7 +8,7 @@ from device_listener import DeviceListener
 from controllable_data import ControllableData
 from tray_window import TrayWindow
 from pysolar import solar, radiation
-from datetime import datetime, timezone
+from datetime import datetime
 
 import resources
 import monitorcontrol
