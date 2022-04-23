@@ -1,6 +1,6 @@
 pywin32
 wmi
-pyinstaller
+cx_freeze
 monitorcontrol
 pyside6
-astral
+pysolar
