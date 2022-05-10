@@ -1,7 +1,6 @@
 <!DOCTYPE RCC>
 <RCC version="1.0">
    <qresource prefix="/">
-      <file>icons/eye-fill.svg</file>
-      <file>icons/eye-slash-fill.svg</file>
+      <file>icons/eye-fill.ico</file>
    </qresource>
 </RCC>

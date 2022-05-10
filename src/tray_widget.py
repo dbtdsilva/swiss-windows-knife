@@ -1,12 +1,12 @@
 from datetime import datetime
+from time import time
 from typing import Optional
 from PySide6.QtCore import Slot, QCoreApplication, QTimer
-from PySide6.QtGui import QAction, QPixmap, QPainter
+from PySide6.QtGui import QAction, QPixmap, QIcon
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon, QWidget
 
 from device_listener import DeviceListener
 from controllable_data import ControllableData
-from tray_window import TrayWindow
 from pysolar import solar, radiation
 from datetime import datetime
 
@@ -14,12 +14,15 @@ import resources
 import monitorcontrol
 import logging
 import pytz
+import time
 
 class TrayWidget(QWidget):
     logger = logging.getLogger(__name__)
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent=parent)
+
+        self.last_process = 0
 
         self.controllable_data = ControllableData()
         self.device_listener = DeviceListener(self)
@@ -33,23 +36,20 @@ class TrayWidget(QWidget):
         tray_icon_menu.addAction(quit_action)
 
         self._tray_icon = QSystemTrayIcon(self)
-        self.set_tray_icon(False)
         self._tray_icon.setContextMenu(tray_icon_menu)
         self._tray_icon.setToolTip("System Listener")
-        self._tray_icon.activated.connect(self.icon_activated)
-
-        self._tray_window = TrayWindow()
-        self._tray_window.visibleChanged.connect(self.set_tray_icon)
+        self._tray_icon.setIcon(QIcon(":/icons/eye-fill.ico"))
         self._tray_icon.show()
 
         self.timer = QTimer()
-        self.timer.timeout.connect(self.periodic_timeout)
+        self.timer.timeout.connect(self.update_monitor_settings)
         self.timer.start(1000 * 60)
         self.logger.info("Widget started with success")
+        self.update_monitor_settings()
 
-    def periodic_timeout(self):
+    def update_monitor_settings(self):
         request = datetime.now().astimezone(pytz.timezone('Europe/Zurich'))
-        altitude = solar.get_altitude(46.521410, 6.632273, request) + 10
+        altitude = solar.get_altitude(46.521410, 6.632273, request) + 5
         power = radiation.get_radiation_direct(request, altitude)
 
         # Apply functions based on the location and sun strenght
@@ -72,36 +72,23 @@ class TrayWidget(QWidget):
         except (ValueError, monitorcontrol.VCPError) as e:
             self.logger.warn(f"Exception was caught while changing brightness / contrast: {e}")
 
-    @Slot(str)
-    def icon_activated(self, reason):
-        if reason == QSystemTrayIcon.Trigger:
-            self._tray_window.show()
-
     @Slot()
     def close(self):
         QCoreApplication.exit()
 
-    @Slot(bool)
-    def set_tray_icon(self, enabled):
-        if enabled:
-            pixmap = QPixmap(":/icons/eye-fill.svg")
-        else:
-            pixmap = QPixmap(":/icons/eye-slash-fill.svg")
-        painter = QPainter(pixmap)
-        painter.setCompositionMode(QPainter.CompositionMode_SourceIn)
-        painter.fillRect(pixmap.rect(), 'white')
-        painter.end()
-
-        self._tray_icon.setIcon(pixmap)
-
     @Slot(bool, str)
     def device_changed(self, connected, usb):
-        for monitor in monitorcontrol.get_monitors():
+        current_time = time.time()
+        if current_time - self.last_process < 1.0:
+            return
+
+        self.last_process = time.time()
+        for i, monitor in enumerate(monitorcontrol.get_monitors()):
             with monitor:
                 if connected:
-                    self.logger.info(f"Changing input source to {self.controllable_data.input_on_connect}")
+                    self.logger.info(f"Changing monitor {i} input source to {self.controllable_data.input_on_connect}")
                     monitor.set_input_source(self.controllable_data.input_on_connect)
                 else:
-                    self.logger.info(f"Changing input source to {self.controllable_data.input_on_disconnect}")
+                    self.logger.info(f"Changing monitor {i} input source to {self.controllable_data.input_on_disconnect}")
                     monitor.set_input_source(self.controllable_data.input_on_disconnect)
 

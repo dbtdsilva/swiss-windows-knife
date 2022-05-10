@@ -4,3 +4,4 @@ cx_freeze
 monitorcontrol
 pyside6
 pysolar
+cx_Freeze
