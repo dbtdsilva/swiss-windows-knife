@@ -10,6 +10,8 @@ from pathlib import Path
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 BASE_DIR = Path(__file__).parent.absolute()
 
+from app_info import APP_INFO
+
 TO_DELETE = [
     "lib/PySide6/Qt6DRender.pyd",
     "lib/PySide6/Qt63DRender.dll",
@@ -32,7 +34,6 @@ TO_DELETE = [
     "lib/aiohttp/_http_parser.c",
     "lib/aiohttp/_http_writer.c",
     "lib/aiohttp/_websocket.c",
-    # Improve this to work with different versions.
     "lib/aiohttp/python39.dll",
     "lib/lazy_object_proxy/python39.dll",
     "lib/lxml/python39.dll",
@@ -120,7 +121,7 @@ def build_exe():
     executables = [
         cx_Freeze.Executable(
             os.path.join(os.path.dirname(__file__), "src", "main.py"), 
-            target_name="main.exe",
+            target_name=APP_INFO.APP_NAME + ".exe",
             icon=icon_path,
             base='Win32GUI')
     ]
@@ -130,7 +131,6 @@ def build_exe():
         'packages': [], 
         'excludes': ["tkinter", "unittest", "email", "http", "xml", "pydoc"],
         'include_files': [ icon_path ],
-        
         'optimize': 2
     }
 
@@ -144,13 +144,13 @@ def build_exe():
         )
 
 def build_win_install():
-    from app_info import APP_INFO
     cmd = '"C:\Program Files (x86)\Inno Setup 6\ISCC.exe"' +\
               ' /DMyAppVersion="{}"'.format(_get_ver_string()) +\
               ' /DMyAppName="{}"'.format(APP_INFO.APP_NAME) +\
               ' /DMyAppPublisher="{}"'.format(APP_INFO.APP_PUBLISHER) +\
               ' /DMyAppURL="{}"'.format(APP_INFO.APP_URL) +\
               ' /DMyAppExeName="{}"'.format(APP_INFO.APP_NAME + ".exe") +\
+              ' /Obuild\installer' +\
               ' inno_setup.iss'
     print(cmd)
 

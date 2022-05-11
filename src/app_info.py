@@ -9,22 +9,20 @@ _AppInfo = namedtuple("AppInfo", [
     'APP_VERSION'
 ])
 
-
 _VerInfo = namedtuple("VerInfo", [
     "Major",
     "Minor",
     "Revision"
 ])
 
-
 APP_INFO = _AppInfo(
-    APP_NAME="Some App",
-    APP_AUTHOR="Some Author",
-    APP_PUBLISHER="Some Publisher",
-    APP_URL="http://",
+    APP_NAME="MonitorControllerKVM",
+    APP_AUTHOR="Diogo Silva",
+    APP_PUBLISHER="Diogo Silva",
+    APP_URL="https://dsilva.pt",
     APP_VERSION=_VerInfo(
         Major=1,
-        Minor=2,
-        Revision=3
+        Minor=0,
+        Revision=0
     )
 )

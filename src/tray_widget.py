@@ -16,6 +16,8 @@ import logging
 import pytz
 import time
 
+from app_info import APP_INFO
+
 class TrayWidget(QWidget):
     logger = logging.getLogger(__name__)
 
@@ -37,7 +39,7 @@ class TrayWidget(QWidget):
 
         self._tray_icon = QSystemTrayIcon(self)
         self._tray_icon.setContextMenu(tray_icon_menu)
-        self._tray_icon.setToolTip("System Listener")
+        self._tray_icon.setToolTip(APP_INFO.APP_NAME)
         self._tray_icon.setIcon(QIcon(":/icons/eye-fill.ico"))
         self._tray_icon.show()
 
@@ -61,14 +63,14 @@ class TrayWidget(QWidget):
 
         # Change respective settings on the monitor through DDC/CI
         try:
-            for monitor in monitorcontrol.get_monitors():
+            for i, monitor in enumerate(monitorcontrol.get_monitors()):
                 with monitor:
                     if monitor.get_luminance() != brightness:
                         monitor.set_luminance(brightness)
-                        self.logger.info(f"Setting brightness to {brightness}")
+                        self.logger.info(f"Setting brightness to {brightness} on monitor {i}")
                     if monitor.get_contrast() != contrast:
                         monitor.set_contrast(contrast)
-                        self.logger.info(f"Setting contrast to {contrast}")
+                        self.logger.info(f"Setting contrast to {contrast} on monitor {i}")
         except (ValueError, monitorcontrol.VCPError) as e:
             self.logger.warn(f"Exception was caught while changing brightness / contrast: {e}")
 
