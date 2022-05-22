@@ -1,9 +1,6 @@
-import sys
 from PySide6.QtWidgets import QDialog, QPlainTextEdit, QVBoxLayout, QPushButton
 import logging
 
-# Uncomment below for terminal log messages
-# logging.basicConfig(level=logging.DEBUG, format=' %(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 class QTextEditLogger(logging.Handler):
     def __init__(self, parent):

@@ -1,28 +1,25 @@
-from array import array
 from datetime import datetime
-from enum import auto
-from os import access
 from time import time
 from typing import Optional
-from xmlrpc.client import Boolean
+from functools import partial
 from PySide6.QtCore import Slot, QCoreApplication, QTimer, Signal
-from PySide6.QtGui import QAction, QPixmap, QIcon, QActionGroup
+from PySide6.QtGui import QAction, QIcon, QActionGroup
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon, QWidget
 
-from device_listener import DeviceListener
-from tray_logger import TrayLogger
-from controllable_data import ControllableData
 from pysolar import solar, radiation
 from datetime import datetime
 
-from functools import partial
-import resources
 import monitorcontrol
 import logging
 import pytz
 import time
 
+import resources
+
 from app_info import APP_INFO
+from controllable_data import ControllableData
+from device_listener import DeviceListener
+from tray_logger import TrayLogger
 
 class TrayWidget(QWidget):
     logger = logging.getLogger(__name__)
