@@ -48,37 +48,33 @@ class TrayWidget(QWidget):
                 tray_icon_menu.addMenu(sub_menu)
         return tray_icon_menu
 
-    def createBrightnessMenu(self) -> QMenu:
-        menu = QMenu('Brightness', self)
+    def createValueControlMenu(self, title, change_value_trigger, current_value) -> QMenu:
+        menu = QMenu(title, self)
         group = QActionGroup(self)
         group.setExclusive(True)
 
         automatic_action = QAction('Automatic', self)
         automatic_action.setCheckable(True)
-        automatic_action.triggered.connect(lambda: self.set_brightness(None))
-        if self.controllable_data.brightness is None:
+        automatic_action.triggered.connect(lambda: change_value_trigger(None))
+        if current_value is None:
             automatic_action.setChecked(True)
         group.addAction(automatic_action)
         menu.addAction(automatic_action)
         menu.addSeparator()
-        for brightness in range(0, 101, 10):
-            brightness_action = QAction(str(brightness), self)
+        for value_entry in range(0, 101, 10):
+            brightness_action = QAction(str(value_entry), self)
             brightness_action.setCheckable(True)
-            brightness_action.triggered.connect(partial(lambda val: self.set_brightness(val), val=brightness))
-            if brightness == self.controllable_data.brightness:
+            brightness_action.triggered.connect(partial(lambda val: change_value_trigger(val), val=value_entry))
+            if value_entry == current_value:
                 brightness_action.setChecked(True)
             group.addAction(brightness_action)
             menu.addAction(brightness_action)
         return menu
-
-    def createContrastMenu(self) -> QMenu:
-        menu = QMenu('Contrast', self)
-        return menu
     
     def createMainMenu(self) -> QMenu:
         menu = QMenu(self)
-        menu.addMenu(self.createBrightnessMenu())
-        menu.addMenu(self.createContrastMenu())
+        menu.addMenu(self.createValueControlMenu('Brightness', self.set_brightness, self.controllable_data.brightness))
+        menu.addMenu(self.createValueControlMenu('Contrast', self.set_contrast, self.controllable_data.contrast))
         menu.addSeparator()
         
         logs_action = QAction('View logs', self)
