@@ -10,6 +10,7 @@ from PySide6.QtGui import QAction, QPixmap, QIcon, QActionGroup
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon, QWidget
 
 from device_listener import DeviceListener
+from tray_logger import TrayLogger
 from controllable_data import ControllableData
 from pysolar import solar, radiation
 from datetime import datetime
@@ -78,15 +79,19 @@ class TrayWidget(QWidget):
         menu.addSeparator()
         
         logs_action = QAction('View logs', self)
+        logs_action.triggered.connect(self.open_logs_window)
         menu.addAction(logs_action)
         menu.addSeparator()
         quit_action = QAction('Quit', self)
+        quit_action.triggered.connect(self.close)
         menu.addAction(quit_action)
         return menu
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent=parent)
         self.last_process = 0
+        self.logger_window = TrayLogger(self)
+        self.logger_window.hide()
 
         self.controllable_data = ControllableData()
         self.device_listener = DeviceListener(self)
@@ -142,20 +147,27 @@ class TrayWidget(QWidget):
     def close(self):
         QCoreApplication.exit()
 
+    @Slot()
+    def open_logs_window(self):
+        self.logger_window.show()
+
     def set_brightness(self, brightness):
-        print(brightness)
         self.controllable_data.brightness = brightness
         if brightness is not None:
+            self.logger.info(f"Setting brightness to manual with {brightness}")
             self.change_monitor_brightness(brightness=brightness)
         else:
+            self.logger.info("Setting brightness to automatic mode")
             self.change_monitor_automatic()
 
     @Slot(int)
     def set_contrast(self, contrast):
         self.controllable_data.contrast = contrast
         if contrast is not None:
+            self.logger.info(f"Setting contrast to manual with {contrast}")
             self.change_monitor_contrast(contrast=contrast)
         else:
+            self.logger.info("Setting contrast to automatic mode")
             self.change_monitor_automatic()
 
     @Slot(bool, str)
