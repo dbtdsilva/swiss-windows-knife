@@ -1,8 +1,12 @@
+from array import array
 from datetime import datetime
+from enum import auto
+from os import access
 from time import time
 from typing import Optional
-from PySide6.QtCore import Slot, QCoreApplication, QTimer
-from PySide6.QtGui import QAction, QPixmap, QIcon
+from xmlrpc.client import Boolean
+from PySide6.QtCore import Slot, QCoreApplication, QTimer, Signal
+from PySide6.QtGui import QAction, QPixmap, QIcon, QActionGroup
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon, QWidget
 
 from device_listener import DeviceListener
@@ -10,6 +14,7 @@ from controllable_data import ControllableData
 from pysolar import solar, radiation
 from datetime import datetime
 
+from functools import partial
 import resources
 import monitorcontrol
 import logging
@@ -20,47 +25,102 @@ from app_info import APP_INFO
 
 class TrayWidget(QWidget):
     logger = logging.getLogger(__name__)
+    brightness_change = Signal(int)
+    contrast_change = Signal(int)
+
+    def createMenu(self, menu) -> QMenu:
+        tray_icon_menu = QMenu(self)
+        
+        group = QActionGroup(self)
+        group.setExclusive(True)
+        for title, trigger, checkable in menu:
+            if title is None:
+                tray_icon_menu.addSeparator()
+            elif type(trigger) is not list:
+                action = QAction(title, self)
+                action.triggered.connect(trigger)
+                action.setCheckable(checkable)
+                group.addAction(action)
+                tray_icon_menu.addAction(action)
+            else:
+                sub_menu = self.createMenu(trigger)
+                sub_menu.setTitle(title)
+                tray_icon_menu.addMenu(sub_menu)
+        return tray_icon_menu
+
+    def createBrightnessMenu(self) -> QMenu:
+        menu = QMenu('Brightness', self)
+        group = QActionGroup(self)
+        group.setExclusive(True)
+
+        automatic_action = QAction('Automatic', self)
+        automatic_action.setCheckable(True)
+        automatic_action.triggered.connect(lambda: self.set_brightness(None))
+        if self.controllable_data.brightness is None:
+            automatic_action.setChecked(True)
+        group.addAction(automatic_action)
+        menu.addAction(automatic_action)
+        menu.addSeparator()
+        for brightness in range(0, 101, 10):
+            brightness_action = QAction(str(brightness), self)
+            brightness_action.setCheckable(True)
+            brightness_action.triggered.connect(partial(lambda val: self.set_brightness(val), val=brightness))
+            if brightness == self.controllable_data.brightness:
+                brightness_action.setChecked(True)
+            group.addAction(brightness_action)
+            menu.addAction(brightness_action)
+        return menu
+
+    def createContrastMenu(self) -> QMenu:
+        menu = QMenu('Contrast', self)
+        return menu
+    
+    def createMainMenu(self) -> QMenu:
+        menu = QMenu(self)
+        menu.addMenu(self.createBrightnessMenu())
+        menu.addMenu(self.createContrastMenu())
+        menu.addSeparator()
+        
+        logs_action = QAction('View logs', self)
+        menu.addAction(logs_action)
+        menu.addSeparator()
+        quit_action = QAction('Quit', self)
+        menu.addAction(quit_action)
+        return menu
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent=parent)
-
         self.last_process = 0
 
         self.controllable_data = ControllableData()
         self.device_listener = DeviceListener(self)
         self.device_listener.change_detected.connect(self.device_changed)
 
-        tray_icon_menu = QMenu(self)
-        tray_icon_menu.addSeparator()
-
-        quit_action = QAction("Quit", self)
-        quit_action.triggered.connect(self.close)
-        tray_icon_menu.addAction(quit_action)
-
         self._tray_icon = QSystemTrayIcon(self)
-        self._tray_icon.setContextMenu(tray_icon_menu)
+        self._tray_icon.setContextMenu(self.createMainMenu())
         self._tray_icon.setToolTip(APP_INFO.APP_NAME)
         self._tray_icon.setIcon(QIcon(":/icons/eye-fill.ico"))
         self._tray_icon.show()
 
         self.timer = QTimer()
-        self.timer.timeout.connect(self.update_monitor_settings)
+        self.timer.timeout.connect(self.change_monitor_automatic)
         self.timer.start(1000 * 60)
         self.logger.info("Widget started with success")
-        self.update_monitor_settings()
+        self.change_monitor_automatic()
 
-    def update_monitor_settings(self):
+    def change_monitor_automatic(self):
         request = datetime.now().astimezone(pytz.timezone('Europe/Zurich'))
         altitude = solar.get_altitude(46.521410, 6.632273, request) + 5
         power = radiation.get_radiation_direct(request, altitude)
 
         # Apply functions based on the location and sun strenght
         current_value = int(power / 6.0) if power < 600 else int(100)
-        brightness = current_value if self.controllable_data.brightness is None \
-                else self.controllable_data.brightness
-        contrast = current_value if self.controllable_data.contrast is None \
-                else self.controllable_data.contrast        
+        if self.controllable_data.brightness is None:
+            self.change_monitor_brightness(current_value)
+        if self.controllable_data.contrast is None:
+            self.change_monitor_contrast(current_value)
 
+    def change_monitor_brightness(self, brightness):
         # Change respective settings on the monitor through DDC/CI
         try:
             for i, monitor in enumerate(monitorcontrol.get_monitors()):
@@ -68,15 +128,39 @@ class TrayWidget(QWidget):
                     if monitor.get_luminance() != brightness:
                         monitor.set_luminance(brightness)
                         self.logger.info(f"Setting brightness to {brightness} on monitor {i}")
+        except (ValueError, monitorcontrol.VCPError) as e:
+            self.logger.warn(f"Exception was caught while changing brightness: {e}")
+    
+    def change_monitor_contrast(self, contrast):
+        # Change respective settings on the monitor through DDC/CI
+        try:
+            for i, monitor in enumerate(monitorcontrol.get_monitors()):
+                with monitor:
                     if monitor.get_contrast() != contrast:
                         monitor.set_contrast(contrast)
                         self.logger.info(f"Setting contrast to {contrast} on monitor {i}")
         except (ValueError, monitorcontrol.VCPError) as e:
-            self.logger.warn(f"Exception was caught while changing brightness / contrast: {e}")
+            self.logger.warn(f"Exception was caught while changing contrast: {e}")
 
     @Slot()
     def close(self):
         QCoreApplication.exit()
+
+    def set_brightness(self, brightness):
+        print(brightness)
+        self.controllable_data.brightness = brightness
+        if brightness is not None:
+            self.change_monitor_brightness(brightness=brightness)
+        else:
+            self.change_monitor_automatic()
+
+    @Slot(int)
+    def set_contrast(self, contrast):
+        self.controllable_data.contrast = contrast
+        if contrast is not None:
+            self.change_monitor_contrast(contrast=contrast)
+        else:
+            self.change_monitor_automatic()
 
     @Slot(bool, str)
     def device_changed(self, connected, usb):
