@@ -63,19 +63,35 @@ class TrayWidget(QWidget):
         menu.addAction(automatic_action)
         menu.addSeparator()
         for value_entry in range(0, 101, 10):
-            brightness_action = QAction(str(value_entry), self)
-            brightness_action.setCheckable(True)
-            brightness_action.triggered.connect(partial(lambda val: change_value_trigger(val), val=value_entry))
+            action = QAction(str(value_entry), self)
+            action.setCheckable(True)
+            action.triggered.connect(partial(lambda val: change_value_trigger(val), val=value_entry))
             if value_entry == current_value:
-                brightness_action.setChecked(True)
-            group.addAction(brightness_action)
-            menu.addAction(brightness_action)
+                action.setChecked(True)
+            group.addAction(action)
+            menu.addAction(action)
         return menu
-    
+
+    def createInputMenu(self, title, change_value_trigger, current_value):
+        menu = QMenu(title, self)
+        group = QActionGroup(self)
+        group.setExclusive(True)
+        for source in monitorcontrol.InputSource:
+            action = QAction(str(source), self)
+            action.setCheckable(True)
+            action.triggered.connect(partial(lambda val: change_value_trigger(val), val=source))
+            if source == current_value:
+                action.setChecked(True)
+            group.addAction(action)
+            menu.addAction(action)
+        return menu
+
     def createMainMenu(self) -> QMenu:
         menu = QMenu(self)
         menu.addMenu(self.createValueControlMenu('Brightness', self.set_brightness, self.controllable_data.brightness))
         menu.addMenu(self.createValueControlMenu('Contrast', self.set_contrast, self.controllable_data.contrast))
+        menu.addMenu(self.createInputMenu('Input on connect', self.change_input_source_on_connect, self.controllable_data.input_on_connect))
+        menu.addMenu(self.createInputMenu('Input on disconnect', self.change_input_source_on_disconnect, self.controllable_data.input_on_disconnect))
         menu.addSeparator()
         
         logs_action = QAction('View logs', self)
@@ -109,6 +125,14 @@ class TrayWidget(QWidget):
         self.logger.info("Widget started with success")
         self.change_monitor_automatic()
 
+    def change_input_source_on_connect(self, source):
+        self.logger.info(f"Changing source on connect to {source}")
+        self.controllable_data.input_on_connect = source
+        
+    def change_input_source_on_disconnect(self, source):
+        self.logger.info(f"Changing source on disconnect to {source}")
+        self.controllable_data.input_on_disconnect = source
+        
     def change_monitor_automatic(self):
         request = datetime.now().astimezone(pytz.timezone('Europe/Zurich'))
         altitude = solar.get_altitude(46.521410, 6.632273, request) + 5
