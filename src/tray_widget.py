@@ -13,7 +13,6 @@ import monitorcontrol
 import logging
 import pytz
 import time
-from plugins.amazon_gifts import AmazonGiftPlugin
 
 import resources
 
@@ -110,7 +109,6 @@ class TrayWidget(QWidget):
         self.controllable_data = ControllableData()
         self.device_listener = DeviceListener(self)
         self.device_listener.change_detected.connect(self.device_changed)
-        self.telethon = AmazonGiftPlugin()
 
         self._tray_icon = QSystemTrayIcon(self)
         self._tray_icon.setContextMenu(self.createMainMenu())

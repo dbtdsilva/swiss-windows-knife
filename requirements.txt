@@ -5,8 +5,3 @@ monitorcontrol
 pyside6
 pysolar
 cx_Freeze
-pytz
-telethon
-chromedriver_autoinstaller
-selenium
-pytesseract

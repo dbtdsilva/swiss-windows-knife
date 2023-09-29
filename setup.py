@@ -129,7 +129,7 @@ def build_exe():
     build_options = {
         'silent': 2,
         'packages': [], 
-        'excludes': ["tkinter", "unittest", "email", "http", "xml", "pydoc"],
+        'excludes': ["tkinter", "unittest", "pydoc"],
         'include_files': [ icon_path ],
         'optimize': 2
     }
