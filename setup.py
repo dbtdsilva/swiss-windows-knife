@@ -71,7 +71,6 @@ class FinalizeCXFreezeCommand(Command):
         pass
 
     def run(self):
-        print("what")
         (BASE_DIR / "dist").mkdir(exist_ok=True)
         for path in (BASE_DIR / "build").iterdir():
             if path.name.startswith("exe.") and path.is_dir():
@@ -128,10 +127,10 @@ def build_exe():
     
     build_options = {
         'silent': 2,
-        'packages': [], 
+        'packages': ["numpy", "pysolar"], 
         'excludes': ["tkinter", "unittest", "pydoc"],
         'include_files': [ icon_path ],
-        'optimize': 2
+        'optimize': 1
     }
 
     cx_Freeze.setup(
