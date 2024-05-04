@@ -4,6 +4,7 @@ import logging
 
 from app_info import APP_INFO
 
+
 class ControllableData:
 
     logger = logging.getLogger(__name__)
@@ -12,8 +13,10 @@ class ControllableData:
         self._settings = QSettings(APP_INFO.APP_NAME, 'ControllableData')
         self.logger.info(f"ControllableData object loaded into {self._settings.fileName()}")
 
-        self._input_on_disconnect = self._settings.value('input_on_disconnect') if self._settings.contains('input_on_disconnect') else monitorcontrol.InputSource.HDMI1
-        self._input_on_connect = self._settings.value('input_on_connect') if self._settings.contains('input_on_connect') else monitorcontrol.InputSource.DP1
+        self._input_on_disconnect = self._settings.value('input_on_disconnect') \
+            if self._settings.contains('input_on_disconnect') else monitorcontrol.InputSource.HDMI1
+        self._input_on_connect = self._settings.value('input_on_connect') \
+            if self._settings.contains('input_on_connect') else monitorcontrol.InputSource.DP1
 
         self._brightness = self._settings.value('brightness') if self._settings.contains('brightness') else None
         self._contrast = self._settings.value('contrast') if self._settings.contains('contrast') else 90
@@ -49,7 +52,7 @@ class ControllableData:
     def input_on_disconnect(self, input_on_disconnect):
         self._input_on_disconnect = input_on_disconnect
         self._settings.setValue('input_on_disconnect', input_on_disconnect)
-        
+
     @property
     def input_on_connect(self):
         return self._input_on_connect

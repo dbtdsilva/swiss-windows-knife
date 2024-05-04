@@ -10,7 +10,7 @@ from pathlib import Path
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 BASE_DIR = Path(__file__).parent.absolute()
 
-from app_info import APP_INFO
+from app_info import APP_INFO  # noqa: E402
 
 TO_DELETE = [
     "lib/PySide6/Qt6DRender.pyd",
@@ -77,10 +77,7 @@ class FinalizeCXFreezeCommand(Command):
                 for cleanse_suffix in TO_DELETE:
                     cleanse_path = path / cleanse_suffix
                     shutil.rmtree(cleanse_path, ignore_errors=True)
-                    try:
-                        os.unlink(cleanse_path)
-                    except:
-                        pass
+                    os.unlink(cleanse_path)
                 for to_copy in COPY_TO_ZIP:
                     shutil.copy(BASE_DIR / to_copy, path / to_copy)
                 shutil.copytree(BASE_DIR / "addon_examples", path / "addon_examples")
@@ -96,6 +93,8 @@ def _get_ver_string():
         APP_INFO.APP_VERSION.Minor,
         APP_INFO.APP_VERSION.Revision,
     )
+
+
 def build_resources():
     QRC_FILE = 'resources.qrc'
     PY_OUTPUT = os.path.join('src', 'resources.py')
@@ -112,6 +111,7 @@ def build_resources():
     cmd_list = f"pyside6-rcc {QRC_FILE} --list-mapping"
     os.system(cmd_list)
 
+
 def build_exe():
     sys.argv = sys.argv[:1] + ['build']
 
@@ -119,51 +119,54 @@ def build_exe():
 
     executables = [
         cx_Freeze.Executable(
-            os.path.join(os.path.dirname(__file__), "src", "main.py"), 
+            os.path.join(os.path.dirname(__file__), "src", "main.py"),
             target_name=APP_INFO.APP_NAME + ".exe",
             icon=icon_path,
             base='Win32GUI')
     ]
-    
+
     build_options = {
         'silent': 2,
-        'packages': ["numpy", "pysolar"], 
+        'packages': ["numpy", "pysolar"],
         'excludes': ["tkinter", "unittest", "pydoc"],
-        'include_files': [ icon_path ],
+        'include_files': [icon_path],
         'optimize': 1
     }
 
     cx_Freeze.setup(
         name='tray',
-        version = '1.0.0',
-        description = '',
-        options = {'build_exe': build_options},
-        executables = executables,
-        #cmdclass={"finalize_cxfreeze": FinalizeCXFreezeCommand}
+        version='1.0.0',
+        description='',
+        options={'build_exe': build_options},
+        executables=executables,
+        # cmdclass={"finalize_cxfreeze": FinalizeCXFreezeCommand}
         )
 
+
 def build_win_install():
-    cmd = '"C:\Program Files (x86)\Inno Setup 6\ISCC.exe"' +\
+    cmd = '"C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe"' +\
               ' /DMyAppVersion="{}"'.format(_get_ver_string()) +\
               ' /DMyAppName="{}"'.format(APP_INFO.APP_NAME) +\
               ' /DMyAppPublisher="{}"'.format(APP_INFO.APP_PUBLISHER) +\
               ' /DMyAppURL="{}"'.format(APP_INFO.APP_URL) +\
               ' /DMyAppExeName="{}"'.format(APP_INFO.APP_NAME + ".exe") +\
-              ' /Obuild\installer' +\
+              ' /Obuild\\installer' +\
               ' inno_setup.iss'
     print(cmd)
 
     subprocess.call(cmd)
 
+
 def usage():
     import sys
     sys.stdout.write(
-"""
-Usage:
-    build resources  -  Build resources.py
-    build exe        -  Build executable using cx-Freeze.
-    build installer  -  Build windows installer using Inno Setup.
-""")
+        """
+        Usage:
+            build resources  -  Build resources.py
+            build exe        -  Build executable using cx-Freeze.
+            build installer  -  Build windows installer using Inno Setup.
+        """)
+
 
 if __name__ == '__main__':
     import sys

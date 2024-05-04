@@ -1,9 +1,10 @@
-from typing import Optional, List
+from typing import Optional
 from PySide6 import QtCore
+
 
 class BasePlugin(QtCore.QObject):
 
-    def __init__(self, depends_on = [], parent: Optional[QtCore.QObject] = None) -> None:
+    def __init__(self, depends_on=[], parent: Optional[QtCore.QObject] = None) -> None:
         super().__init__(parent)
 
         self.enabled = True

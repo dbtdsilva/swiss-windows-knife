@@ -7,19 +7,18 @@ from PySide6.QtGui import QAction, QIcon, QActionGroup
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon, QWidget
 
 from pysolar import solar, radiation
-from datetime import datetime
 
 import monitorcontrol
 import logging
 import pytz
-import time
 
-import resources
+import resources # noqa: F401,E261
 
 from app_info import APP_INFO
 from controllable_data import ControllableData
 from device_listener import DeviceListener
 from tray_logger import TrayLogger
+
 
 class TrayWidget(QWidget):
     logger = logging.getLogger(__name__)
@@ -28,7 +27,6 @@ class TrayWidget(QWidget):
 
     def createMenu(self, menu) -> QMenu:
         tray_icon_menu = QMenu(self)
-        
         group = QActionGroup(self)
         group.setExclusive(True)
         for title, trigger, checkable in menu:
@@ -85,12 +83,20 @@ class TrayWidget(QWidget):
 
     def createMainMenu(self) -> QMenu:
         menu = QMenu(self)
-        menu.addMenu(self.createValueControlMenu('Brightness', self.set_brightness, self.controllable_data.brightness))
-        menu.addMenu(self.createValueControlMenu('Contrast', self.set_contrast, self.controllable_data.contrast))
-        menu.addMenu(self.createInputMenu('Input on connect', self.change_input_source_on_connect, self.controllable_data.input_on_connect))
-        menu.addMenu(self.createInputMenu('Input on disconnect', self.change_input_source_on_disconnect, self.controllable_data.input_on_disconnect))
+        menu.addMenu(self.createValueControlMenu('Brightness',
+                                                 self.set_brightness,
+                                                 self.controllable_data.brightness))
+        menu.addMenu(self.createValueControlMenu('Contrast',
+                                                 self.set_contrast,
+                                                 self.controllable_data.contrast))
+        menu.addMenu(self.createInputMenu('Input on connect',
+                                          self.change_input_source_on_connect,
+                                          self.controllable_data.input_on_connect))
+        menu.addMenu(self.createInputMenu('Input on disconnect',
+                                          self.change_input_source_on_disconnect,
+                                          self.controllable_data.input_on_disconnect))
         menu.addSeparator()
-        
+
         logs_action = QAction('View logs', self)
         logs_action.triggered.connect(self.open_logs_window)
         menu.addAction(logs_action)
@@ -125,11 +131,11 @@ class TrayWidget(QWidget):
     def change_input_source_on_connect(self, source):
         self.logger.info(f"Changing source on connect to {source}")
         self.controllable_data.input_on_connect = source
-        
+
     def change_input_source_on_disconnect(self, source):
         self.logger.info(f"Changing source on disconnect to {source}")
         self.controllable_data.input_on_disconnect = source
-        
+
     def change_monitor_automatic(self):
         request = datetime.now().astimezone(pytz.timezone('Europe/Zurich'))
         altitude = solar.get_altitude(46.521410, 6.632273, request) + 5
@@ -152,7 +158,7 @@ class TrayWidget(QWidget):
                         self.logger.info(f"Setting brightness to {brightness} on monitor {i}")
         except (ValueError, monitorcontrol.VCPError) as e:
             self.logger.warn(f"Exception was caught while changing brightness: {e}")
-    
+
     def change_monitor_contrast(self, contrast):
         # Change respective settings on the monitor through DDC/CI
         try:
@@ -206,4 +212,3 @@ class TrayWidget(QWidget):
                 else:
                     self.logger.info(f"Changing monitor {i} input source to {self.controllable_data.input_on_disconnect}")
                     monitor.set_input_source(self.controllable_data.input_on_disconnect)
-

@@ -5,6 +5,7 @@ import pythoncom
 import wmi
 import atexit
 
+
 class DeviceListener(QtCore.QObject):
 
     change_detected = QtCore.Signal(bool, str)
@@ -31,8 +32,9 @@ class DeviceListener(QtCore.QObject):
         self.connect_listener.wait()
         self.disconnect_listener.wait()
 
+
 class _DeviceDisconnectListener(QtCore.QThread):
-    
+
     disconnect_signal = QtCore.Signal(str)
 
     def run(self):
@@ -49,8 +51,9 @@ class _DeviceDisconnectListener(QtCore.QThread):
                 pass
         pythoncom.CoUninitialize()
 
+
 class _DeviceConnectListener(QtCore.QThread):
-    
+
     connect_signal = QtCore.Signal(str)
 
     def run(self):
@@ -62,7 +65,7 @@ class _DeviceConnectListener(QtCore.QThread):
             delay_secs=1)
         while not self.isInterruptionRequested():
             try:
-                usb = watcher(500)                
+                usb = watcher(500)
                 self.connect_signal.emit((str(usb)))
             except wmi.x_wmi_timed_out:
                 pass

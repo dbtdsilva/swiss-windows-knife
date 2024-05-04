@@ -1,15 +1,13 @@
 import sys
 import signal
 
-from PySide6.QtWidgets import QApplication, QMessageBox, QSystemTrayIcon, QMainWindow
-from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QApplication, QMessageBox, QSystemTrayIcon
 from tray_widget import TrayWidget
 import logging
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     app = QApplication(sys.argv)
-    app.setAttribute(Qt.AA_UseHighDpiPixmaps)
     app.setQuitOnLastWindowClosed(False)
 
     if not QSystemTrayIcon.isSystemTrayAvailable():
