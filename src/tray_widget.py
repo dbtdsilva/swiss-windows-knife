@@ -12,6 +12,9 @@ import monitorcontrol
 import logging
 import pytz
 
+from plugins.base_plugin import BasePlugin
+from plugins.monitor_controls.monitor_controls_plugin import MonitorControlsPlugin
+from plugins.software_kvm.software_kvm_plugin import SoftwareKvmPlugin
 import resources # noqa: F401,E261
 
 from app_info import APP_INFO
@@ -81,8 +84,21 @@ class TrayWidget(QWidget):
             menu.addAction(action)
         return menu
 
+    def createPluginsMenu(self):
+        menu = QMenu('Plugins', self)
+        for plugin in self.plugins:
+            action = QAction(plugin.__class__.__name__, self)
+            action.setCheckable(True)
+            action.triggered.connect(plugin.toggle_status)
+            if plugin.is_enabled():
+                action.setChecked(True)
+            menu.addAction(action)
+        return menu
+
     def createMainMenu(self) -> QMenu:
         menu = QMenu(self)
+        menu.addMenu(self.createPluginsMenu())
+        menu.addSeparator()
         menu.addMenu(self.createValueControlMenu('Brightness',
                                                  self.set_brightness,
                                                  self.controllable_data.brightness))
@@ -111,6 +127,11 @@ class TrayWidget(QWidget):
         self.last_process = 0
         self.logger_window = TrayLogger(self)
         self.logger_window.hide()
+
+        self.plugins: list[BasePlugin] = [
+            MonitorControlsPlugin(),
+            SoftwareKvmPlugin()
+        ]
 
         self.controllable_data = ControllableData()
         self.device_listener = DeviceListener(self)

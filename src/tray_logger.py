@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QDialog, QPlainTextEdit, QVBoxLayout, QPushButton
+from PySide6.QtWidgets import QDialog, QPlainTextEdit, QVBoxLayout
 import logging
 
 
@@ -18,7 +18,8 @@ class TrayLogger(QDialog, QPlainTextEdit):
         super().__init__(parent)
 
         logger_text_box = QTextEditLogger(self)
-        logger_text_box.setFormatter(logging.Formatter("%(asctime)s %(levelname)-8s [%(thread)s %(threadName)s] %(name)s: %(message)s"))
+        logger_text_box.setFormatter(logging.Formatter(
+            "%(asctime)s %(levelname)-8s [%(thread)s %(threadName)s] %(name)s: %(message)s"))
 
         logging.getLogger().addHandler(logger_text_box)
         logging.getLogger().setLevel(logging.DEBUG)
@@ -28,4 +29,3 @@ class TrayLogger(QDialog, QPlainTextEdit):
 
         self.setLayout(layout)
         self.resize(800, 700)
-        
