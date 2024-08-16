@@ -1,11 +1,10 @@
-from typing import Optional
-from PySide6 import QtCore
+from PySide6.QtWidgets import QWidget, QMenu
 import logging
 
 
-class BasePlugin(QtCore.QObject):
+class BasePlugin(QWidget):
 
-    def __init__(self, depends_on=[], parent: Optional[QtCore.QObject] = None) -> None:
+    def __init__(self, parent: QWidget, depends_on=[]) -> None:
         super().__init__(parent)
         self.logger = logging.getLogger(__name__)
 
@@ -18,3 +17,6 @@ class BasePlugin(QtCore.QObject):
 
     def is_enabled(self):
         return all(plugin.is_enabled() for plugin in self.depends_on) and self.enabled
+
+    def retrieve_menus(self) -> list[QMenu]:
+        return []

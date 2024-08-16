@@ -32,6 +32,7 @@ class ControllableData:
 
     @brightness.setter
     def brightness(self, brightness):
+        self.logger.info(f'Setting brightness to {brightness}')
         self._brightness = brightness
         self._settings.setValue('brightness', brightness)
 
@@ -41,6 +42,7 @@ class ControllableData:
 
     @contrast.setter
     def contrast(self, contrast):
+        self.logger.info(f'Setting contrast to {contrast}')
         self._contrast = contrast
         self._settings.setValue('contrast', contrast)
 

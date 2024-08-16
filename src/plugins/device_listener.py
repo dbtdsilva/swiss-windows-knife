@@ -1,16 +1,17 @@
-
-from typing import Optional
 from PySide6 import QtCore
+from PySide6.QtWidgets import QWidget
 import pythoncom
 import wmi
 import atexit
 
+from plugins.base_plugin import BasePlugin
 
-class DeviceListener(QtCore.QObject):
+
+class DeviceListener(BasePlugin):
 
     change_detected = QtCore.Signal(bool, str)
 
-    def __init__(self, parent: Optional[QtCore.QObject] = None) -> None:
+    def __init__(self, parent: QWidget) -> None:
         super().__init__(parent)
         self.connect_listener = _DeviceConnectListener(parent=self)
         self.connect_listener.start()
