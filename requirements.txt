@@ -1,8 +1,8 @@
-pywin32
-wmi
-cx_freeze
-monitorcontrol
-pyside6
-pysolar
-cx_Freeze
-pytz
+cx_Freeze==6.15.9
+monitorcontrol==3.1.0
+pyside6==6.6.0
+pysolar==0.11
+pytz==2023.3.post1
+python-semantic-release==9.8.7
+pywin32==306
+wmi==1.5.1

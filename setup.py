@@ -82,7 +82,7 @@ class FinalizeCXFreezeCommand(Command):
                     shutil.copy(BASE_DIR / to_copy, path / to_copy)
                 shutil.copytree(BASE_DIR / "addon_examples", path / "addon_examples")
                 zip_path = BASE_DIR / "dist" / path.name
-                shutil.make_archive(zip_path, "zip", path)
+                shutil.make_archive(str(zip_path), "zip", path)
 
 
 def _get_ver_string():
