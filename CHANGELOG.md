@@ -1,5 +1,5 @@
 # CHANGELOG
-## v0.1.0 (2024-08-20)
+## v1.1.0 (2024-08-20)
 ### Feature
 * feat: publish workflow, modified repo for now ([`6118858`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/611885894ceecdd7f21950d0958eecf393779c1f))
 * feat: added workflow to generate executable ([`acbe08a`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/acbe08a158f0a5e243b400fbdcfea12067db6508))
@@ -13,6 +13,8 @@
 * Small fixup in the installer ([`76bb839`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/76bb8393ae053b2833c31350ace0eb2226592440))
 * Removed plugin for amazon coupons ([`d47c200`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/d47c2004fdcaae7343ab1bd49ab7363da176b281))
 * Added plugin for amazon coupons ([`b3d0eec`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/b3d0eec68c5daa13b071dec60c92d6e04ecd47fc))
+## v1.0.0 (2022-05-22)
+### Unknown
 * Removed unused libs ([`9c50ee9`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/9c50ee9a8cbbf630a92861b47a2e19f9c10055f2))
 * Add menu to change input source ([`a09ed64`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/a09ed64f8294735d2e8a230b286836e12556a0b5))
 * Added logger window ([`e4e78e6`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/e4e78e6b1be268d0f1a7a43bcea6b1f0ea25d312))
