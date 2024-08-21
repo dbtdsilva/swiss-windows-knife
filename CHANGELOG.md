@@ -1,5 +1,17 @@
 # CHANGELOG
+## v1.2.0 (2024-08-21)
+### Feature
+* feat: added support for automatic semantic release tag ([`becc698`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/becc698727aac2fa420bb67f8c4a2a3929e4519e))
+* feat: added support for semantic release ([`899d1a1`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/899d1a1bc6eeb91e59006d03b98d0a6e15ddfe23))
+### Fix
+* fix: added semantic release in linux and publish in windows ([`ebdcc39`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/ebdcc393ef9ea5a066d00aed522cdc4d55520cff))
+* fix: changed container from linux to windows to generate installer ([`6926457`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/692645774346067725d5c324bbd84181a1cca1bb))
+* fix: dependencies conflict ([`6f5f068`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/6f5f06810a4a67f0c9f770f7dc2393ac44c879ca))
+* fix: pyproject.toml references to main instead of master ([`e085d0e`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/e085d0e6b6df914d052fe77db39680606017ddaf))
+### Unknown
+* chores: updated all dependencies ([`3f40e2d`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/3f40e2d1a45ca3eb5462b4ebf66d4e27bf613f14))
 ## v1.1.0 (2024-08-20)
+## v0.1.0 (2024-08-20)
 ### Feature
 * feat: publish workflow, modified repo for now ([`6118858`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/611885894ceecdd7f21950d0958eecf393779c1f))
 * feat: added workflow to generate executable ([`acbe08a`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/acbe08a158f0a5e243b400fbdcfea12067db6508))
