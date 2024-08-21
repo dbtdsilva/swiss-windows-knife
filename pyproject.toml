@@ -5,8 +5,8 @@ logging_use_named_masks = false
 tag_format = "{version}"
 assets = "build/installer/*.exe"
 
-[tool.semantic_release.branches.master]
-match = "master"
+[tool.semantic_release.branches.main]
+match = "main"
 prerelease_token = "rc"
 prerelease = false
 
