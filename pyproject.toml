@@ -3,7 +3,6 @@ commit_message = "chore: added changelog for {version}\n\nAutomatically generate
 commit_parser = "angular"
 logging_use_named_masks = false
 tag_format = "{version}"
-assets = "build/installer/*.exe"
 
 [tool.semantic_release.branches.main]
 match = "main"
