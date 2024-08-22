@@ -1,4 +1,7 @@
 # CHANGELOG
+## v1.2.1 (2024-08-22)
+### Fix
+* fix: version is now updated everywhere automatically, inclusively on the generated installer ([`51932a1`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/51932a19644327d3a796ed7074c322f2d09305e6))
 ## v1.2.0 (2024-08-21)
 ### Feature
 * feat: added support for automatic semantic release tag ([`becc698`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/becc698727aac2fa420bb67f8c4a2a3929e4519e))
@@ -11,7 +14,6 @@
 ### Unknown
 * chores: updated all dependencies ([`3f40e2d`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/3f40e2d1a45ca3eb5462b4ebf66d4e27bf613f14))
 ## v1.1.0 (2024-08-20)
-## v0.1.0 (2024-08-20)
 ### Feature
 * feat: publish workflow, modified repo for now ([`6118858`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/611885894ceecdd7f21950d0958eecf393779c1f))
 * feat: added workflow to generate executable ([`acbe08a`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/acbe08a158f0a5e243b400fbdcfea12067db6508))
