@@ -17,7 +17,7 @@ DisableProgramGroupPage=yes
 ; Uncomment the following line to run in non administrative install mode (install for current user only.)
 ;PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
-OutputBaseFilename={#MyAppName}_setup_{#MyAppVersion}
+OutputBaseFilename={#MyAppName}-{#MyAppVersion}-win64
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern

@@ -85,16 +85,6 @@ class FinalizeCXFreezeCommand(Command):
                 shutil.make_archive(str(zip_path), "zip", path)
 
 
-def _get_ver_string():
-    from app_info import APP_INFO
-
-    return "{}.{}.{}".format(
-        APP_INFO.APP_VERSION.Major,
-        APP_INFO.APP_VERSION.Minor,
-        APP_INFO.APP_VERSION.Revision,
-    )
-
-
 def build_resources():
     QRC_FILE = 'resources.qrc'
     PY_OUTPUT = os.path.join('src', 'resources.py')
@@ -135,7 +125,7 @@ def build_exe():
 
     cx_Freeze.setup(
         name='tray',
-        version='1.0.0',
+        version=APP_INFO.APP_VERSION,
         description='',
         options={'build_exe': build_options},
         executables=executables,
@@ -145,7 +135,7 @@ def build_exe():
 
 def build_win_install():
     cmd = '"C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe"' +\
-              ' /DMyAppVersion="{}"'.format(_get_ver_string()) +\
+              ' /DMyAppVersion="{}"'.format(APP_INFO.APP_VERSION) +\
               ' /DMyAppName="{}"'.format(APP_INFO.APP_NAME) +\
               ' /DMyAppPublisher="{}"'.format(APP_INFO.APP_PUBLISHER) +\
               ' /DMyAppURL="{}"'.format(APP_INFO.APP_URL) +\
