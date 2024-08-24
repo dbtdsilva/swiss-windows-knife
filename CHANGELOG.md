@@ -1,4 +1,7 @@
 # CHANGELOG
+## v1.3.2 (2024-08-24)
+### Fix
+* fix: added missing dependency ([`1746d57`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/1746d572ab7e2d9169962a0b9da162a7200021ac))
 ## v1.3.1 (2024-08-24)
 ### Fix
 * fix: only release if the build and test was sucessful ([`1a63338`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/1a633385db453e0c34e773badc716acbd1cb05b7))
