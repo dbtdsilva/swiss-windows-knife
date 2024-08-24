@@ -1,4 +1,8 @@
 # CHANGELOG
+## v1.3.1 (2024-08-24)
+### Fix
+* fix: only release if the build and test was sucessful ([`1a63338`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/1a633385db453e0c34e773badc716acbd1cb05b7))
+* fix: Some unecessary complicated logic and linter issues ([`9d0293d`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/9d0293d688b15c435cb7e2272ab9513c1d9b5dd3))
 ## v1.3.0 (2024-08-24)
 ### Chore
 * chore: minor tweak on the namings and messages ([`ce1bb30`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/ce1bb306146ab0410e14afe51e04f9a740e1789d))
