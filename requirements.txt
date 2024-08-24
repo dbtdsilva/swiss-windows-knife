@@ -5,3 +5,4 @@ pysolar==0.11
 pytz==2024.1
 pywin32==306
 wmi==1.5.1
+requests==2.32.3
