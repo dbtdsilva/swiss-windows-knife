@@ -5,6 +5,7 @@ from PySide6.QtWidgets import QMenu, QSystemTrayIcon, QWidget, QMessageBox
 
 import logging
 
+from components.update_checker import UpdateChecker
 from plugins.base_plugin import BasePlugin
 from plugins.image_tuner_plugin import ImageTunerPlugin
 from plugins.device_display_mapper_plugin import DeviceDisplayMapperPlugin
@@ -33,6 +34,7 @@ class TrayWidget(QWidget):
         self.plugins: list[BasePlugin] = [
             ImageTunerPlugin(self, SunStrenghtPlugin(self)),
             DeviceDisplayMapperPlugin(self, DeviceListener(self)),
+            UpdateChecker(self)
         ]
 
         self._tray_icon = QSystemTrayIcon(self)

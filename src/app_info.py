@@ -15,6 +15,6 @@ APP_INFO = _AppInfo(
     APP_NAME="MonitorControllerKVM",
     APP_AUTHOR="Diogo Silva",
     APP_PUBLISHER="Diogo Silva",
-    APP_URL="https://dsilva.pt",
+    APP_URL="https://github.com/dbtdsilva/monitor-controller-kvm",
     APP_VERSION=__version__
 )
