@@ -6,7 +6,7 @@ from PySide6.QtGui import QAction, QActionGroup
 from PySide6.QtWidgets import QMenu, QWidget
 from PySide6.QtCore import Slot
 
-from plugins.controllable_data import ControllableData
+from components.user_settings import UserSettings
 from plugins.device_listener import DeviceListener
 
 import monitorcontrol
@@ -17,7 +17,15 @@ class DeviceDisplayMapperPlugin(BasePlugin):
     def __init__(self, parent: QWidget, device_listener: DeviceListener) -> None:
         super().__init__(parent)
 
-        self.controllable_data = ControllableData()
+        self.user_settings = UserSettings()
+        if not self.user_settings.has_key('input_on_disconnect'):
+            self.user_settings.set('input_on_disconnect', monitorcontrol.InputSource.HDMI1)
+        if not self.user_settings.has_key('input_on_connect'):
+            self.user_settings.set('input_on_connect', monitorcontrol.InputSource.DP1)
+
+        self.logger.info(f"Starting with the 'input_on_connect' set to {self.user_settings.get('input_on_connect')}")
+        self.logger.info(f"Starting with the 'input_on_disconnect' set to {self.user_settings.get('input_on_disconnect')}")
+
         self.last_process = 0
         device_listener.change_detected.connect(self.device_changed)
 
@@ -25,12 +33,12 @@ class DeviceDisplayMapperPlugin(BasePlugin):
         return [
             self.createInputMenu('Input on connect',
                                  self.change_input_source_on_connect,
-                                 self.controllable_data.input_on_connect),
+                                 'input_on_connect'),
             self.createInputMenu('Input on disconnect',
                                  self.change_input_source_on_disconnect,
-                                 self.controllable_data.input_on_disconnect)]
+                                 'input_on_disconnect')]
 
-    def createInputMenu(self, title, change_value_trigger, current_value):
+    def createInputMenu(self, title, change_value_trigger, key):
         menu = QMenu(title, self)
         group = QActionGroup(self)
         group.setExclusive(True)
@@ -38,17 +46,17 @@ class DeviceDisplayMapperPlugin(BasePlugin):
             action = QAction(str(source), self)
             action.setCheckable(True)
             action.triggered.connect(partial(lambda val: change_value_trigger(val), val=source))
-            if source == current_value:
+            if source == self.user_settings.get(key):
                 action.setChecked(True)
             group.addAction(action)
             menu.addAction(action)
         return menu
 
     def change_input_source_on_connect(self, source):
-        self.controllable_data.input_on_connect = source
+        self.user_settings.set('input_on_connect', source)
 
     def change_input_source_on_disconnect(self, source):
-        self.controllable_data.input_on_disconnect = source
+        self.user_settings.set('input_on_disconnect', source)
 
     @Slot(bool, str)
     def device_changed(self, connected, usb):
@@ -60,8 +68,10 @@ class DeviceDisplayMapperPlugin(BasePlugin):
         for i, monitor in enumerate(monitorcontrol.get_monitors()):
             with monitor:
                 if connected:
-                    self.logger.info(f"Changing monitor {i} input source to {self.controllable_data.input_on_connect}")
-                    monitor.set_input_source(self.controllable_data.input_on_connect)  # type: ignore
+                    input_source = self.user_settings.get('input_on_connect')
+                    monitor.set_input_source(input_source)  # type: ignore
+                    self.logger.info(f"Changing monitor {i} input source to {input_source}")
                 else:
-                    self.logger.info(f"Changing monitor {i} input source to {self.controllable_data.input_on_disconnect}")
-                    monitor.set_input_source(self.controllable_data.input_on_disconnect)  # type: ignore
+                    input_source = self.user_settings.get('input_on_disconnect')
+                    monitor.set_input_source(input_source)  # type: ignore
+                    self.logger.info(f"Changing monitor {i} input source to {input_source}")

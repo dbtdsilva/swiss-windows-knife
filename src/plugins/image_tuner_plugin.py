@@ -7,7 +7,7 @@ from PySide6.QtGui import QAction, QActionGroup
 from PySide6.QtWidgets import QMenu
 from PySide6.QtCore import Signal
 
-from plugins.controllable_data import ControllableData
+from components.user_settings import UserSettings
 from plugins.sun_strenght_plugin import SunStrenghtPlugin
 
 import monitorcontrol
@@ -21,7 +21,15 @@ class ImageTunerPlugin(BasePlugin):
     def __init__(self, parent: QWidget, sun_strenght_plugin: SunStrenghtPlugin) -> None:
         super().__init__(parent)
 
-        self.controllable_data = ControllableData()
+        self.user_settings = UserSettings()
+        if not self.user_settings.has_key('brightness'):
+            self.user_settings.set('brightness', None)
+        if not self.user_settings.has_key('contrast'):
+            self.user_settings.set('contrast', 90)
+
+        self.logger.info(f"Starting with the 'brightness' set to {self.user_settings.get('brightness')}")
+        self.logger.info(f"Starting with the 'contrast' set to {self.user_settings.get('contrast')}")
+
         self.sun_strenght_plugin = sun_strenght_plugin
 
         self.automatic_brightness_slot = None
@@ -33,11 +41,11 @@ class ImageTunerPlugin(BasePlugin):
     def retrieve_menus(self) -> list[QMenu]:
         return [
             self.create_value_control_menu('Brightness',
-                                           lambda: self.controllable_data.brightness,
+                                           lambda: self.user_settings.get('brightness'),
                                            self.change_brightness_manual,
                                            self.change_brightness_automatic),
             self.create_value_control_menu('Contrast',
-                                           lambda: self.controllable_data.contrast,
+                                           lambda: self.user_settings.get('contrast'),
                                            self.change_contrast_manual,
                                            self.change_contrast_automatic)]
 
@@ -89,7 +97,7 @@ class ImageTunerPlugin(BasePlugin):
 
     def change_brightness_automatic(self, is_checked):
         if is_checked:
-            self.controllable_data.brightness = None
+            self.user_settings.set('brightness', None)
             self.automatic_brightness_slot = lambda val: self.brightness_changed.emit(val)
             self.sun_strenght_plugin.sun_strength_changed.connect(self.automatic_brightness_slot)
         else:
@@ -98,7 +106,7 @@ class ImageTunerPlugin(BasePlugin):
 
     def change_contrast_automatic(self, is_checked):
         if is_checked:
-            self.controllable_data.contrast = None
+            self.user_settings.set('contrast', None)
             self.automatic_contrast_slot = lambda val: self.contrast_changed.emit(val)
             self.sun_strenght_plugin.sun_strength_changed.connect(self.automatic_contrast_slot)
         else:
@@ -109,12 +117,12 @@ class ImageTunerPlugin(BasePlugin):
         if not is_checked:
             return
 
+        self.user_settings.set('brightness', brightness_level)
         self.brightness_changed.emit(brightness_level)
-        self.controllable_data.brightness = brightness_level
 
     def change_contrast_manual(self, is_checked, contrast_level):
         if not is_checked:
             return
 
+        self.user_settings.set('contrast', contrast_level)
         self.contrast_changed.emit(contrast_level)
-        self.controllable_data.contrast = contrast_level
