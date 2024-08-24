@@ -1,6 +1,7 @@
+from typing import Optional
 from plugins.base_plugin import BasePlugin
 
-from PySide6.QtWidgets import QWidget, QMessageBox, QCheckBox, QApplication
+from PySide6.QtWidgets import QWidget, QMessageBox, QCheckBox
 from PySide6.QtCore import QTimer
 
 from app_info import APP_INFO
@@ -61,7 +62,7 @@ class UpdateChecker(BasePlugin):
     def update_confirmation(self):
         # Create a message box
         msg_box = QMessageBox()
-        msg_box.setIcon(QMessageBox.Question)
+        msg_box.setIcon(QMessageBox.Icon.Question)
         msg_box.setWindowTitle('Update Available')
         msg_box.setText('A new update is available. Would you like to install it now?')
 
@@ -77,12 +78,14 @@ class UpdateChecker(BasePlugin):
 
         remember_selection = remember_option_checkbox.isChecked()
         if remember_selection:
+            # TODO: Remember this option
             pass
 
         return response == QMessageBox.StandardButton.Yes
 
     def update_application(self, url):
-        installer_file, temp_dir = self.download_file_to_temp(url)
+        temp_dir = tempfile.TemporaryDirectory()
+        installer_file = self.download_file(url, temp_dir)
         installed = self.run_installer(installer_file)
         temp_dir.cleanup()
 
@@ -93,46 +96,26 @@ class UpdateChecker(BasePlugin):
         # TODO: Properly shutdown QtApplication instead of forcing
         sys.exit(0)
 
-    def download_file_to_temp(self, url):
-        try:
-            # Create a temporary directory
-            temp_dir = tempfile.TemporaryDirectory()
-
-            # Create a temporary file within the directory
-            temp_file_path = os.path.join(temp_dir.name, os.path.basename(url))
-
-            # Download the file
-            with requests.get(url, stream=True) as r:
-                r.raise_for_status()
-                with open(temp_file_path, 'wb') as f:
-                    for chunk in r.iter_content(chunk_size=8192):
-                        f.write(chunk)
-            self.logger.info(f'Downloaded file saved as: {temp_file_path}')
-            return temp_file_path, temp_dir
-
-        except Exception as e:
-            self.logger.info(f'An error occurred while downloading the file: {e}')
-            return None, None
+    def download_file(self, url: str, destination: tempfile.TemporaryDirectory) -> Optional[str]:
+        temp_file_path = os.path.join(destination.name, os.path.basename(url))
+        with requests.get(url, stream=True) as r:
+            r.raise_for_status()
+            with open(temp_file_path, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
+        self.logger.info(f'Downloaded file saved as: {temp_file_path}')
+        return temp_file_path
 
     def run_installer(self, installer_file):
-        try:
-            if not installer_file or not os.path.exists(installer_file):
-                self.logger.error(f'Installer not found at: {installer_file}')
-                return False
-
-            result = subprocess.run([installer_file, '/silent'], check=True)
-
-            if result.returncode != 0:
-                self.logger.error(f'Installer failed with return code: {result.returncode}')
-                return False
-
-            self.logger.info('Installer successfully updated application')
-            return True
-
-        except subprocess.CalledProcessError as e:
-            self.logger.error('An error occurred while running the installer', e)
+        if not installer_file or not os.path.exists(installer_file):
+            self.logger.error(f'Installer not found at: {installer_file}')
             return False
 
-        except Exception as e:
-            self.logger.error('An unexpected error occurred', e)
+        result = subprocess.run([installer_file, '/silent'], check=True)
+
+        if result.returncode != 0:
+            self.logger.error(f'Installer failed with return code: {result.returncode}')
             return False
+
+        self.logger.info('Installer successfully updated application')
+        return True
