@@ -1,7 +1,19 @@
 # CHANGELOG
+## v1.4.0 (2024-08-25)
+### Feature
+* feat: remember update checking option ([`0aa01d5`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/0aa01d5327d8ce1e184eae8fa82d8ae16824304a))
+### Fix
+* fix: small upsi ([`0576595`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/0576595eef21e036fc2471ae7a2ed01847520749))
+### Refactor
+* refactor: renamed a bunch of folders and main executable ([`fe8b341`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/fe8b341030743943fb20af0cd6ce185d80737ff6))
+* refactor: separated logic into proper folders ([`e9d19ec`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/e9d19ecd0287f51f82a87ec18678899c8d0255a3))
+### Unknown
+* Merge branch &#39;main&#39; of https://github.com/dbtdsilva/monitor-controller-kvm ([`f5c3225`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/f5c3225cb4f31e0a0ee11764a2164d3234f3cedc))
 ## v1.3.2 (2024-08-24)
 ### Fix
 * fix: added missing dependency ([`1746d57`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/1746d572ab7e2d9169962a0b9da162a7200021ac))
+### Refactor
+* refactor: user settings is now very generic and settings belong to the respective components ([`55ab810`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/55ab810e3736c6641e534b3199da596852203960))
 ## v1.3.1 (2024-08-24)
 ### Fix
 * fix: only release if the build and test was sucessful ([`1a63338`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/1a633385db453e0c34e773badc716acbd1cb05b7))
