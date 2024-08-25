@@ -7,10 +7,10 @@ from distutils.core import Command
 from pathlib import Path
 
 # So we can access app_info.py
-sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
-BASE_DIR = Path(__file__).parent.absolute()
+#sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
+#BASE_DIR = Path(__file__).parent.absolute()
 
-from app_info import APP_INFO  # noqa: E402
+from src.app_info import APP_INFO  # noqa: E402
 
 TO_DELETE = [
     "lib/PySide6/Qt6DRender.pyd",
@@ -169,6 +169,10 @@ if __name__ == '__main__':
     mode = args[0]
     if mode == "resources":
         build_resources()
+    elif mode == "dev":
+        build_resources()
+        from src.monitor_controller_kvm import MonitorControllerKvm
+        MonitorControllerKvm()
     elif mode == "exe":
         build_resources()
         build_exe()

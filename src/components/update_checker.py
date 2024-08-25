@@ -1,10 +1,10 @@
 from typing import Optional
-from plugins.base_plugin import BasePlugin
 
 from PySide6.QtWidgets import QWidget, QMessageBox, QCheckBox
 from PySide6.QtCore import QTimer
 
-from app_info import APP_INFO
+from ..app_info import APP_INFO
+from ..plugins.base_plugin import BasePlugin
 
 import requests
 import os

@@ -1,13 +1,13 @@
 from functools import partial
-from plugins.base_plugin import BasePlugin
 import time
 
 from PySide6.QtGui import QAction, QActionGroup
 from PySide6.QtWidgets import QMenu, QWidget
 from PySide6.QtCore import Slot
 
-from components.user_settings import UserSettings
-from plugins.device_listener import DeviceListener
+from ..base.user_settings import UserSettings
+from .device_listener import DeviceListener
+from .base_plugin import BasePlugin
 
 import monitorcontrol
 
@@ -17,7 +17,7 @@ class DeviceDisplayMapperPlugin(BasePlugin):
     def __init__(self, parent: QWidget, device_listener: DeviceListener) -> None:
         super().__init__(parent)
 
-        self.user_settings = UserSettings()
+        self.user_settings = UserSettings.instance()
         if not self.user_settings.has_key('input_on_disconnect'):
             self.user_settings.set('input_on_disconnect', monitorcontrol.InputSource.HDMI1)
         if not self.user_settings.has_key('input_on_connect'):

@@ -3,7 +3,7 @@ import logging
 
 import threading
 
-from app_info import APP_INFO
+from ..app_info import APP_INFO
 
 
 class UserSettings:

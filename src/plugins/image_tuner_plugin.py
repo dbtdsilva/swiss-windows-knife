@@ -1,14 +1,12 @@
-
-
 from functools import partial
 from PySide6.QtWidgets import QWidget
-from plugins.base_plugin import BasePlugin
 from PySide6.QtGui import QAction, QActionGroup
 from PySide6.QtWidgets import QMenu
 from PySide6.QtCore import Signal
 
-from components.user_settings import UserSettings
-from plugins.sun_strenght_plugin import SunStrenghtPlugin
+from ..base.user_settings import UserSettings
+from .base_plugin import BasePlugin
+from .sun_strenght_plugin import SunStrenghtPlugin
 
 import monitorcontrol
 
@@ -21,7 +19,7 @@ class ImageTunerPlugin(BasePlugin):
     def __init__(self, parent: QWidget, sun_strenght_plugin: SunStrenghtPlugin) -> None:
         super().__init__(parent)
 
-        self.user_settings = UserSettings()
+        self.user_settings = UserSettings.instance()
         if not self.user_settings.has_key('brightness'):
             self.user_settings.set('brightness', None)
         if not self.user_settings.has_key('contrast'):

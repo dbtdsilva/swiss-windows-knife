@@ -5,16 +5,16 @@ from PySide6.QtWidgets import QMenu, QSystemTrayIcon, QWidget, QMessageBox
 
 import logging
 
-from components.update_checker import UpdateChecker
-from plugins.base_plugin import BasePlugin
-from plugins.image_tuner_plugin import ImageTunerPlugin
-from plugins.device_display_mapper_plugin import DeviceDisplayMapperPlugin
-from plugins.sun_strenght_plugin import SunStrenghtPlugin
-import resources # noqa: F401,E261
+from ..components.update_checker import UpdateChecker
+from ..plugins.base_plugin import BasePlugin
+from ..plugins.image_tuner_plugin import ImageTunerPlugin
+from ..plugins.device_display_mapper_plugin import DeviceDisplayMapperPlugin
+from ..plugins.sun_strenght_plugin import SunStrenghtPlugin
+from .. import resources # noqa: F401,E261
 
-from app_info import APP_INFO
-from plugins.device_listener import DeviceListener
-from tray_logger import TrayLogger
+from ..app_info import APP_INFO
+from ..plugins.device_listener import DeviceListener
+from .tray_logger import TrayLogger
 import sys
 
 

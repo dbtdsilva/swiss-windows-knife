@@ -4,7 +4,7 @@ import pythoncom
 import wmi
 import atexit
 
-from plugins.base_plugin import BasePlugin
+from .base_plugin import BasePlugin
 
 
 class DeviceListener(BasePlugin):

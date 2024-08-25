@@ -6,8 +6,7 @@ class BasePlugin(QWidget):
 
     def __init__(self, parent: QWidget, depends_on=[]) -> None:
         super().__init__(parent)
-        self.logger = logging.getLogger(__name__)
-
+        self.logger = logging.getLogger(self.__class__.__module__)
         self.enabled = True
         self.depends_on = depends_on
 
