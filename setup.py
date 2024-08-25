@@ -1,16 +1,13 @@
 import cx_Freeze
 import os
-import sys
 import subprocess
 import shutil
 from distutils.core import Command
 from pathlib import Path
-
-# So we can access app_info.py
-#sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
-#BASE_DIR = Path(__file__).parent.absolute()
-
 from src.app_info import APP_INFO  # noqa: E402
+
+BASE_DIR = Path(__file__).parent.absolute()
+
 
 TO_DELETE = [
     "lib/PySide6/Qt6DRender.pyd",
@@ -109,7 +106,7 @@ def build_exe():
 
     executables = [
         cx_Freeze.Executable(
-            os.path.join(os.path.dirname(__file__), "src", "main.py"),
+            os.path.join(os.path.dirname(__file__), "src", "monitor_controller_kvm.py"),
             target_name=APP_INFO.APP_NAME + ".exe",
             icon=icon_path,
             base='Win32GUI')

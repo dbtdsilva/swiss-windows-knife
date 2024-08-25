@@ -10,6 +10,7 @@ from .device_listener import DeviceListener
 from .base_plugin import BasePlugin
 
 import monitorcontrol
+import logging
 
 
 class DeviceDisplayMapperPlugin(BasePlugin):
@@ -23,8 +24,8 @@ class DeviceDisplayMapperPlugin(BasePlugin):
         if not self.user_settings.has_key('input_on_connect'):
             self.user_settings.set('input_on_connect', monitorcontrol.InputSource.DP1)
 
-        self.logger.info(f"Starting with the 'input_on_connect' set to {self.user_settings.get('input_on_connect')}")
-        self.logger.info(f"Starting with the 'input_on_disconnect' set to {self.user_settings.get('input_on_disconnect')}")
+        logging.info(f"Starting with the 'input_on_connect' set to {self.user_settings.get('input_on_connect')}")
+        logging.info(f"Starting with the 'input_on_disconnect' set to {self.user_settings.get('input_on_disconnect')}")
 
         self.last_process = 0
         device_listener.change_detected.connect(self.device_changed)
@@ -70,8 +71,8 @@ class DeviceDisplayMapperPlugin(BasePlugin):
                 if connected:
                     input_source = self.user_settings.get('input_on_connect')
                     monitor.set_input_source(input_source)  # type: ignore
-                    self.logger.info(f"Changing monitor {i} input source to {input_source}")
+                    logging.info(f"Changing monitor {i} input source to {input_source}")
                 else:
                     input_source = self.user_settings.get('input_on_disconnect')
                     monitor.set_input_source(input_source)  # type: ignore
-                    self.logger.info(f"Changing monitor {i} input source to {input_source}")
+                    logging.info(f"Changing monitor {i} input source to {input_source}")

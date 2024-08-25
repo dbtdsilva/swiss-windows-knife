@@ -27,7 +27,7 @@ class UserSettings:
             UserSettings._instance = self
 
         self._settings = QSettings(APP_INFO.APP_NAME, 'user_settings')
-        self.logger.info(f"UserSettings loaded from {self._settings.fileName()}")
+        logging.info(f"UserSettings loaded from {self._settings.fileName()}")
 
     def get(self, key) -> object:
         return self._settings.value(key)
@@ -36,5 +36,5 @@ class UserSettings:
         return self._settings.contains(key)
 
     def set(self, key, value) -> None:
-        self.logger.info(f'Setting {key} to {value}')
+        logging.info(f'Setting {key} to {value}')
         self._settings.setValue(key, value)

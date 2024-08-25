@@ -1,9 +1,7 @@
 from typing import Optional
-from PySide6.QtCore import Slot, QCoreApplication
+from PySide6.QtCore import Slot, QCoreApplication, QObject
 from PySide6.QtGui import QAction, QIcon, QActionGroup
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon, QWidget, QMessageBox
-
-import logging
 
 from ..components.update_checker import UpdateChecker
 from ..plugins.base_plugin import BasePlugin
@@ -20,10 +18,9 @@ import sys
 
 class TrayWidget(QWidget):
 
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
-        super().__init__(parent=parent)
+    def __init__(self, parent: Optional[QObject] = None) -> None:
+        super().__init__(parent=None)
 
-        self.logger = logging.getLogger(__name__)
         if not QSystemTrayIcon.isSystemTrayAvailable():
             QMessageBox.critical(self, "Systray", "I couldn't detect any system tray on this system.")
             sys.exit(1)
@@ -37,7 +34,7 @@ class TrayWidget(QWidget):
             UpdateChecker(self)
         ]
 
-        self._tray_icon = QSystemTrayIcon(self)
+        self._tray_icon = QSystemTrayIcon(parent=parent)
         self._tray_icon.setContextMenu(self.createMainMenu())
         self._tray_icon.setToolTip(APP_INFO.APP_NAME)
         self._tray_icon.setIcon(QIcon(":/icons/eye-fill.ico"))

@@ -11,6 +11,7 @@ import os
 import subprocess
 import tempfile
 import sys
+import logging
 
 
 class UpdateChecker(BasePlugin):
@@ -30,19 +31,19 @@ class UpdateChecker(BasePlugin):
         response = requests.get(latest_version_url)
 
         if response.status_code != 200:
-            self.logger.warn(f'Failed to retrieve version to update: {response.text}')
+            logging.warn(f'Failed to retrieve version to update: {response.text}')
             return
 
         installer_url = self.retrieve_installer_remote_url(response.json())
         if installer_url is None:
-            self.logger.warn(f'Failed to retrieve installer url from response: {response.json()}')
+            logging.warn(f'Failed to retrieve installer url from response: {response.json()}')
             return
 
         remote_version = response.json()['tag_name']
         if current_version >= remote_version:
             return
 
-        self.logger.info(f'Application will retrieve user to update version from {current_version} to {remote_version}')
+        logging.info(f'Application will retrieve user to update version from {current_version} to {remote_version}')
         if not self.update_confirmation():
             return
         self.update_application(installer_url)
@@ -103,19 +104,19 @@ class UpdateChecker(BasePlugin):
             with open(temp_file_path, 'wb') as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
-        self.logger.info(f'Downloaded file saved as: {temp_file_path}')
+        logging.info(f'Downloaded file saved as: {temp_file_path}')
         return temp_file_path
 
     def run_installer(self, installer_file):
         if not installer_file or not os.path.exists(installer_file):
-            self.logger.error(f'Installer not found at: {installer_file}')
+            logging.error(f'Installer not found at: {installer_file}')
             return False
 
         result = subprocess.run([installer_file, '/silent'], check=True)
 
         if result.returncode != 0:
-            self.logger.error(f'Installer failed with return code: {result.returncode}')
+            logging.error(f'Installer failed with return code: {result.returncode}')
             return False
 
-        self.logger.info('Installer successfully updated application')
+        logging.info('Installer successfully updated application')
         return True

@@ -7,15 +7,14 @@
 AppId={{C12D5452-278C-403D-9A40-12E069A414AD}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
-;AppVerName={#MyAppName} {#MyAppVersion}
+AppVerName={#MyAppName} {#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
 DefaultDirName={autopf}\{#MyAppName}
 DisableProgramGroupPage=yes
-; Uncomment the following line to run in non administrative install mode (install for current user only.)
-;PrivilegesRequired=lowest
+PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 OutputBaseFilename={#MyAppName}-{#MyAppVersion}-win64
 Compression=lzma
@@ -41,7 +40,6 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 Name: "{userstartup}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: startwithwindows
 
 [Registry]
-; Add an entry to the registry to run the application at startup (optional method)
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#MyAppName}"; ValueData: "{app}\{#MyAppExeName}"; Tasks: startwithwindows; Flags: uninsdeletevalue
 
 [Run]

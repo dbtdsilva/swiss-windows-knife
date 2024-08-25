@@ -9,6 +9,7 @@ from .base_plugin import BasePlugin
 from .sun_strenght_plugin import SunStrenghtPlugin
 
 import monitorcontrol
+import logging
 
 
 class ImageTunerPlugin(BasePlugin):
@@ -25,8 +26,8 @@ class ImageTunerPlugin(BasePlugin):
         if not self.user_settings.has_key('contrast'):
             self.user_settings.set('contrast', 90)
 
-        self.logger.info(f"Starting with the 'brightness' set to {self.user_settings.get('brightness')}")
-        self.logger.info(f"Starting with the 'contrast' set to {self.user_settings.get('contrast')}")
+        logging.info(f"Starting with the 'brightness' set to {self.user_settings.get('brightness')}")
+        logging.info(f"Starting with the 'contrast' set to {self.user_settings.get('contrast')}")
 
         self.sun_strenght_plugin = sun_strenght_plugin
 
@@ -54,9 +55,9 @@ class ImageTunerPlugin(BasePlugin):
                 with monitor:
                     if monitor.get_luminance() != brightness:
                         monitor.set_luminance(brightness)
-                        self.logger.info(f"Setting brightness to {brightness} on monitor {i}")
+                        logging.info(f"Setting brightness to {brightness} on monitor {i}")
         except (ValueError, monitorcontrol.VCPError) as e:
-            self.logger.warn(f"Exception was caught while changing brightness: {e}")
+            logging.warn(f"Exception was caught while changing brightness: {e}")
 
     def change_monitor_contrast(self, contrast):
         # Change respective settings on the monitor through DDC/CI
@@ -65,9 +66,9 @@ class ImageTunerPlugin(BasePlugin):
                 with monitor:
                     if monitor.get_contrast() != contrast:
                         monitor.set_contrast(contrast)
-                        self.logger.info(f"Setting contrast to {contrast} on monitor {i}")
+                        logging.info(f"Setting contrast to {contrast} on monitor {i}")
         except (ValueError, monitorcontrol.VCPError) as e:
-            self.logger.warn(f"Exception was caught while changing contrast: {e}")
+            logging.warn(f"Exception was caught while changing contrast: {e}")
 
     def create_value_control_menu(self, title, property_get, manual_slot, automatic_slot) -> QMenu:
         menu = QMenu(title, self)

@@ -6,6 +6,7 @@ from PySide6.QtCore import QTimer, Signal
 import pytz
 from .base_plugin import BasePlugin
 from pysolar import solar, radiation
+import logging
 
 
 class SunStrenghtPlugin(BasePlugin):
@@ -27,4 +28,4 @@ class SunStrenghtPlugin(BasePlugin):
         current_value = int(power / 6.0) if power < 600 else int(100)
         self.sun_strength_changed.emit(current_value)
 
-        self.logger.debug(f'Sun strenght has changed to {current_value}')
+        logging.debug(f'Sun strenght has changed to {current_value}')
