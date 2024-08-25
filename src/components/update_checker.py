@@ -29,7 +29,7 @@ class UpdateChecker(BasePlugin):
 
     def check_updates(self):
         latest_version_url = 'https://api.github.com/repos/dbtdsilva/monitor-controller-kvm/releases/latest'
-        current_version = "1.0.0" #APP_INFO.APP_VERSION
+        current_version = APP_INFO.APP_VERSION
 
         response = requests.get(latest_version_url)
 
