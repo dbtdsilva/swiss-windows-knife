@@ -26,7 +26,7 @@ class UserSettings:
         else:
             UserSettings._instance = self
 
-        self._settings = QSettings(APP_INFO.APP_NAME, 'user_settings')
+        self._settings = QSettings(APP_INFO.APP_NAME, 'UserSettings')
         logging.info(f"UserSettings loaded from {self._settings.fileName()}")
 
     def get(self, key) -> object:
