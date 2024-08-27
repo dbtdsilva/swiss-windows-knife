@@ -1,4 +1,9 @@
 # CHANGELOG
+## v1.5.1 (2024-08-27)
+### Fix
+* fix: added missing changes for python 3.12 ([`88b78da`](https://github.com/dbtdsilva/swiss-windows-knife/commit/88b78dab994b43c146f38d9b3397db6eb450e13f))
+* fix: coat-of-arms for installer ([`1a87f00`](https://github.com/dbtdsilva/swiss-windows-knife/commit/1a87f009255a05e8fab8e673f9f79fa61cf4da1e))
+* fix: adapted icon to coat-of-arms ([`aede383`](https://github.com/dbtdsilva/swiss-windows-knife/commit/aede3837f2da93453e2afaa1c2856a56845edb91))
 ## v1.5.0 (2024-08-27)
 ### Feature
 * feat: renamed project to SwissWindowsKnife ([`683cee1`](https://github.com/dbtdsilva/swiss-windows-knife/commit/683cee1ed22114bddfc121d5a5e378cef849c011))
