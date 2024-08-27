@@ -1,4 +1,7 @@
 # CHANGELOG
+## v1.4.1 (2024-08-27)
+### Fix
+* fix: executable can now be requested properly ([`2d2bd7c`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/2d2bd7cccc11ab58d13f01d9d9e7715dc813fe5e))
 ## v1.4.0 (2024-08-25)
 ### Feature
 * feat: remember update checking option ([`0aa01d5`](https://github.com/dbtdsilva/monitor-controller-kvm/commit/0aa01d5327d8ce1e184eae8fa82d8ae16824304a))
