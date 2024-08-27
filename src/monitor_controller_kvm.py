@@ -3,7 +3,7 @@ import sys
 import signal
 
 from PySide6.QtWidgets import QApplication
-from .ui.tray_widget import TrayWidget
+from src.ui.tray_widget import TrayWidget
 import logging
 
 
@@ -44,3 +44,7 @@ class MonitorControllerKvm:
         logging.basicConfig(format='[%(asctime)s %(name)s-%(threadName)s %(levelname)s] %(message)s',
                             level=logging.INFO,
                             handlers=[handler])
+
+
+if __name__ == '__main__':
+    MonitorControllerKvm()
