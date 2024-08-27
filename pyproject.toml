@@ -1,5 +1,5 @@
 [project]
-name = "monitor-controller-kvm"
+name = "swiss-windows-knife"
 version = "1.4.1"
 requires-python = ">=3.10"
 license = { text = "MIT" }

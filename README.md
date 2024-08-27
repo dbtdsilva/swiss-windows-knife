@@ -1,13 +1,16 @@
-# Monitor Controller KVM
-### What is it?
-A tray application that will automatically swap between monitors inputs (eg. from HDMI to DP) when a new mouse / keyboard is connected or disconnected. When the mouse / keyboard is disconnected, it changes to HDMI, when the mouse / keyboard is connected, it changes back to DP.
-This is quite useful when you have a USB switch that has a button to switch the USBs between two systems, because it will also allow to change the monitor input source when the button is pressed as long as the keyboard or the mouse is on that USB switch.
+# Swiss Windows Knife
 
-### How does it work?
-It listens for USB notifications (Windows specific) and when there is a new keyboard or mouse, it changes the input source of all monitors using DDC/CI interface to communicate.
+### What is it?
+A Swiss Windows Knife, kinda like a Swiss Army Knife but for Windows. 
+Let's be honest, it's my personal army knife for my Windows machines.
+
+It does a bit of everything and nothing, here goes some:
+- automatically swap between monitors inputs (eg. from HDMI to DP) when a new mouse / keyboard is connected or disconnected;
+- changes brightness and contrast of monitors according to the monitors;
+- and much more..
 
 ### Generate the installer
-The installer will be located under build/installer/MonitorControllerKVM-<version>.exe by using:
+The installer will be located under build/installer/SwissWindowsKnife-<version>.exe by using:
 ```sh
 python setup installer
 ```

@@ -12,9 +12,9 @@ _AppInfo = namedtuple("AppInfo", [
 ])
 
 APP_INFO = _AppInfo(
-    APP_NAME="MonitorControllerKVM",
+    APP_NAME="SwissWindowsKnife",
     APP_AUTHOR="Diogo Silva",
     APP_PUBLISHER="Diogo Silva",
-    APP_URL="https://github.com/dbtdsilva/monitor-controller-kvm",
+    APP_URL="https://github.com/dbtdsilva/swiss-windows-knife",
     APP_VERSION=__version__
 )

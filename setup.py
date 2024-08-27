@@ -2,7 +2,8 @@ import cx_Freeze
 import os
 import subprocess
 from pathlib import Path
-from src.app_info import APP_INFO  # noqa: E402
+from src.app_info import APP_INFO
+import logging
 
 BASE_DIR = Path(__file__).parent.absolute()
 
@@ -12,13 +13,13 @@ def build_resources():
     PY_OUTPUT = os.path.join('src', 'resources.py')
 
     cmd = f"pyside6-rcc {QRC_FILE} -o {PY_OUTPUT}"
-    print(f"Executing {cmd}...")
+    logging.info(f"Executing {cmd}...")
 
     ret_code = os.system(cmd)
     if ret_code == 0:
-        print(f"Created resources under {PY_OUTPUT} with success")
+        logging.info(f"Created resources under {PY_OUTPUT} with success")
     else:
-        print(f"Failed to generate resources under {PY_OUTPUT}")
+        logging.error(f"Failed to generate resources under {PY_OUTPUT}")
         exit(1)
     cmd_list = f"pyside6-rcc {QRC_FILE} --list-mapping"
     os.system(cmd_list)
@@ -31,7 +32,7 @@ def build_exe():
 
     executables = [
         cx_Freeze.Executable(
-            os.path.join(os.path.dirname(__file__), "src", "monitor_controller_kvm.py"),
+            os.path.join(os.path.dirname(__file__), "src", "swiss_windows_knife.py"),
             target_name=APP_INFO.APP_NAME + ".exe",
             icon=icon_path,
             base='Win32GUI')
@@ -63,14 +64,12 @@ def build_win_install():
               ' /DMyAppExeName="{}"'.format(APP_INFO.APP_NAME + ".exe") +\
               ' /Obuild\\installer' +\
               ' inno_setup.iss'
-    print(cmd)
-
+    logging.info(cmd)
     subprocess.call(cmd)
 
 
 def usage():
-    import sys
-    sys.stdout.write(
+    print(
         """
         Usage:
             build resources  -  Build resources.py
@@ -92,8 +91,8 @@ if __name__ == '__main__':
         build_resources()
     elif mode == "dev":
         build_resources()
-        from src.monitor_controller_kvm import MonitorControllerKvm
-        MonitorControllerKvm()
+        from src.swiss_windows_knife import SwissWindowsKnife
+        SwissWindowsKnife()
     elif mode == "exe":
         build_resources()
         build_exe()

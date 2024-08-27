@@ -28,7 +28,7 @@ class UpdateChecker(BasePlugin):
         self.check_updates()
 
     def check_updates(self):
-        latest_version_url = 'https://api.github.com/repos/dbtdsilva/monitor-controller-kvm/releases/latest'
+        latest_version_url = 'https://api.github.com/repos/dbtdsilva/swiss-windows-knife/releases/latest'
         current_version = APP_INFO.APP_VERSION
 
         response = requests.get(latest_version_url)

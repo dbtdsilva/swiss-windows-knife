@@ -7,7 +7,7 @@ from src.ui.tray_widget import TrayWidget
 import logging
 
 
-class MonitorControllerKvm:
+class SwissWindowsKnife:
 
     def __init__(self) -> None:
         self.init_logging()
@@ -47,4 +47,4 @@ class MonitorControllerKvm:
 
 
 if __name__ == '__main__':
-    MonitorControllerKvm()
+    SwissWindowsKnife()
