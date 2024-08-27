@@ -1,6 +1,6 @@
 <!DOCTYPE RCC>
 <RCC version="1.0">
    <qresource prefix="/">
-      <file>icons/eye-fill.ico</file>
+      <file>icons/coat-of-arms.ico</file>
    </qresource>
 </RCC>

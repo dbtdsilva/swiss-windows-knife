@@ -37,7 +37,7 @@ class TrayWidget(QWidget):
         self._tray_icon = QSystemTrayIcon(parent=parent)
         self._tray_icon.setContextMenu(self.createMainMenu())
         self._tray_icon.setToolTip(APP_INFO.APP_NAME)
-        self._tray_icon.setIcon(QIcon(":/icons/eye-fill.ico"))
+        self._tray_icon.setIcon(QIcon(":/icons/coat-of-arms.ico"))
         self._tray_icon.show()
 
     def createMenu(self, menu) -> QMenu:

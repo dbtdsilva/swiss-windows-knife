@@ -28,7 +28,7 @@ def build_resources():
 def build_exe():
     sys.argv = sys.argv[:1] + ['build']
 
-    icon_path = os.path.join("icons", 'eye-fill.ico')
+    icon_path = os.path.join("icons", 'swiss-army-knife.ico')
 
     executables = [
         cx_Freeze.Executable(
