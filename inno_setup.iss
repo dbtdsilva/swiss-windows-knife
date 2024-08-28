@@ -26,8 +26,8 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-Name: "startwithwindows"; Description: "Start {#MyAppName} when Windows starts"; GroupDescription: "Startup options"; Flags: unchecked
-Name: "startafterinstall"; Description: "Start {#MyAppName} after installation"; GroupDescription: "Post-installation options"; Flags: unchecked
+Name: "startwithwindows"; Description: "Start {#MyAppName} when Windows starts"; GroupDescription: "Startup options"; Flags: checked
+Name: "startafterinstall"; Description: "Start {#MyAppName} after installation"; GroupDescription: "Post-installation options"; Flags: checked
 
 [Files]
 Source: "build\exe.win-amd64-3.12\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
@@ -43,4 +43,4 @@ Name: "{userstartup}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: st
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#MyAppName}"; ValueData: "{app}\{#MyAppExeName}"; Tasks: startwithwindows; Flags: uninsdeletevalue
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent; Tasks: startafterinstall
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall; Tasks: startafterinstall

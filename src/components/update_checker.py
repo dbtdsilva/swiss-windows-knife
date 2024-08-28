@@ -130,8 +130,7 @@ class UpdateChecker(BasePlugin):
 
         result = subprocess.run([installer_file,
                                  '/silent',
-                                 '/mergetasks=startafterinstall',
-                                 '/nocloseapplications'],
+                                 '/mergetasks=startafterinstall'],
                                 check=True)
 
         if result.returncode != 0:
