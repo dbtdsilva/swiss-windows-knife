@@ -1,4 +1,7 @@
 # CHANGELOG
+## v1.5.3 (2024-08-28)
+### Fix
+* fix: allow installation to close application ([`7502428`](https://github.com/dbtdsilva/swiss-windows-knife/commit/750242818fa3d35cd5ccdee9406518449212f26c))
 ## v1.5.2 (2024-08-28)
 ### Fix
 * fix: application now closes properly instead of forcing ([`8708da2`](https://github.com/dbtdsilva/swiss-windows-knife/commit/8708da230873de7be6dc3964b7a686feb3369015))
