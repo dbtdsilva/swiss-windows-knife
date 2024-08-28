@@ -1,4 +1,7 @@
 # CHANGELOG
+## v1.5.5 (2024-08-28)
+### Fix
+* fix: no need to wait for installation to succeed to close application ([`9419f7c`](https://github.com/dbtdsilva/swiss-windows-knife/commit/9419f7ca24248f0e6f449c77b461768c42173f2f))
 ## v1.5.4 (2024-08-28)
 ### Fix
 * fix: close program during uninstall and fixed icons not showing app in all spots from Windows ([`1b3128e`](https://github.com/dbtdsilva/swiss-windows-knife/commit/1b3128e5c917151195c812b00800a7ec4e1fb3ae))
