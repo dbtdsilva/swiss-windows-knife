@@ -103,15 +103,7 @@ class UpdateChecker(BasePlugin):
     def update_application(self, url):
         temp_dir = tempfile.TemporaryDirectory()
         installer_file = self.download_file(url, temp_dir)
-        installed = self.run_installer(installer_file)
-        temp_dir.cleanup()
-
-        if installed:
-            self.close_application_and_run()
-
-    def close_application_and_run(self):
-        self.close()
-        self.parent_widget.close()
+        self.run_installer(installer_file)
 
     def download_file(self, url: str, destination: tempfile.TemporaryDirectory) -> Optional[str]:
         temp_file_path = os.path.join(destination.name, os.path.basename(url))
@@ -123,22 +115,14 @@ class UpdateChecker(BasePlugin):
         logging.info(f'Downloaded file saved as: {temp_file_path}')
         return temp_file_path
 
-    def run_installer(self, installer_file):
+    def run_installer(self, installer_file) -> None:
         if not installer_file or not os.path.exists(installer_file):
             logging.error(f'Installer not found at: {installer_file}')
-            return False
+            return
 
-        result = subprocess.run([installer_file,
-                                 '/silent',
-                                 '/mergetasks=startafterinstall'],
-                                check=True)
-
-        if result.returncode != 0:
-            logging.error(f'Installer failed with return code: {result.returncode}')
-            return False
-
-        logging.info('Installer successfully updated application')
-        return True
+        subprocess.Popen([installer_file, '/silent', '/mergetasks=startafterinstall'],
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE)
 
     def closeEvent(self, event):
         self.timer.stop()
