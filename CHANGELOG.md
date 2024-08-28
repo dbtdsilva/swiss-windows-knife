@@ -1,4 +1,7 @@
 # CHANGELOG
+## v1.5.2 (2024-08-28)
+### Fix
+* fix: application now closes properly instead of forcing ([`8708da2`](https://github.com/dbtdsilva/swiss-windows-knife/commit/8708da230873de7be6dc3964b7a686feb3369015))
 ## v1.5.1 (2024-08-27)
 ### Fix
 * fix: added missing changes for python 3.12 ([`88b78da`](https://github.com/dbtdsilva/swiss-windows-knife/commit/88b78dab994b43c146f38d9b3397db6eb450e13f))
