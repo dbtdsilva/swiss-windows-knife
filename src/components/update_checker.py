@@ -11,7 +11,6 @@ import requests
 import os
 import subprocess
 import tempfile
-import sys
 import logging
 
 
@@ -21,11 +20,13 @@ class UpdateChecker(BasePlugin):
         super().__init__(parent)
 
         self.user_settings = UserSettings.instance()
+        self.parent_widget = parent
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.check_updates)
-        self.timer.start(1000 * 60 * 30)
-        self.check_updates()
+        self.timer.start(1000 * 30 * 60)
+
+        QTimer.singleShot(0, self.check_updates)
 
     def check_updates(self):
         latest_version_url = 'https://api.github.com/repos/dbtdsilva/swiss-windows-knife/releases/latest'
@@ -109,8 +110,8 @@ class UpdateChecker(BasePlugin):
             self.close_application_and_run()
 
     def close_application_and_run(self):
-        # TODO: Properly shutdown QtApplication instead of forcing
-        sys.exit(0)
+        self.close()
+        self.parent_widget.close()
 
     def download_file(self, url: str, destination: tempfile.TemporaryDirectory) -> Optional[str]:
         temp_file_path = os.path.join(destination.name, os.path.basename(url))
@@ -127,7 +128,11 @@ class UpdateChecker(BasePlugin):
             logging.error(f'Installer not found at: {installer_file}')
             return False
 
-        result = subprocess.run([installer_file, '/silent'], check=True)
+        result = subprocess.run([installer_file,
+                                 '/silent',
+                                 '/mergetasks=startafterinstall',
+                                 '/nocloseapplications'],
+                                check=True)
 
         if result.returncode != 0:
             logging.error(f'Installer failed with return code: {result.returncode}')
@@ -135,3 +140,7 @@ class UpdateChecker(BasePlugin):
 
         logging.info('Installer successfully updated application')
         return True
+
+    def closeEvent(self, event):
+        self.timer.stop()
+        event.accept()

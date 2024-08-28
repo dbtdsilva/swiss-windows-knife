@@ -2,7 +2,6 @@ from PySide6 import QtCore
 from PySide6.QtWidgets import QWidget
 import pythoncom
 import wmi
-import atexit
 
 from .base_plugin import BasePlugin
 
@@ -20,18 +19,18 @@ class DeviceListener(BasePlugin):
 
         self.disconnect_listener.disconnect_signal.connect(lambda usb: self.device_change(False, usb))
         self.connect_listener.connect_signal.connect(lambda usb: self.device_change(True, usb))
-        atexit.register(self.stop)
 
     @QtCore.Slot(str)
     def device_change(self, connected, usb):
         self.change_detected.emit(connected, usb)
 
-    def stop(self):
+    def closeEvent(self, event):
         self.connect_listener.requestInterruption()
         self.disconnect_listener.requestInterruption()
 
         self.connect_listener.wait()
         self.disconnect_listener.wait()
+        event.accept()
 
 
 class _DeviceDisconnectListener(QtCore.QThread):

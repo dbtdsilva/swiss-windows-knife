@@ -29,3 +29,7 @@ class SunStrenghtPlugin(BasePlugin):
         self.sun_strength_changed.emit(current_value)
 
         logging.debug(f'Sun strenght has changed to {current_value}')
+
+    def closeEvent(self, event):
+        self.timer.stop()
+        event.accept()

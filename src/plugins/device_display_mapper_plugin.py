@@ -28,7 +28,8 @@ class DeviceDisplayMapperPlugin(BasePlugin):
         logging.info(f"Starting with the 'input_on_disconnect' set to {self.user_settings.get('input_on_disconnect')}")
 
         self.last_process = 0
-        device_listener.change_detected.connect(self.device_changed)
+        self.device_listener = device_listener
+        self.device_listener.change_detected.connect(self.device_changed)
 
     def retrieve_menus(self) -> list[QMenu]:
         return [
@@ -76,3 +77,7 @@ class DeviceDisplayMapperPlugin(BasePlugin):
                     input_source = self.user_settings.get('input_on_disconnect')
                     monitor.set_input_source(input_source)  # type: ignore
                     logging.info(f"Changing monitor {i} input source to {input_source}")
+
+    def closeEvent(self, event):
+        self.device_listener.close()
+        event.accept()

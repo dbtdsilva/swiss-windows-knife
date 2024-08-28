@@ -125,3 +125,7 @@ class ImageTunerPlugin(BasePlugin):
 
         self.user_settings.set('contrast', contrast_level)
         self.contrast_changed.emit(contrast_level)
+
+    def closeEvent(self, event):
+        self.sun_strenght_plugin.close()
+        event.accept()

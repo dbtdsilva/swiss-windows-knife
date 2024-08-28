@@ -85,12 +85,17 @@ class TrayWidget(QWidget):
         menu.addAction(logs_action)
         menu.addSeparator()
         quit_action = QAction('Quit', self)
-        quit_action.triggered.connect(self.close)
+        quit_action.triggered.connect(self.close_slot)
         menu.addAction(quit_action)
         return menu
 
     @Slot()
-    def close(self):
+    def close_slot(self):
+        self.close()
+
+    def closeEvent(self, event):
+        for plugin in self.plugins:
+            plugin.close()
         QCoreApplication.exit()
 
     @Slot()
