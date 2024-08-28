@@ -1,4 +1,7 @@
 # CHANGELOG
+## v1.5.4 (2024-08-28)
+### Fix
+* fix: close program during uninstall and fixed icons not showing app in all spots from Windows ([`1b3128e`](https://github.com/dbtdsilva/swiss-windows-knife/commit/1b3128e5c917151195c812b00800a7ec4e1fb3ae))
 ## v1.5.3 (2024-08-28)
 ### Fix
 * fix: allow installation to close application ([`7502428`](https://github.com/dbtdsilva/swiss-windows-knife/commit/750242818fa3d35cd5ccdee9406518449212f26c))
