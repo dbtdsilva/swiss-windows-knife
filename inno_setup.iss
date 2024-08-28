@@ -4,7 +4,7 @@
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
-AppId={{C12D5452-278C-403D-9A40-12E069A414AD}
+AppId={{C12D5452-278C-403D-9A40-12E069A414AD}}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppVerName={#MyAppName} {#MyAppVersion}
@@ -16,31 +16,35 @@ DefaultDirName={autopf}\{#MyAppName}
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
-OutputBaseFilename={#MyAppName}-{#MyAppVersion}-win64
+OutputBaseFilename={#MyAppNameNoSpaces}-{#MyAppVersion}-win64
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
+SetupIconFile={#MyAppIcon}
+UninstallDisplayIcon={app}\{#MyAppIconName}
+CloseApplications=yes
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-Name: "startwithwindows"; Description: "Start {#MyAppName} when Windows starts"; GroupDescription: "Startup options"; Flags: checked
-Name: "startafterinstall"; Description: "Start {#MyAppName} after installation"; GroupDescription: "Post-installation options"; Flags: checked
+Name: "startwithwindows"; Description: "Start {#MyAppName} when Windows starts"; GroupDescription: "Startup options"
+Name: "startafterinstall"; Description: "Start {#MyAppName} after installation"; GroupDescription: "Post-installation options"
 
 [Files]
 Source: "build\exe.win-amd64-3.12\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
-Source: "bot.session*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Permissions: everyone-full
-; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
-Name: "{userstartup}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: startwithwindows
 
 [Registry]
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#MyAppName}"; ValueData: "{app}\{#MyAppExeName}"; Tasks: startwithwindows; Flags: uninsdeletevalue
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Uninstall\{#MyAppName}"; ValueType: string; ValueName: "DisplayIcon"; ValueData: "{app}\{#MyAppExeName}"; Flags: uninsdeletevalue
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall; Tasks: startafterinstall
+
+[UninstallRun]
+Filename: "{cmd}"; Parameters: "/C ""taskkill /im {#MyAppExeName} /f /t"; RunOnceId: "KillMyAppProcess"

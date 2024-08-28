@@ -33,7 +33,7 @@ def build_exe():
     executables = [
         cx_Freeze.Executable(
             os.path.join(os.path.dirname(__file__), "src", "swiss_windows_knife.py"),
-            target_name=APP_INFO.APP_NAME + ".exe",
+            target_name=APP_INFO.APP_NAME.replace(' ', '') + ".exe",
             icon=icon_path,
             base='Win32GUI')
     ]
@@ -57,13 +57,16 @@ def build_exe():
 
 def build_win_install():
     cmd = '"C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe"' +\
-              ' /DMyAppVersion="{}"'.format(APP_INFO.APP_VERSION) +\
-              ' /DMyAppName="{}"'.format(APP_INFO.APP_NAME) +\
-              ' /DMyAppPublisher="{}"'.format(APP_INFO.APP_PUBLISHER) +\
-              ' /DMyAppURL="{}"'.format(APP_INFO.APP_URL) +\
-              ' /DMyAppExeName="{}"'.format(APP_INFO.APP_NAME + ".exe") +\
-              ' /Obuild\\installer' +\
-              ' inno_setup.iss'
+        ' /DMyAppVersion="{}"'.format(APP_INFO.APP_VERSION) +\
+        ' /DMyAppName="{}"'.format(APP_INFO.APP_NAME) +\
+        ' /DMyAppNameNoSpaces="{}"'.format(APP_INFO.APP_NAME.replace(' ', '')) +\
+        ' /DMyAppPublisher="{}"'.format(APP_INFO.APP_PUBLISHER) +\
+        ' /DMyAppURL="{}"'.format(APP_INFO.APP_URL) +\
+        ' /DMyAppExeName="{}"'.format(APP_INFO.APP_NAME.replace(' ', '') + ".exe") +\
+        ' /DMyAppIcon={}'.format(os.path.join("icons", 'coat-of-arms.ico')) +\
+        ' /DMyAppIconName={}'.format('coat-of-arms.ico') +\
+        ' /Obuild\\installer' +\
+        ' inno_setup.iss'
     logging.info(cmd)
     subprocess.call(cmd)
 

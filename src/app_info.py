@@ -12,7 +12,7 @@ _AppInfo = namedtuple("AppInfo", [
 ])
 
 APP_INFO = _AppInfo(
-    APP_NAME="SwissWindowsKnife",
+    APP_NAME="Swiss Windows Knife",
     APP_AUTHOR="Diogo Silva",
     APP_PUBLISHER="Diogo Silva",
     APP_URL="https://github.com/dbtdsilva/swiss-windows-knife",
