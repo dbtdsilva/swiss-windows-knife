@@ -3,10 +3,10 @@ from PySide6.QtWidgets import QWidget
 import pythoncom
 import wmi
 
-from .base_plugin import BasePlugin
+from ...base.base_widget import BaseWidget
 
 
-class DeviceListener(BasePlugin):
+class DeviceListener(BaseWidget):
 
     change_detected = QtCore.Signal(bool, str)
 

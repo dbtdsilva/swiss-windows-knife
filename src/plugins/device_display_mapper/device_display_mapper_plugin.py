@@ -5,17 +5,17 @@ from PySide6.QtGui import QAction, QActionGroup
 from PySide6.QtWidgets import QMenu, QWidget
 from PySide6.QtCore import Slot
 
-from ..base.user_settings import UserSettings
+from ...base.user_settings import UserSettings
 from .device_listener import DeviceListener
-from .base_plugin import BasePlugin
+from ...base.base_widget import BaseWidget
 
 import monitorcontrol
 import logging
 
 
-class DeviceDisplayMapperPlugin(BasePlugin):
+class DeviceDisplayMapperPlugin(BaseWidget):
 
-    def __init__(self, parent: QWidget, device_listener: DeviceListener) -> None:
+    def __init__(self, parent: QWidget) -> None:
         super().__init__(parent)
 
         self.user_settings = UserSettings.instance()
@@ -28,7 +28,7 @@ class DeviceDisplayMapperPlugin(BasePlugin):
         logging.info(f"Starting with the 'input_on_disconnect' set to {self.user_settings.get('input_on_disconnect')}")
 
         self.last_process = 0
-        self.device_listener = device_listener
+        self.device_listener = DeviceListener(self)
         self.device_listener.change_detected.connect(self.device_changed)
 
     def retrieve_menus(self) -> list[QMenu]:

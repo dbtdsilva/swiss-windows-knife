@@ -4,20 +4,20 @@ from PySide6.QtGui import QAction, QActionGroup
 from PySide6.QtWidgets import QMenu
 from PySide6.QtCore import Signal
 
-from ..base.user_settings import UserSettings
-from .base_plugin import BasePlugin
-from .sun_strenght_plugin import SunStrenghtPlugin
+from ...base.user_settings import UserSettings
+from ...base.base_widget import BaseWidget
+from .sun_strenght_notifier import SunStrengthNotifier
 
 import monitorcontrol
 import logging
 
 
-class ImageTunerPlugin(BasePlugin):
+class DisplayImagePlugin(BaseWidget):
 
     brightness_changed = Signal(int)
     contrast_changed = Signal(int)
 
-    def __init__(self, parent: QWidget, sun_strenght_plugin: SunStrenghtPlugin) -> None:
+    def __init__(self, parent: QWidget) -> None:
         super().__init__(parent)
 
         self.user_settings = UserSettings.instance()
@@ -29,7 +29,7 @@ class ImageTunerPlugin(BasePlugin):
         logging.info(f"Starting with the 'brightness' set to {self.user_settings.get('brightness')}")
         logging.info(f"Starting with the 'contrast' set to {self.user_settings.get('contrast')}")
 
-        self.sun_strenght_plugin = sun_strenght_plugin
+        self.sun_strenght_plugin = SunStrengthNotifier(self)
 
         self.automatic_brightness_slot = None
         self.automatic_contrast_slot = None

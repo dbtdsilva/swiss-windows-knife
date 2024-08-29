@@ -4,7 +4,7 @@ from PySide6.QtWidgets import QWidget, QMessageBox, QCheckBox
 from PySide6.QtCore import QTimer
 
 from ..app_info import APP_INFO
-from ..plugins.base_plugin import BasePlugin
+from ..base.base_widget import BaseWidget
 from ..base.user_settings import UserSettings
 
 import requests
@@ -14,10 +14,10 @@ import tempfile
 import logging
 
 
-class UpdateChecker(BasePlugin):
+class UpdateChecker(BaseWidget):
 
     def __init__(self, parent: QWidget) -> None:
-        super().__init__(parent)
+        super().__init__(parent, is_toggleable=False)
 
         self.user_settings = UserSettings.instance()
         self.parent_widget = parent

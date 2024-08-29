@@ -4,12 +4,12 @@ from datetime import datetime
 from PySide6.QtWidgets import QWidget
 from PySide6.QtCore import QTimer, Signal
 import pytz
-from .base_plugin import BasePlugin
+from ...base.base_widget import BaseWidget
 from pysolar import solar, radiation
 import logging
 
 
-class SunStrenghtPlugin(BasePlugin):
+class SunStrengthNotifier(BaseWidget):
 
     sun_strength_changed = Signal(int)
 

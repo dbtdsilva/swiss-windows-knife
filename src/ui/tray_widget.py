@@ -4,14 +4,12 @@ from PySide6.QtGui import QAction, QIcon, QActionGroup
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon, QWidget, QMessageBox
 
 from ..components.update_checker import UpdateChecker
-from ..plugins.base_plugin import BasePlugin
-from ..plugins.image_tuner_plugin import ImageTunerPlugin
-from ..plugins.device_display_mapper_plugin import DeviceDisplayMapperPlugin
-from ..plugins.sun_strenght_plugin import SunStrenghtPlugin
+from ..base.base_widget import BaseWidget
+from ..plugins.display_image_tuner.image_tuner_plugin import DisplayImagePlugin
+from ..plugins.device_display_mapper.device_display_mapper_plugin import DeviceDisplayMapperPlugin
 from .. import resources # noqa: F401,E261
 
 from ..app_info import APP_INFO
-from ..plugins.device_listener import DeviceListener
 from .tray_logger import TrayLogger
 import sys
 
@@ -28,9 +26,9 @@ class TrayWidget(QWidget):
         self.logger_window = TrayLogger(self)
         self.logger_window.hide()
 
-        self.plugins: list[BasePlugin] = [
-            ImageTunerPlugin(self, SunStrenghtPlugin(self)),
-            DeviceDisplayMapperPlugin(self, DeviceListener(self)),
+        self.child_components: list[BaseWidget] = [
+            DisplayImagePlugin(self),
+            DeviceDisplayMapperPlugin(self),
             UpdateChecker(self)
         ]
 
@@ -61,12 +59,19 @@ class TrayWidget(QWidget):
 
     def createPluginsMenu(self):
         menu = QMenu('Plugins', self)
-        for plugin in self.plugins:
-            action = QAction(plugin.__class__.__name__, self)
+        for child_component in self.child_components:
+            action = QAction(child_component.__class__.__name__, self)
+
             action.setCheckable(True)
-            action.triggered.connect(plugin.toggle_status)
-            if plugin.is_enabled():
+            if child_component.is_enabled():
                 action.setChecked(True)
+
+            toggleable = child_component.is_toggleable()
+            if toggleable:
+                action.triggered.connect(child_component.toggle_status)
+            else:
+                action.setDisabled(True)
+
             menu.addAction(action)
         return menu
 
@@ -75,7 +80,7 @@ class TrayWidget(QWidget):
         menu.addMenu(self.createPluginsMenu())
         menu.addSeparator()
 
-        for plugin in self.plugins:
+        for plugin in self.child_components:
             for plugin_menu in plugin.retrieve_menus():
                 menu.addMenu(plugin_menu)
         menu.addSeparator()
@@ -94,8 +99,8 @@ class TrayWidget(QWidget):
         self.close()
 
     def closeEvent(self, event):
-        for plugin in self.plugins:
-            plugin.close()
+        for child_component in self.child_components:
+            child_component.close()
         QCoreApplication.exit()
 
     @Slot()
