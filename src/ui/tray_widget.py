@@ -7,6 +7,7 @@ from ..components.update_checker import UpdateChecker
 from ..base.base_widget import BaseWidget
 from ..plugins.display_image_tuner.image_tuner_plugin import DisplayImagePlugin
 from ..plugins.device_display_mapper.device_display_mapper_plugin import DeviceDisplayMapperPlugin
+from ..plugins.home_assistant_mqtt_pub.home_assistant_mqtt_pub_plugin import HomeAssistantMqttPubPlugin
 from .. import resources # noqa: F401,E261
 
 from ..app_info import APP_INFO
@@ -29,6 +30,7 @@ class TrayWidget(QWidget):
         self.child_components: list[BaseWidget] = [
             DisplayImagePlugin(self),
             DeviceDisplayMapperPlugin(self),
+            HomeAssistantMqttPubPlugin(self),
             UpdateChecker(self)
         ]
 
