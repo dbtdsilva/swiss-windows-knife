@@ -9,11 +9,13 @@ import logging
 
 from ...base.base_widget import BaseWidget
 
+
 class DeviceNotificationType(StrEnum):
     DELETION = "Deletion"
     CREATION = "Creation"
     MODIFICATION = "Modification"
     OPERATION = "Operation"
+
 
 class DeviceListener(BaseWidget):
 
@@ -21,9 +23,10 @@ class DeviceListener(BaseWidget):
 
     def __init__(self, parent: QWidget) -> None:
         super().__init__(parent)
+
         logging.info('Starting device listener..')
         self.connect_listener = _DeviceListenerThread(parent=self,
-                                                     parent_signal=self.change_detected,
+                                                      parent_signal=self.change_detected,
                                                       notification_type=DeviceNotificationType.CREATION)
         self.disconnect_listener = _DeviceListenerThread(parent=self,
                                                          parent_signal=self.change_detected,

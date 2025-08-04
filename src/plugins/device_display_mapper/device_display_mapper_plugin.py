@@ -35,10 +35,10 @@ class DeviceDisplayMapperPlugin(BaseWidget):
         return [
             self.create_display_selection_menu('Display on connect',
                                                self.change_display_on_input_connect,
-                                 'display_on_connect'),
+                                               'display_on_connect'),
             self.create_display_selection_menu('Display on disconnect',
                                                self.change_display_on_input_disconnect,
-                                 'display_on_disconnect'),
+                                               'display_on_disconnect'),
             self.create_usb_selection_menu('USB to be watched for display connection',
                                            self.change_usb_watcher,
                                            'usb_watcher'),
