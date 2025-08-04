@@ -6,11 +6,15 @@ from PySide6.QtWidgets import QMenu, QWidget
 from PySide6.QtCore import Slot
 
 from ...base.user_settings import UserSettings
-from .device_listener import DeviceListener, DeviceNotificationType
+from .device_listener import DeviceListener, DeviceNotificationType, Device
 from ...base.base_widget import BaseWidget
 
 import monitorcontrol
 import logging
+
+USER_SETTINGS_DISPLAY_ON_CONNECT_KEY = 'display_on_connect'
+USER_SETTINGS_DISPLAY_ON_DISCONNECT_KEY = 'display_on_disconnect'
+USER_SETTINGS_DISPLAY_USB_WATCHER_KEY = 'display_usb_watcher'
 
 
 class DeviceDisplayMapperPlugin(BaseWidget):
@@ -19,13 +23,17 @@ class DeviceDisplayMapperPlugin(BaseWidget):
         super().__init__(parent)
 
         self.user_settings = UserSettings.instance()
-        if not self.user_settings.has_key('display_on_disconnect'):
-            self.user_settings.set('display_on_disconnect', monitorcontrol.InputSource.HDMI1)
-        if not self.user_settings.has_key('display_on_connect'):
-            self.user_settings.set('display_on_connect', monitorcontrol.InputSource.DP1)
+        if not self.user_settings.has_key(USER_SETTINGS_DISPLAY_ON_DISCONNECT_KEY):
+            self.user_settings.set(USER_SETTINGS_DISPLAY_ON_DISCONNECT_KEY, monitorcontrol.InputSource.HDMI1)
+        if not self.user_settings.has_key(USER_SETTINGS_DISPLAY_ON_CONNECT_KEY):
+            self.user_settings.set(USER_SETTINGS_DISPLAY_ON_CONNECT_KEY, monitorcontrol.InputSource.DP1)
 
-        logging.info(f"Starting with the 'display_on_connect' set to {self.user_settings.get('display_on_connect')}")
-        logging.info(f"Starting with the 'display_on_disconnect' set to {self.user_settings.get('display_on_disconnect')}")
+        logging.info(f"Starting with the {USER_SETTINGS_DISPLAY_ON_CONNECT_KEY} set to "
+                     f"{self.user_settings.get(USER_SETTINGS_DISPLAY_ON_CONNECT_KEY)}")
+        logging.info(f"Starting with the {USER_SETTINGS_DISPLAY_ON_DISCONNECT_KEY} set to "
+                     f"{self.user_settings.get(USER_SETTINGS_DISPLAY_ON_DISCONNECT_KEY)}")
+        logging.info(f"Starting with the {USER_SETTINGS_DISPLAY_USB_WATCHER_KEY} set to "
+                     f"{self.user_settings.get(USER_SETTINGS_DISPLAY_USB_WATCHER_KEY)}")
 
         self.last_process = 0
         self.device_listener = DeviceListener(self)
@@ -35,24 +43,23 @@ class DeviceDisplayMapperPlugin(BaseWidget):
         return [
             self.create_display_selection_menu('Display on connect',
                                                self.change_display_on_input_connect,
-                                               'display_on_connect'),
+                                               USER_SETTINGS_DISPLAY_ON_CONNECT_KEY),
             self.create_display_selection_menu('Display on disconnect',
                                                self.change_display_on_input_disconnect,
-                                               'display_on_disconnect'),
-            self.create_usb_selection_menu('USB to be watched for display connection',
-                                           self.change_usb_watcher,
-                                           'usb_watcher'),
+                                               USER_SETTINGS_DISPLAY_ON_DISCONNECT_KEY),
+            self.create_usb_selection_menu(),
         ]
 
-    def create_usb_selection_menu(self, title, change_value_trigger, key):
-        menu = QMenu(title, self)
+    def create_usb_selection_menu(self):
+        menu = QMenu('USB trigger for display switch', self)
         group = QActionGroup(self)
         group.setExclusive(True)
-        for source in self.device_listener.get_real_usb_devices():
-            action = QAction(str(source), self)
+        for device in self.device_listener.get_real_usb_devices():
+            action = QAction(device.name, self)
             action.setCheckable(True)
-            action.triggered.connect(partial(lambda val: change_value_trigger(val), val=source))
-            if source == self.user_settings.get(key):
+            action.setData(device)
+            action.triggered.connect(partial(lambda val: self.change_usb_watcher(val), val=device))
+            if device.id == self.user_settings.get(USER_SETTINGS_DISPLAY_USB_WATCHER_KEY):
                 action.setChecked(True)
             group.addAction(action)
             menu.addAction(action)
@@ -73,32 +80,32 @@ class DeviceDisplayMapperPlugin(BaseWidget):
         return menu
 
     def change_display_on_input_connect(self, source):
-        self.user_settings.set('display_on_connect', source)
+        self.user_settings.set(USER_SETTINGS_DISPLAY_ON_CONNECT_KEY, source)
 
     def change_display_on_input_disconnect(self, source):
-        self.user_settings.set('display_on_disconnect', source)
+        self.user_settings.set(USER_SETTINGS_DISPLAY_ON_DISCONNECT_KEY, source)
 
-    def change_usb_watcher(self, source):
-        self.user_settings.set('usb_watcher', source)
+    def change_usb_watcher(self, device: Device):
+        self.user_settings.set(USER_SETTINGS_DISPLAY_USB_WATCHER_KEY, device.id)
 
     @Slot(bool, str)
-    def device_changed(self, device_notification_type: DeviceNotificationType, usb_device_id: str):
+    def device_changed(self, device_notification_type: DeviceNotificationType, usb_device: Device):
         current_time = time.time()
         if current_time - self.last_process < 1.0:
             return
 
-        if self.user_settings.get('usb_watcher') != usb_device_id:
+        if self.user_settings.get(USER_SETTINGS_DISPLAY_USB_WATCHER_KEY) != usb_device.id:
             return
 
         self.last_process = time.time()
         for i, monitor in enumerate(monitorcontrol.get_monitors()):
             with monitor:
                 if device_notification_type == DeviceNotificationType.CREATION:
-                    input_source = self.user_settings.get('display_on_connect')
+                    input_source = self.user_settings.get(USER_SETTINGS_DISPLAY_ON_CONNECT_KEY)
                     monitor.set_input_source(input_source)  # type: ignore
                     logging.info(f"Changing monitor {i} input source to {input_source}")
                 elif device_notification_type == DeviceNotificationType.DELETION:
-                    input_source = self.user_settings.get('display_on_disconnect')
+                    input_source = self.user_settings.get(USER_SETTINGS_DISPLAY_ON_DISCONNECT_KEY)
                     monitor.set_input_source(input_source)  # type: ignore
                     logging.info(f"Changing monitor {i} input source to {input_source}")
 
