@@ -5,6 +5,7 @@ from PySide6.QtGui import QAction
 import json
 
 from src.base.user_settings import UserSettings
+from .mqtt_config import MqttConfig
 
 from ...app_info import APP_INFO
 from ...base.base_widget import BaseWidget
@@ -69,11 +70,7 @@ class HomeAssistantMqttPubPlugin(BaseWidget):
     @override
     def retrieve_menus(self) -> list[QMenu]:
         menu = QMenu('Home Assistant', self)
-        enable_config = QAction('Enabled', self)
-        enable_config.setCheckable(True)
-        enable_config.setChecked(True)
-        menu.addAction(enable_config)
-        config_action = QAction('Configuration', self)
+        config_action = QAction('Configuration...', self)
         config_action.triggered.connect(self.open_config)
         menu.addAction(config_action)
         menu.addSeparator()
@@ -81,6 +78,7 @@ class HomeAssistantMqttPubPlugin(BaseWidget):
         subscribe_action.triggered.connect(self.open_config)
         subscribe_action.setCheckable(True)
         subscribe_action.setChecked(True)
+        subscribe_action.setEnabled(False)
         publish_action = QAction('Publish local info', self)
         publish_action.triggered.connect(self.open_config)
         publish_action.setCheckable(True)
@@ -90,10 +88,15 @@ class HomeAssistantMqttPubPlugin(BaseWidget):
 
     @Slot()
     def open_config(self) -> None:
-        dialog = MqttBrokerConfigDialog(self)
+        dialog = MqttBrokerConfigDialog(self, MqttConfig.load_from_settings(self.user_settings))
         result = dialog.exec()
         if result == QDialog.DialogCode.Accepted:
-            pass
+            mqtt_config = dialog.get_data()
+            self.user_settings.set('homeassistant_host', mqtt_config.host)
+            self.user_settings.set('homeassistant_port', mqtt_config.port)
+            self.user_settings.set('homeassistant_client_id', mqtt_config.client_id)
+            self.user_settings.set('homeassistant_username', mqtt_config.username)
+            self.user_settings.set('homeassistant_password', mqtt_config.password)
 
     def on_connect(self, client, userdata, flags, rc, properties):
         if rc == 0:
@@ -109,7 +112,7 @@ class HomeAssistantMqttPubPlugin(BaseWidget):
         logging.info(f"Subscribed: {mid} QoS: {granted_qos}")
 
     def on_message(self, client, userdata, msg):
-        logging.debug(f'Received message on {msg.topic} with retain {msg.retain} at '
+        logging.info(f'Received message on {msg.topic} with retain {msg.retain} at '
                       f'{msg.timestamp} with the message: {msg.payload.decode()}')
         if msg.topic == 'homeassistant/status':
             self.update_homeassistant_status(msg.payload.decode() == 'online')
