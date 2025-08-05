@@ -62,6 +62,8 @@ class DeviceListener(BaseWidget):
             if DeviceListener.is_real_usb_device(pnp_id):
                 device = Device(device.DeviceID, device.Name, device.Description, device.Manufacturer)
                 usb_devices.append(device)
+
+        usb_devices.sort(key=lambda d: d.name)
         return usb_devices
 
     def closeEvent(self, event):

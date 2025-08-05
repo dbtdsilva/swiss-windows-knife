@@ -40,7 +40,8 @@ class DeviceDisplayMapperPlugin(BaseWidget):
         self.device_listener.change_detected.connect(self.device_changed)
 
     def retrieve_menus(self) -> list[QMenu]:
-        return [
+        menu = QMenu('Display automation', self)
+        sub_menus = [
             self.create_display_selection_menu('Display on connect',
                                                self.change_display_on_input_connect,
                                                USER_SETTINGS_DISPLAY_ON_CONNECT_KEY),
@@ -49,13 +50,16 @@ class DeviceDisplayMapperPlugin(BaseWidget):
                                                USER_SETTINGS_DISPLAY_ON_DISCONNECT_KEY),
             self.create_usb_selection_menu(),
         ]
+        for sub_menu in sub_menus:
+            menu.addMenu(sub_menu)
+        return [menu]
 
     def create_usb_selection_menu(self):
         menu = QMenu('USB trigger for display switch', self)
         group = QActionGroup(self)
         group.setExclusive(True)
         for device in self.device_listener.get_real_usb_devices():
-            action = QAction(device.name, self)
+            action = QAction(f'{device.name}, {device.description} ({device.id})', self)
             action.setCheckable(True)
             action.setData(device)
             action.triggered.connect(partial(lambda val: self.change_usb_watcher(val), val=device))
