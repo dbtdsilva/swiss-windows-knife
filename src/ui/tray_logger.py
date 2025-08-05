@@ -22,7 +22,7 @@ class TrayLogger(QDialog, QPlainTextEdit):
             "%(asctime)s %(levelname)-8s [%(thread)s %(threadName)s] %(name)s: %(message)s"))
 
         logging.getLogger().addHandler(logger_text_box)
-        logging.getLogger().setLevel(logging.DEBUG)
+        logging.getLogger().setLevel(logging.INFO)
 
         layout = QVBoxLayout()
         layout.addWidget(logger_text_box.widget)

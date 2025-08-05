@@ -1,9 +1,9 @@
 cx_Freeze==7.2.0
 monitorcontrol==3.1.0
-pyside6==6.7.2
-pysolar==0.11
+pyside6==6.9.1
+pysolar==0.13
 pytz==2024.1
-pywin32==306
+pywin32==311
 wmi==1.5.1
-requests==2.32.3
+requests==2.32.4
 paho.mqtt==2.1.0

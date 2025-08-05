@@ -31,6 +31,7 @@ class DeviceListener(BaseWidget):
 
     def __init__(self, parent: QWidget) -> None:
         super().__init__(parent)
+        self.wmi = wmi.WMI()
 
         logging.info('Starting device listener..')
         self.connect_listener = _DeviceListenerThread(parent=self,
@@ -52,12 +53,10 @@ class DeviceListener(BaseWidget):
             return False
         return True
 
-    @staticmethod
-    def get_real_usb_devices():
-        c = wmi.WMI()
+    def get_real_usb_devices(self):
         usb_devices = []
 
-        for device in c.Win32_PnPEntity():
+        for device in self.wmi.Win32_PnPEntity():
             pnp_id = getattr(device, "PNPDeviceID", "")
             if DeviceListener.is_real_usb_device(pnp_id):
                 device = Device(device.DeviceID, device.Name, device.Description, device.Manufacturer)
@@ -88,8 +87,7 @@ class _DeviceListenerThread(QtCore.QThread):
         logging.info(f"Starting DeviceDisconnectListener for {self.notification_type}")
 
         pythoncom.CoInitialize()
-        c = wmi.WMI()
-        watcher = c.watch_for(
+        watcher = wmi.WMI().watch_for(
             notification_type=self.notification_type.value,
             wmi_class="Win32_PnPEntity",
             delay_secs=1)

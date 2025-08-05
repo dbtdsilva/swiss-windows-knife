@@ -6,7 +6,7 @@ from PySide6.QtCore import Signal
 
 from ...base.user_settings import UserSettings
 from ...base.base_widget import BaseWidget
-from .sun_strenght_notifier import SunStrengthNotifier
+from .sun_strength_notifier import SunStrengthNotifier
 
 import monitorcontrol
 import logging
@@ -29,7 +29,7 @@ class DisplayImagePlugin(BaseWidget):
         logging.info(f"Starting with the 'brightness' set to {self.user_settings.get('brightness')}")
         logging.info(f"Starting with the 'contrast' set to {self.user_settings.get('contrast')}")
 
-        self.sun_strenght_plugin = SunStrengthNotifier(self)
+        self.sun_strength_plugin = SunStrengthNotifier(self)
 
         self.automatic_brightness_slot = None
         self.automatic_contrast_slot = None
@@ -98,18 +98,18 @@ class DisplayImagePlugin(BaseWidget):
         if is_checked:
             self.user_settings.set('brightness', None)
             self.automatic_brightness_slot = lambda val: self.brightness_changed.emit(val)
-            self.sun_strenght_plugin.sun_strength_changed.connect(self.automatic_brightness_slot)
+            self.sun_strength_plugin.sun_strength_changed.connect(self.automatic_brightness_slot)
         else:
-            self.sun_strenght_plugin.sun_strength_changed.disconnect(self.automatic_brightness_slot)
+            self.sun_strength_plugin.sun_strength_changed.disconnect(self.automatic_brightness_slot)
             self.automatic_brightness_slot = None
 
     def change_contrast_automatic(self, is_checked):
         if is_checked:
             self.user_settings.set('contrast', None)
             self.automatic_contrast_slot = lambda val: self.contrast_changed.emit(val)
-            self.sun_strenght_plugin.sun_strength_changed.connect(self.automatic_contrast_slot)
+            self.sun_strength_plugin.sun_strength_changed.connect(self.automatic_contrast_slot)
         else:
-            self.sun_strenght_plugin.sun_strength_changed.disconnect(self.automatic_contrast_slot)
+            self.sun_strength_plugin.sun_strength_changed.disconnect(self.automatic_contrast_slot)
             self.automatic_contrast_slot = None
 
     def change_brightness_manual(self, is_checked, brightness_level):
@@ -127,5 +127,5 @@ class DisplayImagePlugin(BaseWidget):
         self.contrast_changed.emit(contrast_level)
 
     def closeEvent(self, event):
-        self.sun_strenght_plugin.close()
+        self.sun_strength_plugin.close()
         event.accept()
