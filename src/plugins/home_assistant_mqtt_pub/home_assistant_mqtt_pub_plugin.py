@@ -113,7 +113,7 @@ class HomeAssistantMqttPubPlugin(BaseWidget):
 
     def on_message(self, client, userdata, msg):
         logging.info(f'Received message on {msg.topic} with retain {msg.retain} at '
-                      f'{msg.timestamp} with the message: {msg.payload.decode()}')
+                     f'{msg.timestamp} with the message: {msg.payload.decode()}')
         if msg.topic == 'homeassistant/status':
             self.update_homeassistant_status(msg.payload.decode() == 'online')
 

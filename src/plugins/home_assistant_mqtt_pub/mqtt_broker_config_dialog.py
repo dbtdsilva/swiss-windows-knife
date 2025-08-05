@@ -1,8 +1,9 @@
 from PySide6.QtWidgets import QDialog, QFormLayout, QLineEdit, QDialogButtonBox
 from .mqtt_config import MqttConfig
 
+
 class MqttBrokerConfigDialog(QDialog):
-    def __init__(self, parent = None, mqtt_config: MqttConfig = None):
+    def __init__(self, parent=None, mqtt_config: MqttConfig = None):
         super().__init__(parent)
 
         # Set up the dialog
