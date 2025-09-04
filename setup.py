@@ -75,9 +75,10 @@ def usage():
     print(
         """
         Usage:
-            build resources  -  Build resources.py
-            build exe        -  Build executable using cx-Freeze.
-            build installer  -  Build windows installer using Inno Setup.
+            resources  - Build resources.py
+            dev        - Execute the application without compiling Python code
+            exe        - Build executable using cx-Freeze.
+            installer  - Build windows installer using Inno Setup.
         """)
 
 
