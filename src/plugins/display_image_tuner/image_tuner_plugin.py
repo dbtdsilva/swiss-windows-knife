@@ -37,7 +37,7 @@ class DisplayImagePlugin(BaseWidget):
         self.brightness_changed.connect(self.change_monitor_brightness)
         self.contrast_changed.connect(self.change_monitor_contrast)
 
-    def retrieve_menus(self) -> list[QMenu]:
+    def retrieve_menus(self) -> list[QMenu | QAction]:
         return [
             self.create_value_control_menu('Brightness',
                                            lambda: self.user_settings.get('brightness'),
@@ -57,7 +57,7 @@ class DisplayImagePlugin(BaseWidget):
                         monitor.set_luminance(brightness)
                         logging.info(f"Setting brightness to {brightness} on monitor {i}")
         except (ValueError, monitorcontrol.VCPError) as e:
-            logging.warn(f"Exception was caught while changing brightness: {e}")
+            logging.warning(f"Exception was caught while changing brightness: {e}")
 
     def change_monitor_contrast(self, contrast):
         # Change respective settings on the monitor through DDC/CI
@@ -68,7 +68,7 @@ class DisplayImagePlugin(BaseWidget):
                         monitor.set_contrast(contrast)
                         logging.info(f"Setting contrast to {contrast} on monitor {i}")
         except (ValueError, monitorcontrol.VCPError) as e:
-            logging.warn(f"Exception was caught while changing contrast: {e}")
+            logging.warning(f"Exception was caught while changing contrast: {e}")
 
     def create_value_control_menu(self, title, property_get, manual_slot, automatic_slot) -> QMenu:
         menu = QMenu(title, self)

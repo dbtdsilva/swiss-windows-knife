@@ -62,7 +62,7 @@ class DeviceDisplayMapperPlugin(BaseWidget):
                 logging.info(f"Display ({capabilities['model']} {device_name}) will change input to on USB disconnect: "
                              f"{self.user_settings.get(USER_SETTINGS_DISPLAY_ON_DISCONNECT_KEY_FUNC(device_id))}")
 
-    def retrieve_menus(self) -> list[QMenu]:
+    def retrieve_menus(self) -> list[QMenu | QAction]:
         menu = QMenu('Display automation', self)
 
         sub_menus = []

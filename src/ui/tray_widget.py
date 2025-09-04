@@ -83,8 +83,11 @@ class TrayWidget(QWidget):
         menu.addSeparator()
 
         for plugin in self.child_components:
-            for plugin_menu in plugin.retrieve_menus():
-                menu.addMenu(plugin_menu)
+            for plugin_menu_action in plugin.retrieve_menus():
+                if isinstance(plugin_menu_action, QMenu):
+                    menu.addMenu(plugin_menu_action)
+                elif isinstance(plugin_menu_action, QAction):
+                    menu.addAction(plugin_menu_action)
         menu.addSeparator()
 
         logs_action = QAction('View logs', self)

@@ -1,4 +1,5 @@
 from PySide6.QtWidgets import QWidget, QMenu
+from PySide6.QtGui import QAction
 import logging
 
 
@@ -20,7 +21,7 @@ class BaseWidget(QWidget):
     def is_toggleable(self):
         return self._is_toggleable
 
-    def retrieve_menus(self) -> list[QMenu]:
+    def retrieve_menus(self) -> list[QMenu | QAction]:
         return []
 
     def status_changed(self, status: bool) -> None:

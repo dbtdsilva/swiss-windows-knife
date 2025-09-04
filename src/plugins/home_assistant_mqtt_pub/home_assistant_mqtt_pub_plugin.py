@@ -68,7 +68,7 @@ class HomeAssistantMqttPubPlugin(BaseWidget):
             self.client.disconnect()
 
     @override
-    def retrieve_menus(self) -> list[QMenu]:
+    def retrieve_menus(self) -> list[QMenu | QAction]:
         menu = QMenu('Home Assistant', self)
         config_action = QAction('Configuration...', self)
         config_action.triggered.connect(self.open_config)

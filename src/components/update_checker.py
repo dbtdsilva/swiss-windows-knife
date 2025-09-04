@@ -1,7 +1,8 @@
 from typing import Optional
 
-from PySide6.QtWidgets import QWidget, QMessageBox, QCheckBox
+from PySide6.QtWidgets import QMenu, QWidget, QMessageBox, QCheckBox
 from PySide6.QtCore import QTimer
+from PySide6.QtGui import QAction
 
 from ..app_info import APP_INFO
 from ..base.base_widget import BaseWidget
@@ -28,6 +29,11 @@ class UpdateChecker(BaseWidget):
 
         QTimer.singleShot(0, self.check_updates)
 
+    def retrieve_menus(self) -> list[QMenu | QAction]:
+        check_updates_action = QAction('Check for updates...', self)
+        check_updates_action.triggered.connect(self.check_updates)
+        return [check_updates_action]
+
     def check_updates(self):
         latest_version_url = 'https://api.github.com/repos/dbtdsilva/swiss-windows-knife/releases/latest'
         current_version = APP_INFO.APP_VERSION
@@ -35,16 +41,17 @@ class UpdateChecker(BaseWidget):
         response = requests.get(latest_version_url)
 
         if response.status_code != 200:
-            logging.warn(f'Failed to retrieve version to update: {response.text}')
+            logging.warning(f'Failed to retrieve version to update: {response.text}')
             return
 
         installer_url = self.retrieve_installer_remote_url(response.json())
         if installer_url is None:
-            logging.warn(f'Failed to retrieve installer url from response: {response.json()}')
+            logging.warning(f'Failed to retrieve installer url from response: {response.json()}')
             return
 
         remote_version = response.json()['tag_name']
         if current_version >= remote_version:
+            logging.info(f'No update is needed. Remote: {remote_version}, Local: {current_version}')
             return
 
         logging.info(f'Application will retrieve user to update version from {current_version} to {remote_version}')
