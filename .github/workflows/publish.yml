@@ -6,7 +6,7 @@ on:
 
 jobs:
   publish:
-    runs-on: windows-latest
+    runs-on: windows-2022
     concurrency: release
     permissions:
       id-token: write
