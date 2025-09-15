@@ -84,7 +84,7 @@ class _DeviceListenerThread(QtCore.QThread):
         self.signal = parent_signal
 
     def run(self):
-        logging.info(f"Starting DeviceDisconnectListener for {self.notification_type}")
+        logging.info(f"Starting DeviceDisconnectListener ({self.notification_type})")
 
         pythoncom.CoInitialize()
         watcher = wmi.WMI().watch_for(

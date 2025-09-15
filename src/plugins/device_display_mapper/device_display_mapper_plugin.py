@@ -128,7 +128,6 @@ class DeviceDisplayMapperPlugin(BaseWidget):
         if self.user_settings.get(USER_SETTINGS_DISPLAY_USB_WATCHER_KEY) != usb_device.id:
             return
 
-        self.last_process = time.time()
         for monitor in monitorcontrol.get_monitors():
             with monitor:
                 hmon = monitor.vcp.hmonitor.value    # type: ignore
@@ -141,6 +140,7 @@ class DeviceDisplayMapperPlugin(BaseWidget):
                     input_source = self.user_settings.get(USER_SETTINGS_DISPLAY_ON_DISCONNECT_KEY_FUNC(device_id))
 
                 if input_source is not None:
+                    self.last_process = time.time()
                     monitor.set_input_source(input_source)  # type: ignore
                     logging.info(f'Changing monitor {monitor_info.model} ({monitor_info.device_name}) '
                                  f'input source to {input_source}')
