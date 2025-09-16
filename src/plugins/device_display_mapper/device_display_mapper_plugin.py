@@ -126,6 +126,9 @@ class DeviceDisplayMapperPlugin(BaseWidget):
         if current_time - self.last_process < 1.0:
             return
 
+        logging.debug(f'Comparing the user setting (key: {USER_SETTINGS_DISPLAY_USB_WATCHER_KEY}, '
+                      f'value: {self.user_settings.get(USER_SETTINGS_DISPLAY_USB_WATCHER_KEY)} with '
+                      f'the device id: {usb_device.id}')
         if self.user_settings.get(USER_SETTINGS_DISPLAY_USB_WATCHER_KEY) != usb_device.id:
             return
 
@@ -135,6 +138,10 @@ class DeviceDisplayMapperPlugin(BaseWidget):
                 monitor_info = self.input_per_monitor[hmon]
                 device_id = monitor_info.device_id
                 input_source = None
+                logging.debug(
+                    f'Monitor {device_id} with settings: '
+                    f'on connect {self.user_settings.get(USER_SETTINGS_DISPLAY_ON_CONNECT_KEY_FUNC(device_id))}; '
+                    f'on disconnect {self.user_settings.get(USER_SETTINGS_DISPLAY_ON_DISCONNECT_KEY_FUNC(device_id))}')
                 if device_notification_type == DeviceNotificationType.CREATION:
                     input_source = self.user_settings.get(USER_SETTINGS_DISPLAY_ON_CONNECT_KEY_FUNC(device_id))
                 elif device_notification_type == DeviceNotificationType.DELETION:
