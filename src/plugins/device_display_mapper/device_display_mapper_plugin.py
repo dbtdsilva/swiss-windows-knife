@@ -121,6 +121,7 @@ class DeviceDisplayMapperPlugin(BaseWidget):
 
     @Slot(bool, str)
     def device_changed(self, device_notification_type: DeviceNotificationType, usb_device: Device):
+        logging.debug(f'Device change detected ({device_notification_type}): {usb_device.id}')
         current_time = time.time()
         if current_time - self.last_process < 1.0:
             return
