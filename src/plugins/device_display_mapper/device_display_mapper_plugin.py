@@ -132,7 +132,9 @@ class DeviceDisplayMapperPlugin(BaseWidget):
         if self.user_settings.get(USER_SETTINGS_DISPLAY_USB_WATCHER_KEY) != usb_device.id:
             return
 
+        logging.debug(f'Matched device {usb_device.id}, changing input source on monitors')
         for monitor in monitorcontrol.get_monitors():
+            logging.debug(f'Processing monitor {monitor}...')
             with monitor:
                 hmon = monitor.vcp.hmonitor.value    # type: ignore
                 monitor_info = self.input_per_monitor[hmon]
