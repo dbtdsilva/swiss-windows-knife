@@ -5,6 +5,7 @@ import signal
 from PySide6.QtWidgets import QApplication
 from src.ui.tray_widget import TrayWidget
 import logging
+import traceback
 
 
 class SwissWindowsKnife:
@@ -20,8 +21,14 @@ class SwissWindowsKnife:
 
         widget = TrayWidget()
         widget.hide()
+        sys.excepthook = SwissWindowsKnife.excepthook
 
         sys.exit(app.exec())
+
+    @staticmethod
+    def excepthook(exc_type, exc_value, exc_tb):
+        tb = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
+        logging.error("Unhandled exception: \n%s", tb)
 
     def init_logging(self):
         class LoggingModuleNameFilter(logging.Filter):
