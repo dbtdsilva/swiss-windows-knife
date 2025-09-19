@@ -49,7 +49,7 @@ class SwissWindowsKnife:
         handler = logging.StreamHandler(sys.stdout)
         handler.addFilter(LoggingModuleNameFilter())
         logging.basicConfig(format='[%(asctime)s %(name)s-%(threadName)s %(levelname)s] %(message)s',
-                            level=logging.DEBUG,
+                            level=logging.INFO,
                             handlers=[handler])
 
 

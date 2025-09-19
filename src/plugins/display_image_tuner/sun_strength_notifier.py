@@ -18,6 +18,7 @@ class SunStrengthNotifier(BaseWidget):
         self.timer = QTimer()
         self.timer.timeout.connect(self.calculate_sun_strength)
         self.timer.start(1000 * 60)
+        self.calculate_sun_strength()
 
     def calculate_sun_strength(self):
         request = datetime.now().astimezone(pytz.timezone('Europe/Zurich'))

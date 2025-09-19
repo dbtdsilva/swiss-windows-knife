@@ -22,6 +22,8 @@ class HomeAssistantMqttPubPlugin(BaseWidget):
     def __init__(self, parent: QWidget) -> None:
         super().__init__(parent, is_enabled=True)
 
+        self.client = None
+
         self.user_settings = UserSettings.instance()
         if not self.user_settings.has_key('homeassistant_host') or \
                 not self.user_settings.has_key('homeassistant_port') or \
@@ -55,6 +57,9 @@ class HomeAssistantMqttPubPlugin(BaseWidget):
         self.toggle_mqtt_client(self.is_enabled() and self.is_homeassistant_configured)
 
     def toggle_mqtt_client(self, status: bool):
+        if self.client is None:
+            return
+
         if status:
             host = self.user_settings.get('homeassistant_host')
             port = self.user_settings.get('homeassistant_port')
@@ -119,7 +124,7 @@ class HomeAssistantMqttPubPlugin(BaseWidget):
 
     def update_homeassistant_status(self, status: bool) -> None:
         self.is_homeassistant_online = status
-        if not self.is_homeassistant_online:
+        if self.client is None or not self.is_homeassistant_online:
             return
 
         self.client.publish('homeassistant/sensor/camelotaorus/test/config', payload=json.dumps({
@@ -145,19 +150,19 @@ class HomeAssistantMqttPubPlugin(BaseWidget):
 
     @Slot()
     def publish_message(self):
-        if self.is_homeassistant_online:
-            import random
-            # self.client.publish(self.topic, self.message)
-            # logging.debug(f"Published: {self.message} to topic: {self.topic}")
-            self.client.publish("homeassistant/sensor/camelotaorus/state", json.dumps({
-                'temperature': random.randint(15, 30)
-            }), qos=0, retain=False)
-        else:
-            logging.error("Client is not connected. Message not sent.")
+        if self.client is None or not self.is_homeassistant_online:
+            return
+        import random
+        # self.client.publish(self.topic, self.message)
+        # logging.debug(f"Published: {self.message} to topic: {self.topic}")
+        self.client.publish("homeassistant/sensor/camelotaorus/state", json.dumps({
+            'temperature': random.randint(15, 30)
+        }), qos=0, retain=False)
 
     def closeEvent(self, event):
-        self.client.publish("homeassistant/sensor/camelotaorus/availability", "offline", qos=0, retain=False)
-
-        self.client.loop_stop()
-        self.client.disconnect()
+        if self.client is not None:
+            if self.is_homeassistant_online:
+                self.client.publish("homeassistant/sensor/camelotaorus/availability", "offline", qos=0, retain=False)
+            self.client.loop_stop()
+            self.client.disconnect()
         event.accept()
