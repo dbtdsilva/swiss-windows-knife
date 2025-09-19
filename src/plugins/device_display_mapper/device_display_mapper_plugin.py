@@ -5,14 +5,13 @@ from PySide6.QtGui import QAction, QActionGroup
 from PySide6.QtWidgets import QMenu, QWidget
 from PySide6.QtCore import Slot
 
-from .monitor_info import MonitorInfo
+from .monitor_info import MonitorInfoCtx
 from .device_listener import DeviceListener, DeviceNotificationType, Device
 from ...base.base_widget import BaseWidget
 from ...base.user_settings import UserSettings
 
 import monitorcontrol
 import logging
-from win32api import EnumDisplayDevices, EnumDisplayMonitors, GetMonitorInfo
 
 
 USER_SETTINGS_DISPLAY_USB_WATCHER_KEY = 'display_usb_watcher'
@@ -27,58 +26,36 @@ class DeviceDisplayMapperPlugin(BaseWidget):
     def __init__(self, parent: QWidget) -> None:
         super().__init__(parent)
 
+        self.monitor_info_ctx = MonitorInfoCtx()
         self.user_settings = UserSettings.instance()
-        self.load_inputs_per_monitor()
 
         logging.info(f"Starting with the {USER_SETTINGS_DISPLAY_USB_WATCHER_KEY} set to "
                      f"{self.user_settings.get(USER_SETTINGS_DISPLAY_USB_WATCHER_KEY)}")
 
-        self.last_process = 0
+        self.last_changed = 0
         self.device_listener = DeviceListener(self)
         self.device_listener.change_detected.connect(self.device_changed)
-
-    def load_inputs_per_monitor(self):
-        logging.info('Getting monitors information')
-
-        monitor_hmon_device_id = {}
-        for hmon, _, _ in EnumDisplayMonitors(None, None):
-            info = GetMonitorInfo(hmon)     # type: ignore
-            dev = EnumDisplayDevices(info['Device'], 0, 1)
-            monitor_hmon_device_id[int(hmon)] = (dev.DeviceID, dev.DeviceName)    # type: ignore
-
-        self.input_per_monitor: dict[int, MonitorInfo] = {}
-        for monitor in monitorcontrol.get_monitors():
-            with monitor:
-                capabilities = monitor.get_vcp_capabilities()
-                hmon = monitor.vcp.hmonitor.value   # type: ignore
-                device_id, device_name = monitor_hmon_device_id[hmon]
-                self.input_per_monitor[hmon] = MonitorInfo(device_id,
-                                                           device_name,
-                                                           capabilities['model'],
-                                                           capabilities['inputs'])
-
-                logging.info(f"Display ({capabilities['model']} {device_name}) will change input to on USB connect: "
-                             f"{self.user_settings.get(USER_SETTINGS_DISPLAY_ON_CONNECT_KEY_FUNC(device_id))}")
-                logging.info(f"Display ({capabilities['model']} {device_name}) will change input to on USB disconnect: "
-                             f"{self.user_settings.get(USER_SETTINGS_DISPLAY_ON_DISCONNECT_KEY_FUNC(device_id))}")
 
     def retrieve_menus(self) -> list[QMenu | QAction]:
         menu = QMenu('Display automation', self)
 
         sub_menus = []
-        for _, monitor_info in self.input_per_monitor.items():
-            monitor_label = f'{monitor_info.model} ({monitor_info.device_name})'
-            sub_menus.extend([
-                self.create_display_selection_menu(
-                    f'Input for {monitor_label} on connect',
-                    monitor_info.device_id,
-                    monitor_info.inputs,
-                    USER_SETTINGS_DISPLAY_ON_CONNECT_KEY_FUNC),
-                self.create_display_selection_menu(
-                    f'Input for {monitor_label} on disconnect',
-                    monitor_info.device_id,
-                    monitor_info.inputs,
-                    USER_SETTINGS_DISPLAY_ON_DISCONNECT_KEY_FUNC)])
+        for monitor in monitorcontrol.get_monitors():
+            with monitor:
+                monitor_info = self.monitor_info_ctx.get_monitor_info_by_monitor(monitor=monitor)
+                if monitor_info is None:
+                    logging.warning('No monitor info not available')
+                    continue
+                monitor_label = f'{monitor_info.model} ({monitor_info.device_name})'
+                sub_menus.extend([
+                    self.create_display_selection_menu(
+                        f'Input for {monitor_label} on connect',
+                        monitor_info.inputs,
+                        USER_SETTINGS_DISPLAY_ON_CONNECT_KEY_FUNC(monitor_info.device_id)),
+                    self.create_display_selection_menu(
+                        f'Input for {monitor_label} on disconnect',
+                        monitor_info.inputs,
+                        USER_SETTINGS_DISPLAY_ON_DISCONNECT_KEY_FUNC(monitor_info.device_id))])
         sub_menus.append(self.create_usb_selection_menu())
         for sub_menu in sub_menus:
             menu.addMenu(sub_menu)
@@ -99,7 +76,7 @@ class DeviceDisplayMapperPlugin(BaseWidget):
             menu.addAction(action)
         return menu
 
-    def create_display_selection_menu(self, title, device_id, monitor_inputs, key_func):
+    def create_display_selection_menu(self, title, monitor_inputs, device_id_key):
         menu = QMenu(title, self)
         group = QActionGroup(self)
         group.setExclusive(True)
@@ -108,9 +85,9 @@ class DeviceDisplayMapperPlugin(BaseWidget):
             action = QAction(str(monitor_input), self)
             action.setCheckable(True)
             action.triggered.connect(partial(
-                lambda val: self.user_settings.set(key_func(device_id), val),
+                lambda val: self.user_settings.set(device_id_key, val),
                 val=monitor_input))
-            if monitor_input == self.user_settings.get(key_func(device_id)):
+            if monitor_input == self.user_settings.get(device_id_key):
                 action.setChecked(True)
             group.addAction(action)
             menu.addAction(action)
@@ -123,21 +100,18 @@ class DeviceDisplayMapperPlugin(BaseWidget):
     def device_changed(self, device_notification_type: DeviceNotificationType, usb_device: Device):
         logging.debug(f'Device change detected ({device_notification_type}): {usb_device.id}')
         current_time = time.time()
-        if current_time - self.last_process < 1.0:
+        if current_time - self.last_changed < 1.0:
             return
-
-        logging.debug(f'Comparing the user setting (key: {USER_SETTINGS_DISPLAY_USB_WATCHER_KEY}, '
-                      f'value: {self.user_settings.get(USER_SETTINGS_DISPLAY_USB_WATCHER_KEY)} with '
-                      f'the device id: {usb_device.id}')
         if self.user_settings.get(USER_SETTINGS_DISPLAY_USB_WATCHER_KEY) != usb_device.id:
             return
 
         logging.debug(f'Matched device {usb_device.id}, changing input source on monitors')
         for monitor in monitorcontrol.get_monitors():
-            logging.debug(f'Processing monitor {monitor}...')
             with monitor:
-                hmon = monitor.vcp.hmonitor.value    # type: ignore
-                monitor_info = self.input_per_monitor[hmon]
+                monitor_info = self.monitor_info_ctx.get_monitor_info_by_monitor(monitor)
+                if monitor_info is None:
+                    logging.warning('No monitor info not available')
+                    continue
                 device_id = monitor_info.device_id
                 input_source = None
                 logging.debug(
@@ -150,7 +124,7 @@ class DeviceDisplayMapperPlugin(BaseWidget):
                     input_source = self.user_settings.get(USER_SETTINGS_DISPLAY_ON_DISCONNECT_KEY_FUNC(device_id))
 
                 if input_source is not None:
-                    self.last_process = time.time()
+                    self.last_changed = time.time()
                     monitor.set_input_source(input_source)  # type: ignore
                     logging.info(f'Changing monitor {monitor_info.model} ({monitor_info.device_name}) '
                                  f'input source to {input_source}')
