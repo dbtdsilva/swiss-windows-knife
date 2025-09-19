@@ -10,7 +10,7 @@ import traceback
 
 class SwissWindowsKnife:
 
-    def __init__(self) -> None:
+    def __init__(self, dev_mode: bool = False) -> None:
         self.init_logging()
 
         signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -19,7 +19,7 @@ class SwissWindowsKnife:
 
         logging.info("Starting widget..")
 
-        widget = TrayWidget()
+        widget = TrayWidget(dev_mode)
         widget.hide()
         sys.excepthook = SwissWindowsKnife.excepthook
 

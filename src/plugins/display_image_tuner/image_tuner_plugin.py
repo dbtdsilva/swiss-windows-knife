@@ -99,6 +99,7 @@ class DisplayImagePlugin(BaseWidget):
             self.user_settings.set('brightness', None)
             self.automatic_brightness_slot = lambda val: self.brightness_changed.emit(val)
             self.sun_strength_plugin.sun_strength_changed.connect(self.automatic_brightness_slot)
+            self.sun_strength_plugin.calculate_sun_strength()
         else:
             self.sun_strength_plugin.sun_strength_changed.disconnect(self.automatic_brightness_slot)
             self.automatic_brightness_slot = None
@@ -108,6 +109,7 @@ class DisplayImagePlugin(BaseWidget):
             self.user_settings.set('contrast', None)
             self.automatic_contrast_slot = lambda val: self.contrast_changed.emit(val)
             self.sun_strength_plugin.sun_strength_changed.connect(self.automatic_contrast_slot)
+            self.sun_strength_plugin.calculate_sun_strength()
         else:
             self.sun_strength_plugin.sun_strength_changed.disconnect(self.automatic_contrast_slot)
             self.automatic_contrast_slot = None

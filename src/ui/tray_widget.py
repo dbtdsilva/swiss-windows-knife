@@ -17,7 +17,7 @@ import sys
 
 class TrayWidget(QWidget):
 
-    def __init__(self, parent: Optional[QObject] = None) -> None:
+    def __init__(self, dev_mode: bool = False, parent: Optional[QObject] = None) -> None:
         super().__init__(parent=None)
 
         if not QSystemTrayIcon.isSystemTrayAvailable():
@@ -31,8 +31,10 @@ class TrayWidget(QWidget):
             DisplayImagePlugin(self),
             DeviceDisplayMapperPlugin(self),
             HomeAssistantMqttPubPlugin(self),
-            UpdateChecker(self)
         ]
+
+        if not dev_mode:
+            self.child_components.append(UpdateChecker(self))
 
         self._tray_icon = QSystemTrayIcon(parent=parent)
         self._tray_icon.setContextMenu(self.createMainMenu())

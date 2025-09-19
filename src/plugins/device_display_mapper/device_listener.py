@@ -1,6 +1,7 @@
 from enum import StrEnum
 
 from PySide6 import QtCore
+from PySide6.QtCore import SignalInstance
 from PySide6.QtWidgets import QWidget
 import pythoncom
 import wmi
@@ -77,7 +78,7 @@ class DeviceListener(BaseWidget):
 class _DeviceListenerThread(QtCore.QThread):
 
     def __init__(self, parent,
-                 parent_signal: QtCore.Signal(DeviceNotificationType, Device),
+                 parent_signal: SignalInstance,
                  notification_type: DeviceNotificationType):
         super().__init__(parent)
         self.notification_type = notification_type

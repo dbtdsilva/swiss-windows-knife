@@ -96,7 +96,7 @@ if __name__ == '__main__':
     elif mode == "dev":
         build_resources()
         from src.swiss_windows_knife import SwissWindowsKnife
-        SwissWindowsKnife()
+        SwissWindowsKnife(True)
     elif mode == "exe":
         build_resources()
         build_exe()

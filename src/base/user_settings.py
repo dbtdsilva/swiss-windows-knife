@@ -36,5 +36,5 @@ class UserSettings:
         return self._settings.contains(key)
 
     def set(self, key, value) -> None:
-        logging.info(f'Setting {key} to {value}')
+        logging.info(f'UserSettings key \'{key}\' changed to {value}')
         self._settings.setValue(key, value)
