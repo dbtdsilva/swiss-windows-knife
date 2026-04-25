@@ -99,7 +99,7 @@ class DeviceDisplayMapperPlugin(BaseWidget):
     def change_usb_watcher(self, device: Device):
         self.user_settings.set(USER_SETTINGS_DISPLAY_USB_WATCHER_KEY, device.id)
 
-    @Slot(bool, str)
+    @Slot(object, object)
     def device_changed(self, device_notification_type: DeviceNotificationType, usb_device: Device):
         logging.debug(f'Device change detected ({device_notification_type}): {usb_device.id}')
         current_time = time.time()
@@ -107,6 +107,7 @@ class DeviceDisplayMapperPlugin(BaseWidget):
             return
         if self.user_settings.get(USER_SETTINGS_DISPLAY_USB_WATCHER_KEY) != usb_device.id:
             return
+        self.last_changed = current_time
 
         logging.debug(f'Matched device {usb_device.id}, changing input source on monitors')
         runner().submit(self._apply_input_source, device_notification_type)
@@ -130,7 +131,6 @@ class DeviceDisplayMapperPlugin(BaseWidget):
                     input_source = self.user_settings.get(USER_SETTINGS_DISPLAY_ON_DISCONNECT_KEY_FUNC(device_id))
 
                 if input_source is not None:
-                    self.last_changed = time.time()
                     monitor.set_input_source(input_source)  # type: ignore
                     logging.info(f'Changing monitor {monitor_info.model} ({monitor_info.device_name}) '
                                  f'input source to {input_source}')
