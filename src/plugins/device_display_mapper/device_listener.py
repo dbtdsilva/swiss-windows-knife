@@ -95,8 +95,12 @@ class _DeviceListenerThread(QtCore.QThread):
         while not self.isInterruptionRequested():
             try:
                 usb = watcher(500)
-                self.signal.emit(self.notification_type,
-                                 Device(usb.DeviceID, usb.Name, usb.Description, usb.Manufacturer))
             except wmi.x_wmi_timed_out:
-                pass
+                continue
+            try:
+                device = Device(usb.DeviceID, usb.Name, usb.Description, usb.Manufacturer)
+            except Exception:
+                logging.exception("Failed to read attributes from WMI device event")
+                continue
+            self.signal.emit(self.notification_type, device)
         pythoncom.CoUninitialize()
