@@ -1,135 +1,186 @@
-from typing import Optional
+from typing import Callable, Optional
+import logging
+import os
+import subprocess
+import tempfile
+
+import requests
 
 from PySide6.QtWidgets import QMenu, QWidget, QMessageBox, QCheckBox
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QCoreApplication, QObject, QThread, QTimer, Signal, Slot
 from PySide6.QtGui import QAction
 
 from ..app_info import APP_INFO
 from ..base.base_widget import BaseWidget
 from ..base.user_settings import UserSettings
 
-import requests
-import os
-import subprocess
-import tempfile
-import logging
+
+LATEST_RELEASE_URL = 'https://api.github.com/repos/dbtdsilva/swiss-windows-knife/releases/latest'
+CHECK_INTERVAL_MS = 1000 * 30 * 60
+NETWORK_TIMEOUT_S = 15
+DOWNLOAD_TIMEOUT_S = 120
+SKIP_VERSION_KEY = 'update_skip_version'
+
+
+def _parse_version(text: str) -> tuple[int, ...]:
+    parts = text.lstrip('v').split('.')
+    out: list[int] = []
+    for p in parts:
+        try:
+            out.append(int(p))
+        except ValueError:
+            break
+    return tuple(out)
+
+
+class _CheckWorker(QObject):
+    finished = Signal(object)
+
+    @Slot()
+    def run(self) -> None:
+        try:
+            response = requests.get(LATEST_RELEASE_URL, timeout=NETWORK_TIMEOUT_S)
+            response.raise_for_status()
+            data = response.json()
+        except (requests.RequestException, ValueError):
+            logging.exception("Failed to query for updates")
+            self.finished.emit(None)
+            return
+
+        installer_url: Optional[str] = None
+        for asset in data.get('assets', []):
+            name = asset.get('name', '')
+            if name.endswith('.exe') and 'browser_download_url' in asset:
+                installer_url = asset['browser_download_url']
+                break
+
+        if installer_url is None or 'tag_name' not in data:
+            logging.warning("No installer asset in latest release")
+            self.finished.emit(None)
+            return
+
+        self.finished.emit((data['tag_name'], installer_url))
+
+
+class _DownloadWorker(QObject):
+    finished = Signal(object)
+
+    def __init__(self, url: str, dest_dir: str, parent: Optional[QObject] = None) -> None:
+        super().__init__(parent)
+        self._url = url
+        self._dest_dir = dest_dir
+
+    @Slot()
+    def run(self) -> None:
+        path = os.path.join(self._dest_dir, os.path.basename(self._url))
+        try:
+            with requests.get(self._url, stream=True, timeout=DOWNLOAD_TIMEOUT_S) as r:
+                r.raise_for_status()
+                with open(path, 'wb') as f:
+                    for chunk in r.iter_content(chunk_size=8192):
+                        f.write(chunk)
+        except (requests.RequestException, OSError):
+            logging.exception("Failed to download installer")
+            self.finished.emit(None)
+            return
+        logging.info(f"Downloaded installer to {path}")
+        self.finished.emit(path)
 
 
 class UpdateChecker(BaseWidget):
+
+    display_name = "Auto-updater"
 
     def __init__(self, parent: QWidget) -> None:
         super().__init__(parent, is_toggleable=False)
 
         self.user_settings = UserSettings.instance()
-        self.parent_widget = parent
+        self._busy = False
 
-        self.timer = QTimer()
+        self.timer = QTimer(self)
         self.timer.timeout.connect(self.check_updates)
-        self.timer.start(1000 * 30 * 60)
+        self.timer.start(CHECK_INTERVAL_MS)
 
         QTimer.singleShot(0, self.check_updates)
 
     def retrieve_menus(self) -> list[QMenu | QAction]:
-        check_updates_action = QAction('Check for updates...', self)
-        check_updates_action.triggered.connect(self.check_updates)
-        return [check_updates_action]
+        action = QAction('Check for updates...', self)
+        action.triggered.connect(self.check_updates)
+        return [action]
 
-    def check_updates(self):
-        latest_version_url = 'https://api.github.com/repos/dbtdsilva/swiss-windows-knife/releases/latest'
-        current_version = APP_INFO.APP_VERSION
+    def check_updates(self) -> None:
+        if self._busy:
+            return
+        self._busy = True
+        self._spawn_worker(_CheckWorker(), self._on_check_finished)
 
-        response = requests.get(latest_version_url)
+    def _spawn_worker(self, worker: QObject, on_finished: Callable[[object], None]) -> None:
+        thread = QThread(self)
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run)  # type: ignore[attr-defined]
+        worker.finished.connect(on_finished)  # type: ignore[attr-defined]
+        worker.finished.connect(thread.quit)  # type: ignore[attr-defined]
+        thread.finished.connect(worker.deleteLater)
+        thread.finished.connect(thread.deleteLater)
+        thread.start()
 
-        if response.status_code != 200:
-            logging.warning(f'Failed to retrieve version to update: {response.text}')
+    @Slot(object)
+    def _on_check_finished(self, result) -> None:
+        if result is None:
+            self._busy = False
+            return
+        remote_version, installer_url = result
+        if _parse_version(remote_version) <= _parse_version(APP_INFO.APP_VERSION):
+            logging.info(f'No update is needed. Remote: {remote_version}, Local: {APP_INFO.APP_VERSION}')
+            self._busy = False
             return
 
-        installer_url = self.retrieve_installer_remote_url(response.json())
-        if installer_url is None:
-            logging.warning(f'Failed to retrieve installer url from response: {response.json()}')
+        logging.info(f'Update available: {APP_INFO.APP_VERSION} -> {remote_version}')
+        if not self._confirm_update(remote_version):
+            self._busy = False
             return
 
-        remote_version = response.json()['tag_name']
-        if current_version >= remote_version:
-            logging.info(f'No update is needed. Remote: {remote_version}, Local: {current_version}')
+        dest_dir = tempfile.mkdtemp(prefix='swk-update-')
+        self._spawn_worker(_DownloadWorker(installer_url, dest_dir), self._on_download_finished)
+
+    @Slot(object)
+    def _on_download_finished(self, path) -> None:
+        self._busy = False
+        if path is None:
             return
+        self._launch_installer(path)
 
-        logging.info(f'Application will retrieve user to update version from {current_version} to {remote_version}')
-        if not self.update_confirmation():
-            return
-        self.update_application(installer_url)
+    def _confirm_update(self, remote_version: str) -> bool:
+        skipped = self.user_settings.get(SKIP_VERSION_KEY)
+        if skipped is not None and str(skipped) == remote_version:
+            logging.info(f"User previously chose to skip version {remote_version}")
+            return False
 
-    def retrieve_installer_remote_url(self, response):
-        if 'assets' not in response:
-            return None
-
-        for asset in response['assets']:
-            if 'name' not in asset or not asset['name'].endswith('.exe'):
-                continue
-
-            if 'browser_download_url' in asset:
-                return asset['browser_download_url']
-        return None
-
-    def update_confirmation(self):
-        last_option = self.get_last_remember_selection()
-        if last_option is not None:
-            return last_option
-
-        # Create a message box
         msg_box = QMessageBox()
         msg_box.setIcon(QMessageBox.Icon.Question)
         msg_box.setWindowTitle('Update Available')
-        msg_box.setText('A new update is available. Would you like to install it now?')
-
-        # Add buttons for user response
+        msg_box.setText(f'Version {remote_version} is available. Install now?')
         msg_box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         msg_box.setDefaultButton(QMessageBox.StandardButton.Yes)
 
-        remember_option_checkbox = QCheckBox('Remember my selection')
-        msg_box.setCheckBox(remember_option_checkbox)
+        skip_checkbox = QCheckBox(f"Don't ask again for version {remote_version}")
+        msg_box.setCheckBox(skip_checkbox)
 
-        # Show the message box and get the user's response
-        response = msg_box.exec()
+        accepted = msg_box.exec() == QMessageBox.StandardButton.Yes
+        if not accepted and skip_checkbox.isChecked():
+            self.user_settings.set(SKIP_VERSION_KEY, remote_version)
+        return accepted
 
-        update_accepted = response == QMessageBox.StandardButton.Yes
-        remember_selection = remember_option_checkbox.isChecked()
-        if remember_selection:
-            self.set_last_remember_selection(update_accepted)
-
-        return update_accepted
-
-    def get_last_remember_selection(self) -> bool | None:
-        if not self.user_settings.has_key('update_last_remember_selection'):
-            return None
-        return bool(self.user_settings.get('update_last_remember_selection'))
-
-    def set_last_remember_selection(self, value: bool) -> None:
-        self.user_settings.set('update_last_remember_selection', int(value))
-
-    def update_application(self, url):
-        temp_dir = tempfile.TemporaryDirectory()
-        installer_file = self.download_file(url, temp_dir)
-        self.run_installer(installer_file)
-
-    def download_file(self, url: str, destination: tempfile.TemporaryDirectory) -> Optional[str]:
-        temp_file_path = os.path.join(destination.name, os.path.basename(url))
-        with requests.get(url, stream=True) as r:
-            r.raise_for_status()
-            with open(temp_file_path, 'wb') as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    f.write(chunk)
-        logging.info(f'Downloaded file saved as: {temp_file_path}')
-        return temp_file_path
-
-    def run_installer(self, installer_file) -> None:
-        if not installer_file or not os.path.exists(installer_file):
+    def _launch_installer(self, installer_file: str) -> None:
+        if not os.path.exists(installer_file):
             logging.error(f'Installer not found at: {installer_file}')
             return
 
-        subprocess.Popen([installer_file, '/silent', '/mergetasks=startafterinstall'],
-                         stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE)
+        logging.info(f'Launching installer {installer_file} and quitting application')
+        subprocess.Popen(
+            [installer_file, '/silent', '/mergetasks=startafterinstall'],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        QCoreApplication.quit()
 
     def closeEvent(self, event):
         self.timer.stop()
