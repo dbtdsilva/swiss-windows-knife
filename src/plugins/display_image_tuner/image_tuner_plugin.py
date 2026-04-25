@@ -12,7 +12,9 @@ import monitorcontrol
 import logging
 
 
-class DisplayImagePlugin(BaseWidget):
+class DisplayImageTunerPlugin(BaseWidget):
+
+    display_name = "Display brightness & contrast"
 
     brightness_changed = Signal(int)
     contrast_changed = Signal(int)
