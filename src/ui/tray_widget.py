@@ -87,6 +87,11 @@ class TrayWidget(QWidget):
                     menu.addAction(plugin_menu_action)
         menu.addSeparator()
 
+        config_menu = self.createConfigMenu()
+        if config_menu is not None:
+            menu.addMenu(config_menu)
+            menu.addSeparator()
+
         logs_action = QAction('View logs', self)
         logs_action.triggered.connect(self.open_logs_window)
         menu.addAction(logs_action)
@@ -94,6 +99,17 @@ class TrayWidget(QWidget):
         quit_action = QAction('Quit', self)
         quit_action.triggered.connect(self.close_slot)
         menu.addAction(quit_action)
+        return menu
+
+    def createConfigMenu(self) -> Optional[QMenu]:
+        actions: list[QAction] = []
+        for plugin in self.child_components:
+            actions.extend(plugin.retrieve_config_actions())
+        if not actions:
+            return None
+        menu = QMenu('Configuration', self)
+        for action in actions:
+            menu.addAction(action)
         return menu
 
     @Slot()
