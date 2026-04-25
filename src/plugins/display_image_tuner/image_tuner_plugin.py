@@ -1,16 +1,15 @@
 from functools import partial
-from PySide6.QtWidgets import QWidget, QDialog
+from PySide6.QtWidgets import QWidget
 from PySide6.QtGui import QAction, QActionGroup
 from PySide6.QtWidgets import QMenu
-from PySide6.QtCore import Signal, Slot
+from PySide6.QtCore import Signal
 
+from ...base.config_panel import ConfigPanel
 from ...base.user_settings import UserSettings
 from ...base.base_widget import BaseWidget
 from ...base.monitor_runner import runner
-from .sun_strength_notifier import (
-    DEFAULT_LATITUDE, DEFAULT_LONGITUDE, DEFAULT_TIMEZONE, SunStrengthNotifier,
-)
-from .sun_location_dialog import SunLocationDialog
+from .sun_strength_notifier import SunStrengthNotifier
+from .sun_location_panel import SunLocationConfigPanel
 
 import monitorcontrol
 import logging
@@ -55,29 +54,8 @@ class DisplayImageTunerPlugin(BaseWidget):
                                            self.change_contrast_automatic),
         ]
 
-    def retrieve_config_actions(self) -> list[QAction]:
-        sun_location_action = QAction('Sun-strength location...', self)
-        sun_location_action.triggered.connect(self.open_sun_location_dialog)
-        return [sun_location_action]
-
-    @Slot()
-    def open_sun_location_dialog(self) -> None:
-        try:
-            latitude = float(self.user_settings.get('sun_latitude'))  # type: ignore[arg-type]
-            longitude = float(self.user_settings.get('sun_longitude'))  # type: ignore[arg-type]
-        except (TypeError, ValueError):
-            latitude, longitude = DEFAULT_LATITUDE, DEFAULT_LONGITUDE
-        timezone = str(self.user_settings.get('sun_timezone') or DEFAULT_TIMEZONE)
-
-        dialog = SunLocationDialog(self, latitude, longitude, timezone)
-        if dialog.exec() != QDialog.DialogCode.Accepted:
-            return
-
-        new_latitude, new_longitude, new_timezone = dialog.values()
-        self.user_settings.set('sun_latitude', new_latitude)
-        self.user_settings.set('sun_longitude', new_longitude)
-        self.user_settings.set('sun_timezone', new_timezone)
-        self.sun_strength_plugin.calculate_sun_strength()
+    def retrieve_config_panels(self) -> list[ConfigPanel]:
+        return [SunLocationConfigPanel(self.sun_strength_plugin, self)]
 
     def change_monitor_brightness(self, brightness):
         runner().submit(self._apply_brightness, brightness)

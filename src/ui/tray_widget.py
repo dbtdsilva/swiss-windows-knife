@@ -5,13 +5,16 @@ from PySide6.QtWidgets import QMenu, QSystemTrayIcon, QWidget, QMessageBox
 
 from ..components.update_checker import UpdateChecker
 from ..base.base_widget import BaseWidget
+from ..base.config_panel import ConfigPanel
 from ..plugins.display_image_tuner.image_tuner_plugin import DisplayImageTunerPlugin
 from ..plugins.device_display_mapper.device_display_mapper_plugin import DeviceDisplayMapperPlugin
 from ..plugins.home_assistant_mqtt_pub.home_assistant_mqtt_pub_plugin import HomeAssistantMqttPubPlugin
 from .. import resources # noqa: F401,E261
 
 from ..app_info import APP_INFO
+from .configuration_dialog import ConfigurationDialog
 from .tray_logger import TrayLogger
+import logging
 import sys
 
 
@@ -87,10 +90,10 @@ class TrayWidget(QWidget):
                     menu.addAction(plugin_menu_action)
         menu.addSeparator()
 
-        config_menu = self.createConfigMenu()
-        if config_menu is not None:
-            menu.addMenu(config_menu)
-            menu.addSeparator()
+        config_action = QAction('Configuration...', self)
+        config_action.triggered.connect(self.open_configuration_dialog)
+        menu.addAction(config_action)
+        menu.addSeparator()
 
         logs_action = QAction('View logs', self)
         logs_action.triggered.connect(self.open_logs_window)
@@ -101,16 +104,16 @@ class TrayWidget(QWidget):
         menu.addAction(quit_action)
         return menu
 
-    def createConfigMenu(self) -> Optional[QMenu]:
-        actions: list[QAction] = []
+    @Slot()
+    def open_configuration_dialog(self) -> None:
+        panels: list[ConfigPanel] = []
         for plugin in self.child_components:
-            actions.extend(plugin.retrieve_config_actions())
-        if not actions:
-            return None
-        menu = QMenu('Configuration', self)
-        for action in actions:
-            menu.addAction(action)
-        return menu
+            panels.extend(plugin.retrieve_config_panels())
+        if not panels:
+            logging.info("No plugin contributes a configuration panel")
+            return
+        dialog = ConfigurationDialog(self, panels)
+        dialog.exec()
 
     @Slot()
     def close_slot(self):

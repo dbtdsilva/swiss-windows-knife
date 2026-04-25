@@ -2,6 +2,8 @@ from PySide6.QtWidgets import QWidget, QMenu
 from PySide6.QtGui import QAction
 import logging
 
+from .config_panel import ConfigPanel
+
 
 class BaseWidget(QWidget):
 
@@ -31,7 +33,7 @@ class BaseWidget(QWidget):
     def retrieve_menus(self) -> list[QMenu | QAction]:
         return []
 
-    def retrieve_config_actions(self) -> list[QAction]:
+    def retrieve_config_panels(self) -> list[ConfigPanel]:
         return []
 
     def status_changed(self, status: bool) -> None:
