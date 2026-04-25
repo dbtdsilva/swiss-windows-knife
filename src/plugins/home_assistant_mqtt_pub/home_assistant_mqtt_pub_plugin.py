@@ -1,20 +1,20 @@
 from typing import override
 from PySide6.QtCore import Slot, QTimer
-from PySide6.QtWidgets import QWidget, QMenu, QDialog
+from PySide6.QtWidgets import QWidget, QMenu
 from PySide6.QtGui import QAction
 import json
 
 from src.base.user_settings import UserSettings
-from .mqtt_config import MqttConfig
 
 from ...app_info import APP_INFO
 from ...base.base_widget import BaseWidget
+from ...base.config_panel import ConfigPanel
 
 import logging
 import paho.mqtt.client as mqtt_client
 import paho.mqtt.enums as mqtt_enums
 
-from .mqtt_broker_config_dialog import MqttBrokerConfigDialog
+from .mqtt_config_panel import MqttConfigPanel
 
 
 class HomeAssistantMqttPubPlugin(BaseWidget):
@@ -77,33 +77,18 @@ class HomeAssistantMqttPubPlugin(BaseWidget):
     @override
     def retrieve_menus(self) -> list[QMenu | QAction]:
         menu = QMenu('Home Assistant', self)
-        config_action = QAction('Configuration...', self)
-        config_action.triggered.connect(self.open_config)
-        menu.addAction(config_action)
-        menu.addSeparator()
         subscribe_action = QAction('Subscribe...', self)
-        subscribe_action.triggered.connect(self.open_config)
         subscribe_action.setCheckable(True)
         subscribe_action.setChecked(True)
         subscribe_action.setEnabled(False)
         publish_action = QAction('Publish local info', self)
-        publish_action.triggered.connect(self.open_config)
         publish_action.setCheckable(True)
         publish_action.setChecked(True)
         menu.addActions([subscribe_action, publish_action])
         return [menu]
 
-    @Slot()
-    def open_config(self) -> None:
-        dialog = MqttBrokerConfigDialog(self, MqttConfig.load_from_settings(self.user_settings))
-        result = dialog.exec()
-        if result == QDialog.DialogCode.Accepted:
-            mqtt_config = dialog.get_data()
-            self.user_settings.set('homeassistant_host', mqtt_config.host)
-            self.user_settings.set('homeassistant_port', mqtt_config.port)
-            self.user_settings.set('homeassistant_client_id', mqtt_config.client_id)
-            self.user_settings.set('homeassistant_username', mqtt_config.username)
-            self.user_settings.set('homeassistant_password', mqtt_config.password)
+    def retrieve_config_panels(self) -> list[ConfigPanel]:
+        return [MqttConfigPanel(self)]
 
     def on_connect(self, client, userdata, flags, rc, properties):
         if rc == 0:
