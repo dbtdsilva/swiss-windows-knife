@@ -8,6 +8,7 @@ from PySide6.QtCore import Slot
 from .monitor_info import MonitorInfoCtx
 from .device_listener import DeviceListener, DeviceNotificationType, Device
 from ...base.base_widget import BaseWidget
+from ...base.monitor_runner import runner
 from ...base.user_settings import UserSettings
 
 import monitorcontrol
@@ -108,6 +109,9 @@ class DeviceDisplayMapperPlugin(BaseWidget):
             return
 
         logging.debug(f'Matched device {usb_device.id}, changing input source on monitors')
+        runner().submit(self._apply_input_source, device_notification_type)
+
+    def _apply_input_source(self, device_notification_type: DeviceNotificationType) -> None:
         for monitor in monitorcontrol.get_monitors():
             with monitor:
                 monitor_info = self.monitor_info_ctx.get_monitor_info_by_monitor(monitor)

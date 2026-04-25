@@ -6,6 +6,7 @@ from PySide6.QtCore import Signal
 
 from ...base.user_settings import UserSettings
 from ...base.base_widget import BaseWidget
+from ...base.monitor_runner import runner
 from .sun_strength_notifier import SunStrengthNotifier
 
 import monitorcontrol
@@ -51,7 +52,9 @@ class DisplayImageTunerPlugin(BaseWidget):
                                            self.change_contrast_automatic)]
 
     def change_monitor_brightness(self, brightness):
-        # Change respective settings on the monitor through DDC/CI
+        runner().submit(self._apply_brightness, brightness)
+
+    def _apply_brightness(self, brightness):
         try:
             for i, monitor in enumerate(monitorcontrol.get_monitors()):
                 with monitor:
@@ -62,7 +65,9 @@ class DisplayImageTunerPlugin(BaseWidget):
             logging.warning(f"Exception was caught while changing brightness: {e}")
 
     def change_monitor_contrast(self, contrast):
-        # Change respective settings on the monitor through DDC/CI
+        runner().submit(self._apply_contrast, contrast)
+
+    def _apply_contrast(self, contrast):
         try:
             for i, monitor in enumerate(monitorcontrol.get_monitors()):
                 with monitor:
