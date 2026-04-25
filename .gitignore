@@ -1,6 +1,10 @@
 # Created by https://www.toptal.com/developers/gitignore/api/python,pycharm,visualstudiocode,windows,git
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,pycharm,visualstudiocode,windows,git
 
+### Local tooling ###
+.claude/
+.idea/
+
 ### Git ###
 # Created by git for backups. To disable backups in Git:
 # $ git config --global mergetool.keepBackup false
