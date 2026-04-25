@@ -44,8 +44,6 @@ class DisplayImageTunerPlugin(BaseWidget):
         self.contrast_changed.connect(self.change_monitor_contrast)
 
     def retrieve_menus(self) -> list[QMenu | QAction]:
-        sun_location_action = QAction('Sun-strength location...', self)
-        sun_location_action.triggered.connect(self.open_sun_location_dialog)
         return [
             self.create_value_control_menu('Brightness',
                                            lambda: self.user_settings.get('brightness'),
@@ -55,8 +53,12 @@ class DisplayImageTunerPlugin(BaseWidget):
                                            lambda: self.user_settings.get('contrast'),
                                            self.change_contrast_manual,
                                            self.change_contrast_automatic),
-            sun_location_action,
         ]
+
+    def retrieve_config_actions(self) -> list[QAction]:
+        sun_location_action = QAction('Sun-strength location...', self)
+        sun_location_action.triggered.connect(self.open_sun_location_dialog)
+        return [sun_location_action]
 
     @Slot()
     def open_sun_location_dialog(self) -> None:

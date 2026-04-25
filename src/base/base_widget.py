@@ -31,5 +31,8 @@ class BaseWidget(QWidget):
     def retrieve_menus(self) -> list[QMenu | QAction]:
         return []
 
+    def retrieve_config_actions(self) -> list[QAction]:
+        return []
+
     def status_changed(self, status: bool) -> None:
         return None
