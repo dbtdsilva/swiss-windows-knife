@@ -19,6 +19,8 @@ from .mqtt_broker_config_dialog import MqttBrokerConfigDialog
 
 class HomeAssistantMqttPubPlugin(BaseWidget):
 
+    display_name = "Home Assistant (MQTT)"
+
     def __init__(self, parent: QWidget) -> None:
         super().__init__(parent, is_enabled=True)
 

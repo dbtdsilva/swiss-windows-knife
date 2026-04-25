@@ -5,7 +5,7 @@ from PySide6.QtWidgets import QMenu, QSystemTrayIcon, QWidget, QMessageBox
 
 from ..components.update_checker import UpdateChecker
 from ..base.base_widget import BaseWidget
-from ..plugins.display_image_tuner.image_tuner_plugin import DisplayImagePlugin
+from ..plugins.display_image_tuner.image_tuner_plugin import DisplayImageTunerPlugin
 from ..plugins.device_display_mapper.device_display_mapper_plugin import DeviceDisplayMapperPlugin
 from ..plugins.home_assistant_mqtt_pub.home_assistant_mqtt_pub_plugin import HomeAssistantMqttPubPlugin
 from .. import resources # noqa: F401,E261
@@ -28,7 +28,7 @@ class TrayWidget(QWidget):
         self.logger_window.hide()
 
         self.child_components: list[BaseWidget] = [
-            DisplayImagePlugin(self),
+            DisplayImageTunerPlugin(self),
             DeviceDisplayMapperPlugin(self),
             HomeAssistantMqttPubPlugin(self),
         ]
@@ -64,18 +64,13 @@ class TrayWidget(QWidget):
     def createPluginsMenu(self):
         menu = QMenu('Plugins', self)
         for child_component in self.child_components:
-            action = QAction(child_component.__class__.__name__, self)
-
+            action = QAction(child_component.get_display_name(), self)
             action.setCheckable(True)
-            if child_component.is_enabled():
-                action.setChecked(True)
-
-            toggleable = child_component.is_toggleable()
-            if toggleable:
-                action.triggered.connect(child_component.toggle_status)
+            action.setChecked(child_component.is_enabled())
+            if child_component.is_toggleable():
+                action.toggled.connect(child_component.set_enabled)
             else:
                 action.setDisabled(True)
-
             menu.addAction(action)
         return menu
 
