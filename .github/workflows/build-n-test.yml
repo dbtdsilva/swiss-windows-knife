@@ -11,7 +11,7 @@ jobs:
     - name: Set up Python 3.12
       uses: actions/setup-python@v5
       with:
-        python-version: '3.12'
+        python-version: '3.12.5'
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -26,3 +26,9 @@ jobs:
     - name: Build executable
       run: |
         python setup.py exe
+    - name: Upload built exe folder
+      uses: actions/upload-artifact@v4
+      with:
+        name: SwissWindowsKnife-build
+        path: build/exe.win-amd64-3.12/
+        retention-days: 7
