@@ -17,7 +17,7 @@ dependencies = [
 
 [project.optional-dependencies]
 build = ["cx_Freeze==8.6.4"]
-test = ["pytest>=8"]
+test = ["pytest>=8", "pytest-qt>=4"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
