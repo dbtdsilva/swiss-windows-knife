@@ -27,7 +27,7 @@ jobs:
       env:
         QT_QPA_PLATFORM: offscreen
       run: |
-        pip install "pytest>=8"
+        pip install "pytest>=8" "pytest-qt>=4"
         pytest tests/
     - name: Build executable
       run: |
