@@ -1,5 +1,3 @@
-import pytest
-
 from src.plugins.home_assistant_mqtt_pub.mqtt_config import MqttConfig
 
 
