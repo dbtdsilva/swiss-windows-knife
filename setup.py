@@ -43,7 +43,7 @@ def build_exe():
         'packages': ["numpy", "pysolar", "wmi", "pytz", "paho.mqtt"],
         'excludes': ["tkinter", "unittest", "pydoc"],
         'include_files': [icon_path],
-        'optimize': 1
+        'optimize': 0,
     }
 
     cx_Freeze.setup(
