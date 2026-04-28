@@ -12,6 +12,11 @@ Personal Windows tray app (PySide6) bundling small plugins. Frozen with cx_Freez
 
 Python floor is 3.12 (uses `typing.override`, `enum.StrEnum`). Runtime deps in `[project.dependencies]`; build dep `cx_Freeze` only in `[project.optional-dependencies].build`.
 
+## Tests / dev hooks
+
+- **Tests:** `pytest tests/` (deps under `[project.optional-dependencies].test`: `pytest`, `pytest-qt`). CI runs them with `QT_QPA_PLATFORM=offscreen` between flake8 and the cx_Freeze build.
+- **Pre-commit:** `pip install pre-commit && pre-commit install` once per clone — runs flake8 (matching CI args) on staged files before each commit. Config in `.pre-commit-config.yaml`.
+
 ## Architecture
 
 - Entry: `src/swiss_windows_knife.py` → `TrayWidget` (`src/ui/tray_widget.py`).
