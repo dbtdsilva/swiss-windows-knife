@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QMenu, QWidget
 from ...base.base_widget import BaseWidget
 from ...base.config_panel import ConfigPanel
 from ...base.user_settings import UserSettings
+from .commands import build_command_registry
 from .device_context import DeviceContext
 from .entities import build_entity_registry
 from .entity_settings import EntitySettings
@@ -14,11 +15,6 @@ from .mqtt_config import MqttConfig
 from .mqtt_session import MqttSession
 from .publisher import Publisher
 from .sampler_runner import SamplerRunner
-
-
-def build_command_registry(plugin):
-    """Forward-declared; populated by Task 22."""
-    return []
 
 
 class HomeAssistantMqttPubPlugin(BaseWidget):
