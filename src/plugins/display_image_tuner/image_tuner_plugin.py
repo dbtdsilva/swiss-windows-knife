@@ -31,6 +31,16 @@ class DisplayImageTunerPlugin(BaseWidget):
         if not self.user_settings.has_key('contrast'):
             self.user_settings.set('contrast', 90)
 
+        for axis in ('brightness', 'contrast'):
+            if not self.user_settings.has_key(f'{axis}_auto_min'):
+                self.user_settings.set(f'{axis}_auto_min', 0)
+            if not self.user_settings.has_key(f'{axis}_auto_max'):
+                self.user_settings.set(f'{axis}_auto_max', 100)
+            if not self.user_settings.has_key(f'{axis}_auto_gamma'):
+                self.user_settings.set(f'{axis}_auto_gamma', 1.0)
+        if not self.user_settings.has_key('auto_smoothing_seconds'):
+            self.user_settings.set('auto_smoothing_seconds', 0)
+
         logging.info(f"Starting with the 'brightness' set to {self.user_settings.get('brightness')}")
         logging.info(f"Starting with the 'contrast' set to {self.user_settings.get('contrast')}")
 
