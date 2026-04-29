@@ -1,4 +1,5 @@
 from .base import Entity, SampleResult  # noqa: F401
+from .battery_state import BatteryStateEntity
 from .cpu_frequency import CpuFrequencyEntity
 from .cpu_temperature import CpuTemperatureEntity
 from .cpu_usage import CpuUsageEntity
@@ -13,4 +14,5 @@ def build_entity_registry() -> list:
         CpuFrequencyEntity(),
         MemoryUsageEntity(),
         UptimeEntity(),
+        BatteryStateEntity(),
     ]
