@@ -1,6 +1,6 @@
 from typing import override
 
-from PySide6.QtCore import Slot
+from PySide6.QtCore import Q_ARG, QMetaObject, Qt, Slot
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QMenu, QWidget
 
@@ -48,14 +48,33 @@ class HomeAssistantMqttPubPlugin(BaseWidget):
             session=self._session, ctx=ctx, settings=self._entity_settings,
             sampler=self._sampler, entities=self._entities, commands=self._commands,
         )
-        self._session.subscribe("homeassistant/status", self._publisher.on_ha_status)
+        self._session.subscribe("homeassistant/status", self._dispatch_ha_status)
         for command in self._commands:
             self._session.subscribe(
                 ctx.command_topic(command.key),
                 lambda payload, c=command: c.run(),
             )
-        self._session.on_connected = self._publisher.on_connected
+        self._session.on_connected = self._dispatch_on_connected
         self._session.start()
+
+    def _dispatch_on_connected(self) -> None:
+        QMetaObject.invokeMethod(self, "_run_on_connected", Qt.ConnectionType.QueuedConnection)
+
+    def _dispatch_ha_status(self, payload: str) -> None:
+        QMetaObject.invokeMethod(
+            self, "_run_on_ha_status",
+            Qt.ConnectionType.QueuedConnection, Q_ARG(str, payload),
+        )
+
+    @Slot()
+    def _run_on_connected(self) -> None:
+        if self._publisher is not None:
+            self._publisher.on_connected()
+
+    @Slot(str)
+    def _run_on_ha_status(self, payload: str) -> None:
+        if self._publisher is not None:
+            self._publisher.on_ha_status(payload)
 
     @override
     def status_changed(self, status: bool) -> None:
