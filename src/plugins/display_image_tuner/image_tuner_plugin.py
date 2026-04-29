@@ -1,18 +1,23 @@
 from functools import partial
+from typing import Optional
 from PySide6.QtWidgets import QWidget
 from PySide6.QtGui import QAction, QActionGroup
 from PySide6.QtWidgets import QMenu
-from PySide6.QtCore import Signal
+from PySide6.QtCore import QTimer, Signal, Slot
 
 from ...base.config_panel import ConfigPanel
 from ...base.user_settings import UserSettings
 from ...base.base_widget import BaseWidget
 from ...base.monitor_runner import runner
+from .curve import compute_target, ease
 from .sun_strength_notifier import SunStrengthNotifier
 from .sun_location_panel import SunLocationConfigPanel
 
 import monitorcontrol
 import logging
+
+
+TICK_MS = 1000
 
 
 class DisplayImageTunerPlugin(BaseWidget):
@@ -45,12 +50,18 @@ class DisplayImageTunerPlugin(BaseWidget):
         logging.info(f"Starting with the 'contrast' set to {self.user_settings.get('contrast')}")
 
         self.sun_strength_plugin = SunStrengthNotifier(self)
+        self.sun_strength_plugin.sun_strength_changed.connect(self._on_sun_strength)
 
-        self.automatic_brightness_slot = None
-        self.automatic_contrast_slot = None
+        self._sun: Optional[int] = None
+        self._actual: dict[str, Optional[float]] = {'brightness': None, 'contrast': None}
+        self._last_emitted: dict[str, Optional[int]] = {'brightness': None, 'contrast': None}
 
         self.brightness_changed.connect(self.change_monitor_brightness)
         self.contrast_changed.connect(self.change_monitor_contrast)
+
+        self._tick_timer = QTimer(self)
+        self._tick_timer.timeout.connect(self._tick)
+        self._tick_timer.start(TICK_MS)
 
     def retrieve_menus(self) -> list[QMenu | QAction]:
         return [
@@ -66,6 +77,56 @@ class DisplayImageTunerPlugin(BaseWidget):
 
     def retrieve_config_panels(self) -> list[ConfigPanel]:
         return [SunLocationConfigPanel(self.sun_strength_plugin, self)]
+
+    @Slot(int)
+    def _on_sun_strength(self, value: int) -> None:
+        self._sun = int(value)
+
+    @Slot()
+    def _tick(self) -> None:
+        if self._sun is None:
+            return
+        try:
+            smoothing = float(self.user_settings.get('auto_smoothing_seconds') or 0)
+        except (TypeError, ValueError):
+            smoothing = 0.0
+
+        for axis in ('brightness', 'contrast'):
+            fixed = self.user_settings.get(axis)
+            if fixed is not None:
+                # Fixed mode: keep _actual aligned to the fixed value so a later
+                # switch back to auto starts the easing from a sensible point.
+                try:
+                    self._actual[axis] = float(int(fixed))
+                except (TypeError, ValueError):
+                    pass
+                continue
+
+            target = self._auto_target(axis)
+            current = self._actual[axis]
+            if current is None:
+                current = target
+            else:
+                current = ease(current, target, dt=TICK_MS / 1000.0,
+                               smoothing_seconds=smoothing)
+            self._actual[axis] = current
+
+            new_value = max(0, min(100, int(round(current))))
+            if new_value != self._last_emitted[axis]:
+                self._last_emitted[axis] = new_value
+                getattr(self, f'{axis}_changed').emit(new_value)
+
+    def _auto_target(self, axis: str) -> float:
+        try:
+            min_value = int(self.user_settings.get(f'{axis}_auto_min'))
+            max_value = int(self.user_settings.get(f'{axis}_auto_max'))
+            gamma = float(self.user_settings.get(f'{axis}_auto_gamma'))
+        except (TypeError, ValueError):
+            min_value, max_value, gamma = 0, 100, 1.0
+        if max_value < min_value:
+            min_value, max_value = max_value, min_value
+        return compute_target(self._sun or 0, min_value=min_value,
+                              max_value=max_value, gamma=gamma)
 
     def change_monitor_brightness(self, brightness):
         runner().submit(self._apply_brightness, brightness)
@@ -120,37 +181,33 @@ class DisplayImageTunerPlugin(BaseWidget):
     def change_brightness_automatic(self, is_checked):
         if is_checked:
             self.user_settings.set('brightness', None)
-            self.automatic_brightness_slot = lambda val: self.brightness_changed.emit(val)
-            self.sun_strength_plugin.sun_strength_changed.connect(self.automatic_brightness_slot)
-            self.sun_strength_plugin.calculate_sun_strength()
-        else:
-            self.sun_strength_plugin.sun_strength_changed.disconnect(self.automatic_brightness_slot)
-            self.automatic_brightness_slot = None
+            # Reset easing state; next tick will snap to first target.
+            self._actual['brightness'] = None
+            self._last_emitted['brightness'] = None
 
     def change_contrast_automatic(self, is_checked):
         if is_checked:
             self.user_settings.set('contrast', None)
-            self.automatic_contrast_slot = lambda val: self.contrast_changed.emit(val)
-            self.sun_strength_plugin.sun_strength_changed.connect(self.automatic_contrast_slot)
-            self.sun_strength_plugin.calculate_sun_strength()
-        else:
-            self.sun_strength_plugin.sun_strength_changed.disconnect(self.automatic_contrast_slot)
-            self.automatic_contrast_slot = None
+            self._actual['contrast'] = None
+            self._last_emitted['contrast'] = None
 
     def change_brightness_manual(self, is_checked, brightness_level):
         if not is_checked:
             return
-
         self.user_settings.set('brightness', brightness_level)
+        self._actual['brightness'] = float(brightness_level)
+        self._last_emitted['brightness'] = brightness_level
         self.brightness_changed.emit(brightness_level)
 
     def change_contrast_manual(self, is_checked, contrast_level):
         if not is_checked:
             return
-
         self.user_settings.set('contrast', contrast_level)
+        self._actual['contrast'] = float(contrast_level)
+        self._last_emitted['contrast'] = contrast_level
         self.contrast_changed.emit(contrast_level)
 
     def closeEvent(self, event):
+        self._tick_timer.stop()
         self.sun_strength_plugin.close()
         event.accept()
