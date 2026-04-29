@@ -38,28 +38,34 @@ class _CheckWorker(QObject):
 
     @Slot()
     def run(self) -> None:
+        # `finished` MUST be emitted on every exit path so that the caller's
+        # `_busy` flag is cleared. We catch a broad Exception (rather than only
+        # `requests.RequestException` / `ValueError`) because frozen builds
+        # have surfaced unexpected error types from inside requests / urllib3
+        # / SSL — when one escaped this method, the worker thread died
+        # without emitting `finished`, leaving subsequent clicks silently
+        # no-oping for the lifetime of the process.
         try:
             response = requests.get(LATEST_RELEASE_URL, timeout=NETWORK_TIMEOUT_S)
             response.raise_for_status()
             data = response.json()
-        except (requests.RequestException, ValueError):
+
+            installer_url: str | None = None
+            for asset in data.get('assets', []):
+                name = asset.get('name', '')
+                if name.endswith('.exe') and 'browser_download_url' in asset:
+                    installer_url = asset['browser_download_url']
+                    break
+
+            if installer_url is None or 'tag_name' not in data:
+                logging.warning("No installer asset in latest release")
+                self.finished.emit(None)
+                return
+
+            self.finished.emit((data['tag_name'], installer_url))
+        except Exception:
             logging.exception("Failed to query for updates")
             self.finished.emit(None)
-            return
-
-        installer_url: str | None = None
-        for asset in data.get('assets', []):
-            name = asset.get('name', '')
-            if name.endswith('.exe') and 'browser_download_url' in asset:
-                installer_url = asset['browser_download_url']
-                break
-
-        if installer_url is None or 'tag_name' not in data:
-            logging.warning("No installer asset in latest release")
-            self.finished.emit(None)
-            return
-
-        self.finished.emit((data['tag_name'], installer_url))
 
 
 class _DownloadWorker(QObject):
@@ -79,12 +85,12 @@ class _DownloadWorker(QObject):
                 with open(path, 'wb') as f:
                     for chunk in r.iter_content(chunk_size=8192):
                         f.write(chunk)
-        except (requests.RequestException, OSError):
+            logging.info(f"Downloaded installer to {path}")
+            self.finished.emit(path)
+        except Exception:
+            # Same defensive-broad-except rationale as `_CheckWorker.run`.
             logging.exception("Failed to download installer")
             self.finished.emit(None)
-            return
-        logging.info(f"Downloaded installer to {path}")
-        self.finished.emit(path)
 
 
 class UpdateChecker(BaseWidget):
