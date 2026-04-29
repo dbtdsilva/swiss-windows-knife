@@ -1,8 +1,9 @@
-from PySide6.QtWidgets import QFormLayout, QLineEdit, QMessageBox, QWidget
+from PySide6.QtWidgets import QMessageBox, QVBoxLayout, QWidget
 import pytz
 
 from ...base.config_panel import ConfigPanel
 from ...base.user_settings import UserSettings
+from .location_picker import LocationPickerWidget
 from .sun_strength_notifier import (
     DEFAULT_LATITUDE, DEFAULT_LONGITUDE, DEFAULT_TIMEZONE, SunStrengthNotifier,
 )
@@ -21,8 +22,6 @@ class SunLocationConfigPanel(ConfigPanel):
         self._sun_strength = sun_strength_notifier
         self._user_settings = UserSettings.instance()
 
-        layout = QFormLayout(self)
-
         try:
             latitude = float(self._user_settings.get('sun_latitude'))  # type: ignore[arg-type]
             longitude = float(self._user_settings.get('sun_longitude'))  # type: ignore[arg-type]
@@ -30,40 +29,34 @@ class SunLocationConfigPanel(ConfigPanel):
             latitude, longitude = DEFAULT_LATITUDE, DEFAULT_LONGITUDE
         timezone = str(self._user_settings.get('sun_timezone') or DEFAULT_TIMEZONE)
 
-        self.latitude_field = QLineEdit(str(latitude), self)
-        layout.addRow("Latitude:", self.latitude_field)
+        self.picker = LocationPickerWidget(latitude, longitude, timezone, self)
 
-        self.longitude_field = QLineEdit(str(longitude), self)
-        layout.addRow("Longitude:", self.longitude_field)
-
-        self.timezone_field = QLineEdit(timezone, self)
-        self.timezone_field.setPlaceholderText("e.g. Europe/Zurich")
-        layout.addRow("Timezone (IANA):", self.timezone_field)
+        layout = QVBoxLayout(self)
+        layout.addWidget(self.picker)
 
     def apply(self) -> bool:
+        latitude = self.picker.latitude()
+        longitude = self.picker.longitude()
+        timezone = self.picker.timezone()
+
+        if not timezone:
+            QMessageBox.warning(
+                self, "Invalid input",
+                "No timezone could be resolved for the selected coordinates. "
+                "Pick a different point on the map.",
+            )
+            return False
         try:
-            latitude = float(self.latitude_field.text())
-            longitude = float(self.longitude_field.text())
-        except ValueError:
-            QMessageBox.warning(self, "Invalid input", "Latitude and longitude must be numeric.")
-            return False
-        if not -90.0 <= latitude <= 90.0:
-            QMessageBox.warning(self, "Invalid input", "Latitude must be between -90 and 90.")
-            return False
-        if not -180.0 <= longitude <= 180.0:
-            QMessageBox.warning(self, "Invalid input", "Longitude must be between -180 and 180.")
-            return False
-        try:
-            pytz.timezone(self.timezone_field.text())
+            pytz.timezone(timezone)
         except pytz.UnknownTimeZoneError:
             QMessageBox.warning(
                 self, "Invalid input",
-                f"Unknown IANA timezone: {self.timezone_field.text()!r}",
+                f"Unknown IANA timezone: {timezone!r}",
             )
             return False
 
         self._user_settings.set('sun_latitude', latitude)
         self._user_settings.set('sun_longitude', longitude)
-        self._user_settings.set('sun_timezone', self.timezone_field.text())
+        self._user_settings.set('sun_timezone', timezone)
         self._sun_strength.calculate_sun_strength()
         return True

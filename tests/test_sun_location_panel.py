@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 
 
@@ -18,52 +20,25 @@ def panel(qtbot, fake_user_settings, silent_messagebox):
     return p, sun
 
 
-def test_apply_persists_valid_input_and_recalculates(panel, fake_user_settings):
+def test_apply_persists_picked_coordinates_and_timezone(panel, fake_user_settings):
     p, sun = panel
-    p.latitude_field.setText("48.8")
-    p.longitude_field.setText("2.35")
-    p.timezone_field.setText("Europe/Paris")
+    p.picker._on_coordinates_picked(48.8566, 2.3522)  # Paris
 
     assert p.apply() is True
-    assert fake_user_settings.get('sun_latitude') == 48.8
-    assert fake_user_settings.get('sun_longitude') == 2.35
+    assert fake_user_settings.get('sun_latitude') == pytest.approx(48.8566)
+    assert fake_user_settings.get('sun_longitude') == pytest.approx(2.3522)
     assert fake_user_settings.get('sun_timezone') == "Europe/Paris"
     assert sun.recalc_count == 1
 
 
-def test_apply_rejects_non_numeric_lat_lon(panel, fake_user_settings):
+def test_apply_rejects_when_timezone_cannot_be_resolved(panel, fake_user_settings):
     p, sun = panel
-    p.latitude_field.setText("not-a-number")
-    p.longitude_field.setText("0")
-    p.timezone_field.setText("UTC")
-
-    assert p.apply() is False
-    assert sun.recalc_count == 0
-    assert fake_user_settings.get('sun_latitude') is None
-
-
-@pytest.mark.parametrize("lat,lon", [
-    ("100", "0"),     # latitude too high
-    ("-91", "0"),     # latitude too low
-    ("0", "181"),     # longitude too high
-    ("0", "-200"),    # longitude too low
-])
-def test_apply_rejects_out_of_range(panel, fake_user_settings, lat, lon):
-    p, sun = panel
-    p.latitude_field.setText(lat)
-    p.longitude_field.setText(lon)
-    p.timezone_field.setText("UTC")
-
-    assert p.apply() is False
-    assert sun.recalc_count == 0
-    assert fake_user_settings.get('sun_latitude') is None
-
-
-def test_apply_rejects_unknown_timezone(panel, fake_user_settings):
-    p, sun = panel
-    p.latitude_field.setText("0")
-    p.longitude_field.setText("0")
-    p.timezone_field.setText("Europe/NotARealCity")
+    # Mid-ocean point with no timezone polygon.
+    with patch(
+        'src.plugins.display_image_tuner.location_picker.coordinates_to_timezone',
+        return_value=None,
+    ):
+        p.picker._on_coordinates_picked(0.0, -30.0)
 
     assert p.apply() is False
     assert sun.recalc_count == 0
@@ -72,7 +47,6 @@ def test_apply_rejects_unknown_timezone(panel, fake_user_settings):
 
 def test_init_seeds_defaults_when_settings_empty(panel):
     p, _ = panel
-    # Defaults pulled from sun_strength_notifier
-    assert p.latitude_field.text() == "46.52141"
-    assert p.longitude_field.text() == "6.632273"
-    assert p.timezone_field.text() == "Europe/Zurich"
+    assert p.picker.latitude() == pytest.approx(46.52141)
+    assert p.picker.longitude() == pytest.approx(6.632273)
+    assert p.picker.timezone() == "Europe/Zurich"
