@@ -2,7 +2,7 @@ import pytest
 
 
 @pytest.fixture
-def panel(qtbot, fake_user_settings):
+def panel(qtbot, fake_user_settings, silent_messagebox):
     from src.plugins.home_assistant_mqtt_pub.mqtt_config_panel import MqttConfigPanel
     p = MqttConfigPanel()
     qtbot.addWidget(p)
@@ -15,6 +15,7 @@ def test_apply_persists_all_fields(panel, fake_user_settings):
     panel.host_field.setText("broker.example.com")
     panel.port_field.setText("1883")
     panel.client_id_field.setText("client-x")
+    panel.device_name_field.setText("PC")
 
     assert panel.apply() is True
     assert fake_user_settings.get('homeassistant_username') == "user1"
@@ -52,3 +53,43 @@ def test_init_handles_completely_empty_settings(qtbot, fake_user_settings):
     assert p.login_field.text() == ''
     assert p.password_field.text() == ''
     assert p.client_id_field.text() == ''
+
+
+def test_apply_coerces_port_to_int(qtbot, fake_user_settings, silent_messagebox):
+    from src.plugins.home_assistant_mqtt_pub.mqtt_config_panel import MqttConfigPanel
+    panel = MqttConfigPanel(parent=None)
+    qtbot.addWidget(panel)
+    panel.host_field.setText("broker")
+    panel.port_field.setText("1883")
+    panel.login_field.setText("u")
+    panel.password_field.setText("p")
+    panel.client_id_field.setText("cid")
+    panel.device_name_field.setText("PC One")
+    assert panel.apply() is True
+    assert fake_user_settings.get("homeassistant_port") == 1883
+
+
+def test_apply_rejects_non_numeric_port(qtbot, fake_user_settings, silent_messagebox):
+    from src.plugins.home_assistant_mqtt_pub.mqtt_config_panel import MqttConfigPanel
+    panel = MqttConfigPanel(parent=None)
+    qtbot.addWidget(panel)
+    panel.host_field.setText("broker")
+    panel.port_field.setText("not-a-port")
+    panel.login_field.setText("u")
+    panel.password_field.setText("p")
+    panel.client_id_field.setText("cid")
+    panel.device_name_field.setText("PC One")
+    assert panel.apply() is False
+
+
+def test_apply_rejects_empty_device_name(qtbot, fake_user_settings, silent_messagebox):
+    from src.plugins.home_assistant_mqtt_pub.mqtt_config_panel import MqttConfigPanel
+    panel = MqttConfigPanel(parent=None)
+    qtbot.addWidget(panel)
+    panel.host_field.setText("broker")
+    panel.port_field.setText("1883")
+    panel.login_field.setText("u")
+    panel.password_field.setText("p")
+    panel.client_id_field.setText("cid")
+    panel.device_name_field.setText("   ")
+    assert panel.apply() is False
