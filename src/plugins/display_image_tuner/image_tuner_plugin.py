@@ -1,23 +1,20 @@
+import logging
 from datetime import date, datetime
 from functools import partial
-from typing import Optional
-from PySide6.QtWidgets import QWidget
-from PySide6.QtGui import QAction, QActionGroup
-from PySide6.QtWidgets import QMenu
-from PySide6.QtCore import QTimer, Signal, Slot
-
-from ...base.config_panel import ConfigPanel
-from ...base.user_settings import UserSettings
-from ...base.base_widget import BaseWidget
-from ...base.monitor_runner import runner
-from .curve import compute_keyframe_value
-from .sun_strength_notifier import SunStrengthNotifier, find_sun_events
-from .sun_location_panel import SunLocationConfigPanel
-from .display_tuning_panel import DisplayTuningConfigPanel
 
 import monitorcontrol
-import logging
+from PySide6.QtCore import QTimer, Signal, Slot
+from PySide6.QtGui import QAction, QActionGroup
+from PySide6.QtWidgets import QMenu, QWidget
 
+from ...base.base_widget import BaseWidget
+from ...base.config_panel import ConfigPanel
+from ...base.monitor_runner import runner
+from ...base.user_settings import UserSettings
+from .curve import compute_keyframe_value
+from .display_tuning_panel import DisplayTuningConfigPanel
+from .sun_location_panel import SunLocationConfigPanel
+from .sun_strength_notifier import SunStrengthNotifier, find_sun_events
 
 TICK_MS = 1000
 
@@ -57,7 +54,7 @@ class DisplayImageTunerPlugin(BaseWidget):
 
         self.sun_strength_plugin = SunStrengthNotifier(self)
 
-        self._last_emitted: dict[str, Optional[int]] = {'brightness': None, 'contrast': None}
+        self._last_emitted: dict[str, int | None] = {'brightness': None, 'contrast': None}
         self._sun_events_cache_day: date | None = None
         self._sun_events_cache: tuple[float | None, float | None] = (None, None)
 

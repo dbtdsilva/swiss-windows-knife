@@ -1,6 +1,7 @@
-from PySide6.QtCore import QSettings
 import logging
 import threading
+
+from PySide6.QtCore import QSettings
 
 from ..app_info import APP_INFO
 

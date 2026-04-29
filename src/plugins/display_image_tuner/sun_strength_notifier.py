@@ -1,12 +1,13 @@
+import logging
 from datetime import datetime, timedelta
-from PySide6.QtWidgets import QWidget
-from PySide6.QtCore import QTimer, Signal
+
 import pytz
+from PySide6.QtCore import QTimer, Signal
+from PySide6.QtWidgets import QWidget
+from pysolar import radiation, solar
+
 from ...base.base_widget import BaseWidget
 from ...base.user_settings import UserSettings
-from pysolar import solar, radiation
-import logging
-
 
 DEFAULT_LATITUDE = 46.521410
 DEFAULT_LONGITUDE = 6.632273

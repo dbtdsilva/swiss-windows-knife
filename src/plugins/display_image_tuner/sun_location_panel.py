@@ -1,11 +1,14 @@
-from PySide6.QtWidgets import QMessageBox, QVBoxLayout, QWidget
 import pytz
+from PySide6.QtWidgets import QMessageBox, QVBoxLayout, QWidget
 
 from ...base.config_panel import ConfigPanel
 from ...base.user_settings import UserSettings
 from .location_picker import LocationPickerWidget
 from .sun_strength_notifier import (
-    DEFAULT_LATITUDE, DEFAULT_LONGITUDE, DEFAULT_TIMEZONE, SunStrengthNotifier,
+    DEFAULT_LATITUDE,
+    DEFAULT_LONGITUDE,
+    DEFAULT_TIMEZONE,
+    SunStrengthNotifier,
 )
 
 

@@ -1,7 +1,15 @@
-from PySide6.QtCore import Qt, QObject, Signal
+from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtWidgets import (
-    QCheckBox, QFormLayout, QGridLayout, QGroupBox, QLabel,
-    QLineEdit, QMessageBox, QPushButton, QVBoxLayout, QWidget,
+    QCheckBox,
+    QFormLayout,
+    QGridLayout,
+    QGroupBox,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
 )
 
 from ...base.config_panel import ConfigPanel

@@ -1,6 +1,7 @@
-from PySide6.QtWidgets import QWidget, QMenu
-from PySide6.QtGui import QAction
 import logging
+
+from PySide6.QtGui import QAction
+from PySide6.QtWidgets import QMenu, QWidget
 
 from .config_panel import ConfigPanel
 

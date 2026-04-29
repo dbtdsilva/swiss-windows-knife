@@ -1,11 +1,14 @@
 from PySide6.QtCore import QSize
 from PySide6.QtWidgets import (
-    QDialogButtonBox, QScrollArea, QTabWidget, QVBoxLayout, QWidget,
+    QDialogButtonBox,
+    QScrollArea,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
 )
 
 from ..base.config_panel import ConfigPanel
 from ..base.persistent_dialog import PersistentSizeDialog
-
 
 DEFAULT_PADDING = QSize(80, 60)
 

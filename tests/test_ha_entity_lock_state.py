@@ -1,9 +1,9 @@
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from src.plugins.home_assistant_mqtt_pub.entities.lock_state import (
-    LockStateEntity,
     WTS_SESSION_LOCK,
     WTS_SESSION_UNLOCK,
+    LockStateEntity,
 )
 
 

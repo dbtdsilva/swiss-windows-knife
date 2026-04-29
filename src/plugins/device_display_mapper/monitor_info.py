@@ -1,9 +1,9 @@
-from dataclasses import dataclass
 import logging
 import time
-from typing import Optional
-from win32api import EnumDisplayDevices, EnumDisplayMonitors, GetMonitorInfo
+from dataclasses import dataclass
+
 import monitorcontrol
+from win32api import EnumDisplayDevices, EnumDisplayMonitors, GetMonitorInfo
 
 
 @dataclass
@@ -34,7 +34,7 @@ class MonitorInfoCtx:
             self.monitor_hmon_device_id[int(hmon)] = (dev.DeviceID, dev.DeviceName)    # type: ignore
         return self.monitor_hmon_device_id
 
-    def get_monitor_info_by_monitor(self, monitor: monitorcontrol.Monitor) -> Optional[MonitorInfo]:
+    def get_monitor_info_by_monitor(self, monitor: monitorcontrol.Monitor) -> MonitorInfo | None:
         hmon = monitor.vcp.hmonitor.value    # type: ignore
         monitor_hmon_device_id = self.__get_display_monitors_by_hmon()
         if hmon not in monitor_hmon_device_id:

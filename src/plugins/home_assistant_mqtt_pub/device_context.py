@@ -2,7 +2,6 @@ import re
 
 from ...app_info import APP_INFO
 
-
 _STRIP_RE = re.compile(r"[^a-z0-9\s\-_]")
 _SEP_RE = re.compile(r"[\s\-_]+")
 

@@ -5,18 +5,27 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
 import pytz
-from PySide6.QtCore import Qt, QPointF, QRectF
+from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import (
-    QComboBox, QFormLayout, QGroupBox, QHBoxLayout, QLabel, QSlider,
-    QVBoxLayout, QWidget,
+    QComboBox,
+    QFormLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QSlider,
+    QVBoxLayout,
+    QWidget,
 )
 
 from ...base.config_panel import ConfigPanel
 from ...base.user_settings import UserSettings
 from .curve import compute_keyframe_value
 from .sun_strength_notifier import (
-    DEFAULT_LATITUDE, DEFAULT_LONGITUDE, DEFAULT_TIMEZONE, find_sun_events,
+    DEFAULT_LATITUDE,
+    DEFAULT_LONGITUDE,
+    DEFAULT_TIMEZONE,
+    find_sun_events,
 )
 
 
@@ -411,7 +420,7 @@ class DisplayTuningConfigPanel(ConfigPanel):
         except (TypeError, ValueError):
             return default
 
-    def _resolve_location(self) -> tuple[float, float, "pytz.tzinfo.BaseTzInfo"]:
+    def _resolve_location(self) -> tuple[float, float, pytz.tzinfo.BaseTzInfo]:
         try:
             latitude = float(self._user_settings.get('sun_latitude'))
             longitude = float(self._user_settings.get('sun_longitude'))

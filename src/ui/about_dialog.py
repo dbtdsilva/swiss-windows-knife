@@ -1,7 +1,11 @@
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
-    QDialog, QDialogButtonBox, QLabel, QVBoxLayout, QWidget,
+    QDialog,
+    QDialogButtonBox,
+    QLabel,
+    QVBoxLayout,
+    QWidget,
 )
 
 from ..app_info import APP_INFO
