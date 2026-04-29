@@ -20,7 +20,7 @@ def test_apply_persists_all_fields(panel, fake_user_settings):
     assert fake_user_settings.get('homeassistant_username') == "user1"
     assert fake_user_settings.get('homeassistant_password') == "secret"
     assert fake_user_settings.get('homeassistant_host') == "broker.example.com"
-    assert fake_user_settings.get('homeassistant_port') == "1883"
+    assert fake_user_settings.get('homeassistant_port') == 1883
     assert fake_user_settings.get('homeassistant_client_id') == "client-x"
 
 
