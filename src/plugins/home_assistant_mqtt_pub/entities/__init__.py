@@ -6,6 +6,7 @@ from .cpu_usage import CpuUsageEntity
 from .current_user import CurrentUserEntity
 from .disk_free import discover_disk_free_entities
 from .foreground_window import ForegroundWindowEntity
+from .lock_state import LockStateEntity
 from .memory_usage import MemoryUsageEntity
 from .monitor_count import MonitorCountEntity
 from .network_io import NetworkRxEntity, NetworkTxEntity
@@ -26,4 +27,5 @@ def build_entity_registry() -> list:
         MonitorCountEntity(),
         CurrentUserEntity(),
         ForegroundWindowEntity(),
+        LockStateEntity(),
     ]

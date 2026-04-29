@@ -42,7 +42,7 @@ def test_discovery_payload_shape():
     assert payload["device"] == ctx.device_block()
 
 
-def test_registered_in_entity_list():
+def test_registered_in_entity_list(qapp):
     from src.plugins.home_assistant_mqtt_pub.entities import build_entity_registry
     reg = build_entity_registry()
     keys = [e.key for e in reg]
