@@ -12,6 +12,7 @@ from ..plugins.home_assistant_mqtt_pub.home_assistant_mqtt_pub_plugin import Hom
 from .. import resources # noqa: F401,E261
 
 from ..app_info import APP_INFO
+from .about_dialog import AboutDialog
 from .configuration_dialog import ConfigurationDialog
 from .tray_logger import TrayLogger
 import logging
@@ -41,7 +42,7 @@ class TrayWidget(QWidget):
 
         self._tray_icon = QSystemTrayIcon(parent=parent)
         self._tray_icon.setContextMenu(self.createMainMenu())
-        self._tray_icon.setToolTip(f"{APP_INFO.APP_NAME} {APP_INFO.APP_VERSION}")
+        self._tray_icon.setToolTip(APP_INFO.APP_NAME)
         self._tray_icon.setIcon(QIcon(":/icons/coat-of-arms.ico"))
         self._tray_icon.show()
 
@@ -98,6 +99,10 @@ class TrayWidget(QWidget):
         logs_action = QAction('View logs', self)
         logs_action.triggered.connect(self.open_logs_window)
         menu.addAction(logs_action)
+
+        about_action = QAction('About...', self)
+        about_action.triggered.connect(self.open_about_dialog)
+        menu.addAction(about_action)
         menu.addSeparator()
         quit_action = QAction('Quit', self)
         quit_action.triggered.connect(self.close_slot)
@@ -127,3 +132,7 @@ class TrayWidget(QWidget):
     @Slot()
     def open_logs_window(self):
         self.logger_window.show()
+
+    @Slot()
+    def open_about_dialog(self) -> None:
+        AboutDialog(self).exec()

@@ -8,7 +8,8 @@ _AppInfo = namedtuple("AppInfo", [
     'APP_AUTHOR',
     'APP_PUBLISHER',
     'APP_URL',
-    'APP_VERSION'
+    'APP_VERSION',
+    'APP_LICENSE',
 ])
 
 APP_INFO = _AppInfo(
@@ -16,5 +17,6 @@ APP_INFO = _AppInfo(
     APP_AUTHOR="Diogo Silva",
     APP_PUBLISHER="Diogo Silva",
     APP_URL="https://github.com/dbtdsilva/swiss-windows-knife",
-    APP_VERSION=__version__
+    APP_VERSION=__version__,
+    APP_LICENSE="MIT",
 )

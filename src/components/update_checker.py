@@ -105,11 +105,9 @@ class UpdateChecker(BaseWidget):
         QTimer.singleShot(0, self.check_updates)
 
     def retrieve_menus(self) -> list[QMenu | QAction]:
-        version_action = QAction(f'Version {APP_INFO.APP_VERSION}', self)
-        version_action.setEnabled(False)
         check_action = QAction('Check for updates...', self)
         check_action.triggered.connect(lambda: self.check_updates(interactive=True))
-        return [version_action, check_action]
+        return [check_action]
 
     def check_updates(self, interactive: bool = False) -> None:
         if self._busy:
