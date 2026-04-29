@@ -1,3 +1,4 @@
+from datetime import date, datetime
 from functools import partial
 from typing import Optional
 from PySide6.QtWidgets import QWidget
@@ -9,8 +10,8 @@ from ...base.config_panel import ConfigPanel
 from ...base.user_settings import UserSettings
 from ...base.base_widget import BaseWidget
 from ...base.monitor_runner import runner
-from .curve import compute_target, ease
-from .sun_strength_notifier import SunStrengthNotifier
+from .curve import compute_keyframe_value
+from .sun_strength_notifier import SunStrengthNotifier, find_sun_events
 from .sun_location_panel import SunLocationConfigPanel
 from .display_tuning_panel import DisplayTuningConfigPanel
 
@@ -38,24 +39,27 @@ class DisplayImageTunerPlugin(BaseWidget):
             self.user_settings.set('contrast', 90)
 
         for axis in ('brightness', 'contrast'):
-            if not self.user_settings.has_key(f'{axis}_auto_min'):
-                self.user_settings.set(f'{axis}_auto_min', 0)
-            if not self.user_settings.has_key(f'{axis}_auto_max'):
-                self.user_settings.set(f'{axis}_auto_max', 100)
-            if not self.user_settings.has_key(f'{axis}_auto_gamma'):
-                self.user_settings.set(f'{axis}_auto_gamma', 1.0)
-        if not self.user_settings.has_key('auto_smoothing_seconds'):
-            self.user_settings.set('auto_smoothing_seconds', 0)
+            if not self.user_settings.has_key(f'{axis}_night_level'):
+                self.user_settings.set(f'{axis}_night_level', 0)
+            if not self.user_settings.has_key(f'{axis}_day_level'):
+                self.user_settings.set(f'{axis}_day_level', 100)
+        if not self.user_settings.has_key('auto_sunrise_offset_minutes'):
+            self.user_settings.set('auto_sunrise_offset_minutes', 0)
+        if not self.user_settings.has_key('auto_sunset_offset_minutes'):
+            self.user_settings.set('auto_sunset_offset_minutes', 0)
+        if not self.user_settings.has_key('auto_ramp_duration_minutes'):
+            self.user_settings.set('auto_ramp_duration_minutes', 60)
+        if not self.user_settings.has_key('auto_ramp_smoothness'):
+            self.user_settings.set('auto_ramp_smoothness', 0.0)
 
         logging.info(f"Starting with the 'brightness' set to {self.user_settings.get('brightness')}")
         logging.info(f"Starting with the 'contrast' set to {self.user_settings.get('contrast')}")
 
         self.sun_strength_plugin = SunStrengthNotifier(self)
-        self.sun_strength_plugin.sun_strength_changed.connect(self._on_sun_strength)
 
-        self._sun: Optional[int] = None
-        self._actual: dict[str, Optional[float]] = {'brightness': None, 'contrast': None}
         self._last_emitted: dict[str, Optional[int]] = {'brightness': None, 'contrast': None}
+        self._sun_events_cache_day: date | None = None
+        self._sun_events_cache: tuple[float | None, float | None] = (None, None)
 
         self.brightness_changed.connect(self.change_monitor_brightness)
         self.contrast_changed.connect(self.change_monitor_contrast)
@@ -82,55 +86,55 @@ class DisplayImageTunerPlugin(BaseWidget):
             DisplayTuningConfigPanel(self),
         ]
 
-    @Slot(int)
-    def _on_sun_strength(self, value: int) -> None:
-        self._sun = int(value)
-
     @Slot()
     def _tick(self) -> None:
-        if self._sun is None:
-            return
-        try:
-            smoothing = float(self.user_settings.get('auto_smoothing_seconds') or 0)
-        except (TypeError, ValueError):
-            smoothing = 0.0
-
         for axis in ('brightness', 'contrast'):
-            fixed = self.user_settings.get(axis)
-            if fixed is not None:
-                # Fixed mode: keep _actual aligned to the fixed value so a later
-                # switch back to auto starts the easing from a sensible point.
-                try:
-                    self._actual[axis] = float(int(fixed))
-                except (TypeError, ValueError):
-                    pass
+            if self.user_settings.get(axis) is not None:
                 continue
-
             target = self._auto_target(axis)
-            current = self._actual[axis]
-            if current is None:
-                current = target
-            else:
-                current = ease(current, target, dt=TICK_MS / 1000.0,
-                               smoothing_seconds=smoothing)
-            self._actual[axis] = current
-
-            new_value = max(0, min(100, int(round(current))))
+            new_value = max(0, min(100, int(round(target))))
             if new_value != self._last_emitted[axis]:
                 self._last_emitted[axis] = new_value
                 getattr(self, f'{axis}_changed').emit(new_value)
 
     def _auto_target(self, axis: str) -> float:
         try:
-            min_value = int(self.user_settings.get(f'{axis}_auto_min'))
-            max_value = int(self.user_settings.get(f'{axis}_auto_max'))
-            gamma = float(self.user_settings.get(f'{axis}_auto_gamma'))
+            night = float(self.user_settings.get(f'{axis}_night_level'))
+            day = float(self.user_settings.get(f'{axis}_day_level'))
+            sunrise_offset = float(self.user_settings.get('auto_sunrise_offset_minutes'))
+            sunset_offset = float(self.user_settings.get('auto_sunset_offset_minutes'))
+            duration = float(self.user_settings.get('auto_ramp_duration_minutes'))
+            smoothness = float(self.user_settings.get('auto_ramp_smoothness'))
         except (TypeError, ValueError):
-            min_value, max_value, gamma = 0, 100, 1.0
-        if max_value < min_value:
-            min_value, max_value = max_value, min_value
-        return compute_target(self._sun or 0, min_value=min_value,
-                              max_value=max_value, gamma=gamma)
+            night, day = 0.0, 100.0
+            sunrise_offset, sunset_offset = 0.0, 0.0
+            duration, smoothness = 60.0, 0.0
+
+        sunrise_h, sunset_h = self._sun_events_for_today()
+        _, _, tz = self.sun_strength_plugin.resolve_location()
+        now = datetime.now().astimezone(tz)
+        when_h = now.hour + now.minute / 60.0 + now.second / 3600.0
+
+        return compute_keyframe_value(
+            when_h,
+            sunrise_hours=sunrise_h,
+            sunset_hours=sunset_h,
+            night_level=night,
+            day_level=day,
+            sunrise_offset_minutes=sunrise_offset,
+            sunset_offset_minutes=sunset_offset,
+            ramp_duration_minutes=duration,
+            ramp_smoothness=smoothness,
+        )
+
+    def _sun_events_for_today(self) -> tuple[float | None, float | None]:
+        latitude, longitude, tz = self.sun_strength_plugin.resolve_location()
+        today = datetime.now().astimezone(tz).date()
+        if self._sun_events_cache_day != today:
+            day_start = tz.localize(datetime(today.year, today.month, today.day, 0, 0))
+            self._sun_events_cache = find_sun_events(day_start, latitude, longitude)
+            self._sun_events_cache_day = today
+        return self._sun_events_cache
 
     def change_monitor_brightness(self, brightness):
         runner().submit(self._apply_brightness, brightness)
@@ -185,21 +189,15 @@ class DisplayImageTunerPlugin(BaseWidget):
     def change_brightness_automatic(self, is_checked):
         if is_checked:
             self.user_settings.set('brightness', None)
-            # Reset easing state; next tick will snap to first target.
-            self._actual['brightness'] = None
-            self._last_emitted['brightness'] = None
 
     def change_contrast_automatic(self, is_checked):
         if is_checked:
             self.user_settings.set('contrast', None)
-            self._actual['contrast'] = None
-            self._last_emitted['contrast'] = None
 
     def change_brightness_manual(self, is_checked, brightness_level):
         if not is_checked:
             return
         self.user_settings.set('brightness', brightness_level)
-        self._actual['brightness'] = float(brightness_level)
         self._last_emitted['brightness'] = brightness_level
         self.brightness_changed.emit(brightness_level)
 
@@ -207,7 +205,6 @@ class DisplayImageTunerPlugin(BaseWidget):
         if not is_checked:
             return
         self.user_settings.set('contrast', contrast_level)
-        self._actual['contrast'] = float(contrast_level)
         self._last_emitted['contrast'] = contrast_level
         self.contrast_changed.emit(contrast_level)
 
