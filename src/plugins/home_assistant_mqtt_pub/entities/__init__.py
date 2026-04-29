@@ -5,6 +5,7 @@ from .cpu_temperature import CpuTemperatureEntity
 from .cpu_usage import CpuUsageEntity
 from .current_user import CurrentUserEntity
 from .disk_free import discover_disk_free_entities
+from .foreground_window import ForegroundWindowEntity
 from .memory_usage import MemoryUsageEntity
 from .monitor_count import MonitorCountEntity
 from .network_io import NetworkRxEntity, NetworkTxEntity
@@ -24,4 +25,5 @@ def build_entity_registry() -> list:
         NetworkTxEntity(),
         MonitorCountEntity(),
         CurrentUserEntity(),
+        ForegroundWindowEntity(),
     ]
