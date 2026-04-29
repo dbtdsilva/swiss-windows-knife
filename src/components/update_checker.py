@@ -20,6 +20,8 @@ CHECK_INTERVAL_MS = 1000 * 30 * 60
 NETWORK_TIMEOUT_S = 15
 DOWNLOAD_TIMEOUT_S = 120
 SKIP_VERSION_KEY = 'update_skip_version'
+CHECK_LABEL_IDLE = 'Check for updates...'
+CHECK_LABEL_CHECKING = 'Checking…'
 
 
 def _parse_version(text: str) -> tuple[int, ...]:
@@ -97,6 +99,7 @@ class UpdateChecker(BaseWidget):
         self.user_settings = UserSettings.instance()
         self._busy = False
         self._interactive = False
+        self._check_action: QAction | None = None
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.check_updates)
@@ -105,15 +108,23 @@ class UpdateChecker(BaseWidget):
         QTimer.singleShot(0, self.check_updates)
 
     def retrieve_menus(self) -> list[QMenu | QAction]:
-        check_action = QAction('Check for updates...', self)
-        check_action.triggered.connect(lambda: self.check_updates(interactive=True))
-        return [check_action]
+        self._check_action = QAction(CHECK_LABEL_IDLE, self)
+        self._check_action.setEnabled(not self._busy)
+        self._check_action.triggered.connect(lambda: self.check_updates(interactive=True))
+        return [self._check_action]
+
+    def _set_busy(self, busy: bool) -> None:
+        self._busy = busy
+        if self._check_action is not None:
+            self._check_action.setEnabled(not busy)
 
     def check_updates(self, interactive: bool = False) -> None:
         if self._busy:
             return
-        self._busy = True
         self._interactive = interactive
+        self._set_busy(True)
+        if interactive and self._check_action is not None:
+            self._check_action.setText(CHECK_LABEL_CHECKING)
         self._spawn_worker(_CheckWorker(), self._on_check_finished)
 
     def _spawn_worker(self, worker: QObject, on_finished: Callable[[object], None]) -> None:
@@ -128,12 +139,15 @@ class UpdateChecker(BaseWidget):
 
     @Slot(object)
     def _on_check_finished(self, result) -> None:
+        if self._check_action is not None:
+            self._check_action.setText(CHECK_LABEL_IDLE)
+
         if result is None:
             if self._interactive:
                 QMessageBox.warning(
                     self, 'Update check failed',
                     'Could not check for updates. See logs for details.')
-            self._busy = False
+            self._set_busy(False)
             return
         remote_version, installer_url = result
         if _parse_version(remote_version) <= _parse_version(APP_INFO.APP_VERSION):
@@ -142,12 +156,12 @@ class UpdateChecker(BaseWidget):
                 QMessageBox.information(
                     self, 'No update available',
                     f'You are on the latest version ({APP_INFO.APP_VERSION}).')
-            self._busy = False
+            self._set_busy(False)
             return
 
         logging.info(f'Update available: {APP_INFO.APP_VERSION} -> {remote_version}')
         if not self._confirm_update(remote_version):
-            self._busy = False
+            self._set_busy(False)
             return
 
         dest_dir = tempfile.mkdtemp(prefix='swk-update-')
@@ -155,7 +169,7 @@ class UpdateChecker(BaseWidget):
 
     @Slot(object)
     def _on_download_finished(self, path) -> None:
-        self._busy = False
+        self._set_busy(False)
         if path is None:
             return
         self._launch_installer(path)
