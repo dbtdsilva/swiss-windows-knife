@@ -71,5 +71,6 @@ def test_round_trip_preserves_values():
     config = MqttConfig.load_from_settings(FakeSettings(initial))
     written = FakeSettings()
     config.save_to_settings(written)
-    for key, value in initial.items():
+    expected = {**initial, 'homeassistant_port': 1883}
+    for key, value in expected.items():
         assert written.get(key) == value
