@@ -179,6 +179,9 @@ class Publisher:
                     pass
 
     def delete_all_for_current_device(self) -> None:
-        for ref in self._previous_refs():
-            topic = self._ctx.discovery_topic(ref.component, ref.key)
+        for entity in self._entities:
+            topic = self._ctx.discovery_topic(entity.component, entity.key)
+            self._session.publish(topic, "", retain=True)
+        for command in self._commands:
+            topic = self._ctx.discovery_topic("button", command.key)
             self._session.publish(topic, "", retain=True)
