@@ -15,8 +15,10 @@ from ..base.user_settings import UserSettings
 
 LATEST_RELEASE_URL = 'https://api.github.com/repos/dbtdsilva/swiss-windows-knife/releases/latest'
 CHECK_INTERVAL_MS = 1000 * 30 * 60
-NETWORK_TIMEOUT_S = 15
+CONNECT_TIMEOUT_S = 5
+READ_TIMEOUT_S = 15
 DOWNLOAD_TIMEOUT_S = 120
+WATCHDOG_MS = 30_000
 SKIP_VERSION_KEY = 'update_skip_version'
 CHECK_LABEL_IDLE = 'Check for updates...'
 CHECK_LABEL_CHECKING = 'Checking…'
@@ -45,8 +47,12 @@ class _CheckWorker(QObject):
         # / SSL — when one escaped this method, the worker thread died
         # without emitting `finished`, leaving subsequent clicks silently
         # no-oping for the lifetime of the process.
+        logging.info("Update-check worker started; fetching %s", LATEST_RELEASE_URL)
         try:
-            response = requests.get(LATEST_RELEASE_URL, timeout=NETWORK_TIMEOUT_S)
+            response = requests.get(
+                LATEST_RELEASE_URL, timeout=(CONNECT_TIMEOUT_S, READ_TIMEOUT_S),
+            )
+            logging.info("Update-check HTTP status: %s", response.status_code)
             response.raise_for_status()
             data = response.json()
 
@@ -129,7 +135,32 @@ class UpdateChecker(BaseWidget):
         self._set_busy(True)
         if interactive and self._check_action is not None:
             self._check_action.setText(CHECK_LABEL_CHECKING)
+        logging.info("Spawning update-check worker (interactive=%s)", interactive)
         self._spawn_worker(_CheckWorker(), self._on_check_finished)
+        QTimer.singleShot(WATCHDOG_MS, self._check_watchdog)
+
+    def _check_watchdog(self) -> None:
+        # If the worker thread wedged (e.g. requests.get blocked on a
+        # network path that ignores its own timeout), `_busy` would stay
+        # True forever and the menu item would stay greyed out. Force a
+        # recovery so the user can try again instead of having to restart
+        # the app. A late-returning orphan worker is harmless — the
+        # stale-result guard in `_on_check_finished` ignores its result.
+        if not self._busy:
+            return
+        logging.warning(
+            "Update check did not finish within %s ms; forcing recovery.",
+            WATCHDOG_MS,
+        )
+        if self._check_action is not None:
+            self._check_action.setText(CHECK_LABEL_IDLE)
+        self._set_busy(False)
+        if self._interactive:
+            QMessageBox.warning(
+                self, 'Update check timed out',
+                f'No response within {WATCHDOG_MS // 1000} seconds. '
+                'See logs for details.',
+            )
 
     def _spawn_worker(self, worker: QObject, on_finished: Callable[[object], None]) -> None:
         thread = QThread(self)
@@ -143,6 +174,11 @@ class UpdateChecker(BaseWidget):
 
     @Slot(object)
     def _on_check_finished(self, result) -> None:
+        if not self._busy:
+            # The watchdog already fired; this is a late response from a
+            # worker we stopped waiting for. Do not surface it.
+            logging.info("Ignoring stale update-check result (watchdog already fired)")
+            return
         if self._check_action is not None:
             self._check_action.setText(CHECK_LABEL_IDLE)
 
