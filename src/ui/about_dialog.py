@@ -23,11 +23,13 @@ class AboutDialog(QDialog):
 
         info_label = QLabel(
             f"<h2 style='margin:0'>{APP_INFO.APP_NAME}</h2>"
+            f"<p style='color:gray;margin:4px 24px'>{APP_INFO.APP_TAGLINE}</p>"
             f"<p>Version {APP_INFO.APP_VERSION}</p>"
             f"<p>{APP_INFO.APP_AUTHOR}<br>"
             f"Released under the {APP_INFO.APP_LICENSE} License</p>"
             f"<p><a href='{APP_INFO.APP_URL}'>{APP_INFO.APP_URL}</a></p>"
         )
+        info_label.setWordWrap(True)
         info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         info_label.setTextFormat(Qt.TextFormat.RichText)
         info_label.setOpenExternalLinks(True)
