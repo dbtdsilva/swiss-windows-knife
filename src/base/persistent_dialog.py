@@ -1,0 +1,50 @@
+from PySide6.QtCore import QSize
+from PySide6.QtWidgets import QDialog, QWidget
+
+from .user_settings import UserSettings
+
+
+class PersistentSizeDialog(QDialog):
+    """A `QDialog` that remembers its size in `UserSettings`.
+
+    Subclasses set `size_settings_prefix` to a unique string — width and
+    height are stored under `<prefix>_width` and `<prefix>_height`, so two
+    dialogs with different prefixes don't share state. After building their
+    layout, subclasses call `restore_size(default)` once with the size to
+    use when no saved value exists. The class auto-saves on close, OK, or
+    Cancel.
+    """
+
+    size_settings_prefix: str = ""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._user_settings = UserSettings.instance()
+
+    def restore_size(self, default: QSize) -> None:
+        if not self.size_settings_prefix:
+            self.resize(default)
+            return
+        try:
+            saved_w = int(self._user_settings.get(f'{self.size_settings_prefix}_width'))
+            saved_h = int(self._user_settings.get(f'{self.size_settings_prefix}_height'))
+        except (TypeError, ValueError):
+            saved_w, saved_h = 0, 0
+        if saved_w > 0 and saved_h > 0:
+            self.resize(saved_w, saved_h)
+        else:
+            self.resize(default)
+
+    def _save_size(self) -> None:
+        if not self.size_settings_prefix:
+            return
+        self._user_settings.set(f'{self.size_settings_prefix}_width', self.width())
+        self._user_settings.set(f'{self.size_settings_prefix}_height', self.height())
+
+    def closeEvent(self, event) -> None:
+        self._save_size()
+        super().closeEvent(event)
+
+    def done(self, result: int) -> None:
+        self._save_size()
+        super().done(result)

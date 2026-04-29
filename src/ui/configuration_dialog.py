@@ -1,11 +1,18 @@
+from PySide6.QtCore import QSize
 from PySide6.QtWidgets import (
-    QDialog, QDialogButtonBox, QScrollArea, QTabWidget, QVBoxLayout, QWidget,
+    QDialogButtonBox, QScrollArea, QTabWidget, QVBoxLayout, QWidget,
 )
 
 from ..base.config_panel import ConfigPanel
+from ..base.persistent_dialog import PersistentSizeDialog
 
 
-class ConfigurationDialog(QDialog):
+DEFAULT_PADDING = QSize(80, 60)
+
+
+class ConfigurationDialog(PersistentSizeDialog):
+
+    size_settings_prefix = "config_dialog"
 
     def __init__(self, parent: QWidget | None, panels: list[ConfigPanel]) -> None:
         super().__init__(parent)
@@ -34,6 +41,7 @@ class ConfigurationDialog(QDialog):
         layout.addWidget(buttons)
 
         self.adjustSize()
+        self.restore_size(self.size() + DEFAULT_PADDING)
 
     @staticmethod
     def _wrap_in_scroll(panel: ConfigPanel) -> QScrollArea:
