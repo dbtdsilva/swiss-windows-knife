@@ -14,6 +14,21 @@ DEFAULT_TIMEZONE = 'Europe/Zurich'
 ALTITUDE_OFFSET_DEG = 5
 
 
+def compute_sun_strength(when: datetime, latitude: float, longitude: float) -> int:
+    """Compute 0-100 sun strength at `when` for `(latitude, longitude)`.
+
+    Mirrors the original mapping: solar altitude (with a 5deg offset for
+    horizon haze) feeds into pysolar's direct-radiation model; the 0-600
+    W/m^2 band is linearly mapped to 0-100 and capped at 100.
+
+    `when` MUST be timezone-aware. The function converts to UTC internally.
+    """
+    altitude = solar.get_altitude(latitude, longitude, when) + ALTITUDE_OFFSET_DEG
+    utc_naive = when.astimezone(pytz.utc).replace(tzinfo=None)
+    power = radiation.get_radiation_direct(utc_naive, altitude)
+    return int(power / 6.0) if power < 600 else 100
+
+
 class SunStrengthNotifier(BaseWidget):
 
     sun_strength_changed = Signal(int)
@@ -48,14 +63,9 @@ class SunStrengthNotifier(BaseWidget):
 
     def calculate_sun_strength(self):
         latitude, longitude, timezone = self._resolve_location()
-
-        request = datetime.now().astimezone(timezone)
-        altitude = solar.get_altitude(latitude, longitude, request) + ALTITUDE_OFFSET_DEG
-        power = radiation.get_radiation_direct(request.astimezone(pytz.utc).replace(tzinfo=None), altitude)
-
-        current_value = int(power / 6.0) if power < 600 else int(100)
+        when = datetime.now().astimezone(timezone)
+        current_value = compute_sun_strength(when, latitude, longitude)
         self.sun_strength_changed.emit(current_value)
-
         logging.debug(f'Sun strength has changed to {current_value}')
 
     def closeEvent(self, event):
