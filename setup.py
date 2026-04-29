@@ -1,4 +1,3 @@
-import cx_Freeze
 import os
 import subprocess
 from pathlib import Path
@@ -26,6 +25,7 @@ def build_resources():
 
 
 def build_exe():
+    import cx_Freeze
     sys.argv = sys.argv[:1] + ['build']
 
     icon_path = os.path.join("icons", 'coat-of-arms.ico')
@@ -82,15 +82,13 @@ def usage():
         """)
 
 
+CLI_MODES = ("resources", "dev", "exe", "installer")
+
+
 if __name__ == '__main__':
     import sys
-    args = sys.argv[1:]
+    mode = sys.argv[1] if len(sys.argv) == 2 and sys.argv[1] in CLI_MODES else None
 
-    if len(args) != 1:
-        usage()
-        sys.exit(1)
-
-    mode = args[0]
     if mode == "resources":
         build_resources()
     elif mode == "dev":
@@ -105,5 +103,7 @@ if __name__ == '__main__':
         build_exe()
         build_win_install()
     else:
-        usage()
-        sys.exit(1)
+        # pip / setuptools invokes setup.py for back-compat metadata extraction;
+        # delegate to setuptools so pyproject.toml's [project] table drives the install.
+        from setuptools import setup
+        setup()
