@@ -81,8 +81,11 @@ class LocationPickerWidget(QWidget):
     """Interactive OpenStreetMap-backed coordinate + timezone picker.
 
     Emits `location_changed(lat, lng, timezone)` when the user clicks a
-    new location on the map. `timezone` is the IANA name resolved from
-    the coordinates (empty string if no match).
+    new location on the map. The QWebEngineView and its Chromium plumbing
+    are constructed lazily on first show — instantiating them during
+    headless test collection would otherwise leave a QWebEnginePage alive
+    past QWebEngineProfile destruction at interpreter shutdown, segfaulting
+    pytest under Windows.
     """
 
     location_changed = Signal(float, float, str)
@@ -103,20 +106,17 @@ class LocationPickerWidget(QWidget):
         self._coords_label = QLabel(self._format_coords(self._lat, self._lng))
         self._timezone_label = QLabel(self._timezone or "(unknown)")
 
-        self._view = QWebEngineView(self)
-        self._view.setMinimumHeight(360)
+        self._map_container = QWidget(self)
+        self._map_container.setMinimumHeight(360)
+        self._map_layout = QVBoxLayout(self._map_container)
+        self._map_layout.setContentsMargins(0, 0, 0, 0)
 
-        self._channel = QWebChannel(self._view.page())
-        self._bridge = _MapBridge(self)
-        self._bridge.coordinates_picked.connect(self._on_coordinates_picked)
-        self._channel.registerObject("bridge", self._bridge)
-        self._view.page().setWebChannel(self._channel)
-
-        html = _build_html(self._lat, self._lng, _read_qwebchannel_js())
-        self._view.setHtml(html, QUrl("https://maps.local/"))
+        self._view: QWebEngineView | None = None
+        self._channel: QWebChannel | None = None
+        self._bridge: _MapBridge | None = None
 
         layout = QVBoxLayout(self)
-        layout.addWidget(self._view, 1)
+        layout.addWidget(self._map_container, 1)
         info = QFormLayout()
         info.addRow("Coordinates:", self._coords_label)
         info.addRow("Timezone:", self._timezone_label)
@@ -130,6 +130,24 @@ class LocationPickerWidget(QWidget):
 
     def timezone(self) -> str:
         return self._timezone
+
+    def showEvent(self, event) -> None:
+        if self._view is None:
+            self._build_view()
+        super().showEvent(event)
+
+    def _build_view(self) -> None:
+        self._view = QWebEngineView(self._map_container)
+        self._map_layout.addWidget(self._view)
+
+        self._channel = QWebChannel(self._view.page())
+        self._bridge = _MapBridge(self)
+        self._bridge.coordinates_picked.connect(self._on_coordinates_picked)
+        self._channel.registerObject("bridge", self._bridge)
+        self._view.page().setWebChannel(self._channel)
+
+        html = _build_html(self._lat, self._lng, _read_qwebchannel_js())
+        self._view.setHtml(html, QUrl("https://maps.local/"))
 
     @Slot(float, float)
     def _on_coordinates_picked(self, lat: float, lng: float) -> None:
