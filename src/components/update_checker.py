@@ -96,6 +96,7 @@ class UpdateChecker(BaseWidget):
 
         self.user_settings = UserSettings.instance()
         self._busy = False
+        self._interactive = False
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.check_updates)
@@ -104,14 +105,17 @@ class UpdateChecker(BaseWidget):
         QTimer.singleShot(0, self.check_updates)
 
     def retrieve_menus(self) -> list[QMenu | QAction]:
-        action = QAction('Check for updates...', self)
-        action.triggered.connect(self.check_updates)
-        return [action]
+        version_action = QAction(f'Version {APP_INFO.APP_VERSION}', self)
+        version_action.setEnabled(False)
+        check_action = QAction('Check for updates...', self)
+        check_action.triggered.connect(lambda: self.check_updates(interactive=True))
+        return [version_action, check_action]
 
-    def check_updates(self) -> None:
+    def check_updates(self, interactive: bool = False) -> None:
         if self._busy:
             return
         self._busy = True
+        self._interactive = interactive
         self._spawn_worker(_CheckWorker(), self._on_check_finished)
 
     def _spawn_worker(self, worker: QObject, on_finished: Callable[[object], None]) -> None:
@@ -127,11 +131,19 @@ class UpdateChecker(BaseWidget):
     @Slot(object)
     def _on_check_finished(self, result) -> None:
         if result is None:
+            if self._interactive:
+                QMessageBox.warning(
+                    self, 'Update check failed',
+                    'Could not check for updates. See logs for details.')
             self._busy = False
             return
         remote_version, installer_url = result
         if _parse_version(remote_version) <= _parse_version(APP_INFO.APP_VERSION):
             logging.info(f'No update is needed. Remote: {remote_version}, Local: {APP_INFO.APP_VERSION}')
+            if self._interactive:
+                QMessageBox.information(
+                    self, 'No update available',
+                    f'You are on the latest version ({APP_INFO.APP_VERSION}).')
             self._busy = False
             return
 
@@ -156,7 +168,7 @@ class UpdateChecker(BaseWidget):
             logging.info(f"User previously chose to skip version {remote_version}")
             return False
 
-        msg_box = QMessageBox()
+        msg_box = QMessageBox(self)
         msg_box.setIcon(QMessageBox.Icon.Question)
         msg_box.setWindowTitle('Update Available')
         msg_box.setText(f'Version {remote_version} is available. Install now?')
