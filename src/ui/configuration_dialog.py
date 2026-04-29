@@ -1,4 +1,6 @@
-from PySide6.QtWidgets import QDialog, QDialogButtonBox, QTabWidget, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QDialog, QDialogButtonBox, QScrollArea, QTabWidget, QVBoxLayout, QWidget,
+)
 
 from ..base.config_panel import ConfigPanel
 
@@ -13,11 +15,14 @@ class ConfigurationDialog(QDialog):
         layout = QVBoxLayout(self)
 
         if len(panels) == 1:
-            layout.addWidget(panels[0])
+            layout.addWidget(self._wrap_in_scroll(panels[0]))
         else:
             tabs = QTabWidget(self)
             for panel in panels:
-                tabs.addTab(panel, panel.title or panel.__class__.__name__)
+                tabs.addTab(
+                    self._wrap_in_scroll(panel),
+                    panel.title or panel.__class__.__name__,
+                )
             layout.addWidget(tabs)
 
         buttons = QDialogButtonBox(
@@ -28,7 +33,15 @@ class ConfigurationDialog(QDialog):
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
-        self.resize(440, 320)
+        self.adjustSize()
+
+    @staticmethod
+    def _wrap_in_scroll(panel: ConfigPanel) -> QScrollArea:
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        scroll.setWidget(panel)
+        return scroll
 
     def _on_accept(self) -> None:
         for panel in self._panels:
