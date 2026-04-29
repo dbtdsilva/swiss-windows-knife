@@ -93,3 +93,31 @@ def test_apply_rejects_empty_device_name(qtbot, fake_user_settings, silent_messa
     panel.client_id_field.setText("cid")
     panel.device_name_field.setText("   ")
     assert panel.apply() is False
+
+
+def test_panel_shows_one_row_per_entity(qtbot, fake_user_settings, silent_messagebox):
+    from src.plugins.home_assistant_mqtt_pub.entities import build_entity_registry
+    from src.plugins.home_assistant_mqtt_pub.mqtt_config_panel import MqttConfigPanel
+    panel = MqttConfigPanel(parent=None)
+    qtbot.addWidget(panel)
+    expected_keys = {e.key for e in build_entity_registry()}
+    panel_keys = set(panel.entity_rows.keys())
+    assert expected_keys.issubset(panel_keys)
+
+
+def test_apply_persists_entity_publish_and_interval(qtbot, fake_user_settings, silent_messagebox):
+    from src.plugins.home_assistant_mqtt_pub.mqtt_config_panel import MqttConfigPanel
+    panel = MqttConfigPanel(parent=None)
+    qtbot.addWidget(panel)
+    panel.host_field.setText("broker")
+    panel.port_field.setText("1883")
+    panel.login_field.setText("u")
+    panel.password_field.setText("p")
+    panel.client_id_field.setText("cid")
+    panel.device_name_field.setText("PC")
+    row = panel.entity_rows["cpu_usage"]
+    row.publish_checkbox.setChecked(False)
+    row.interval_field.setText("90")
+    assert panel.apply() is True
+    assert fake_user_settings.get("homeassistant_publish_cpu_usage") is False
+    assert fake_user_settings.get("homeassistant_interval_cpu_usage") == 90
