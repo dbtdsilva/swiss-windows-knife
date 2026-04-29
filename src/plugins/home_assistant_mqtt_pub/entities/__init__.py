@@ -3,6 +3,7 @@ from .battery_state import BatteryStateEntity
 from .cpu_frequency import CpuFrequencyEntity
 from .cpu_temperature import CpuTemperatureEntity
 from .cpu_usage import CpuUsageEntity
+from .current_user import CurrentUserEntity
 from .disk_free import discover_disk_free_entities
 from .memory_usage import MemoryUsageEntity
 from .monitor_count import MonitorCountEntity
@@ -22,4 +23,5 @@ def build_entity_registry() -> list:
         NetworkRxEntity(),
         NetworkTxEntity(),
         MonitorCountEntity(),
+        CurrentUserEntity(),
     ]
