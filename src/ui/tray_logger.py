@@ -1,7 +1,9 @@
+from PySide6.QtCore import QSize
 from PySide6.QtGui import QKeySequence, QShortcut
-from PySide6.QtWidgets import QDialog, QPlainTextEdit, QVBoxLayout, QComboBox, QLabel, QHBoxLayout
+from PySide6.QtWidgets import QPlainTextEdit, QVBoxLayout, QComboBox, QLabel, QHBoxLayout
 import logging
 
+from ..base.persistent_dialog import PersistentSizeDialog
 from ..base.user_settings import UserSettings
 
 
@@ -16,7 +18,10 @@ class QTextEditLogger(logging.Handler):
         self.widget.appendPlainText(msg)
 
 
-class TrayLogger(QDialog):
+class TrayLogger(PersistentSizeDialog):
+
+    size_settings_prefix = "logs_dialog"
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Logs")
@@ -52,7 +57,7 @@ class TrayLogger(QDialog):
         layout.addWidget(logger_text_box.widget)
 
         self.setLayout(layout)
-        self.resize(800, 700)
+        self.restore_size(QSize(800, 700))
 
     def change_log_level(self, level_str: str):
         level = getattr(logging, level_str)

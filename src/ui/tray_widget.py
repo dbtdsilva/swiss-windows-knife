@@ -28,6 +28,8 @@ class TrayWidget(QWidget):
             QMessageBox.critical(self, "Systray", "I couldn't detect any system tray on this system.")
             sys.exit(1)
 
+        self._config_dialog: Optional[ConfigurationDialog] = None
+
         self.logger_window = TrayLogger(self)
         self.logger_window.hide()
 
@@ -111,14 +113,21 @@ class TrayWidget(QWidget):
 
     @Slot()
     def open_configuration_dialog(self) -> None:
+        if self._config_dialog is not None:
+            self._config_dialog.raise_()
+            self._config_dialog.activateWindow()
+            return
         panels: list[ConfigPanel] = []
         for plugin in self.child_components:
             panels.extend(plugin.retrieve_config_panels())
         if not panels:
             logging.info("No plugin contributes a configuration panel")
             return
-        dialog = ConfigurationDialog(self, panels)
-        dialog.exec()
+        self._config_dialog = ConfigurationDialog(self, panels)
+        try:
+            self._config_dialog.exec()
+        finally:
+            self._config_dialog = None
 
     @Slot()
     def close_slot(self):

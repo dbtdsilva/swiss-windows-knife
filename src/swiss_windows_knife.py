@@ -2,6 +2,7 @@ import inspect
 import sys
 import signal
 
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 from src.ui.tray_widget import TrayWidget
 import logging
@@ -16,6 +17,7 @@ class SwissWindowsKnife:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
         app = QApplication(sys.argv)
         app.setQuitOnLastWindowClosed(False)
+        app.setWindowIcon(QIcon(":/icons/coat-of-arms.ico"))
 
         logging.info("Starting widget..")
 
