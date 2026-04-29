@@ -5,6 +5,7 @@ from .cpu_temperature import CpuTemperatureEntity
 from .cpu_usage import CpuUsageEntity
 from .disk_free import discover_disk_free_entities
 from .memory_usage import MemoryUsageEntity
+from .network_io import NetworkRxEntity, NetworkTxEntity
 from .uptime import UptimeEntity
 
 
@@ -17,4 +18,6 @@ def build_entity_registry() -> list:
         UptimeEntity(),
         BatteryStateEntity(),
         *discover_disk_free_entities(),
+        NetworkRxEntity(),
+        NetworkTxEntity(),
     ]
