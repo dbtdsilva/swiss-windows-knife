@@ -41,7 +41,7 @@ def build_exe():
 
     build_options = {
         'silent': 2,
-        'packages': ["numpy", "pysolar", "wmi", "pytz", "paho.mqtt"],
+        'packages': ["numpy", "pysolar", "wmi", "pytz", "paho.mqtt", "requests"],
         'excludes': ["tkinter", "unittest", "pydoc"],
         'include_files': [icon_path],
         'optimize': 0,
