@@ -6,6 +6,8 @@ no I/O — safe to unit-test in isolation.
 """
 from __future__ import annotations
 
+import math
+
 
 def compute_target(
     sun: float,
@@ -32,3 +34,20 @@ def ease(
     if fraction >= 1.0:
         return float(target)
     return float(actual) + (float(target) - float(actual)) * fraction
+
+
+GAMMA_MIN = 1 / 3
+GAMMA_MAX = 3.0
+_LN3 = math.log(3.0)
+
+
+def gamma_from_slider(slider_pos: int) -> float:
+    pos = max(0, min(100, int(slider_pos)))
+    # Symmetric in log space: pos=0 -> 1/3, pos=50 -> 1, pos=100 -> 3
+    return math.exp(((pos - 50) / 50.0) * _LN3)
+
+
+def slider_from_gamma(gamma: float) -> int:
+    g = max(GAMMA_MIN, min(GAMMA_MAX, float(gamma)))
+    pos = round(50.0 + (math.log(g) / _LN3) * 50.0)
+    return max(0, min(100, int(pos)))
