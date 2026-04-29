@@ -1,19 +1,17 @@
-from typing import Callable, Optional
 import logging
 import os
 import subprocess
 import tempfile
+from collections.abc import Callable
 
 import requests
-
-from PySide6.QtWidgets import QMenu, QWidget, QMessageBox, QCheckBox
 from PySide6.QtCore import QCoreApplication, QObject, QThread, QTimer, Signal, Slot
 from PySide6.QtGui import QAction
+from PySide6.QtWidgets import QCheckBox, QMenu, QMessageBox, QWidget
 
 from ..app_info import APP_INFO
 from ..base.base_widget import BaseWidget
 from ..base.user_settings import UserSettings
-
 
 LATEST_RELEASE_URL = 'https://api.github.com/repos/dbtdsilva/swiss-windows-knife/releases/latest'
 CHECK_INTERVAL_MS = 1000 * 30 * 60
@@ -49,7 +47,7 @@ class _CheckWorker(QObject):
             self.finished.emit(None)
             return
 
-        installer_url: Optional[str] = None
+        installer_url: str | None = None
         for asset in data.get('assets', []):
             name = asset.get('name', '')
             if name.endswith('.exe') and 'browser_download_url' in asset:
@@ -67,7 +65,7 @@ class _CheckWorker(QObject):
 class _DownloadWorker(QObject):
     finished = Signal(object)
 
-    def __init__(self, url: str, dest_dir: str, parent: Optional[QObject] = None) -> None:
+    def __init__(self, url: str, dest_dir: str, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self._url = url
         self._dest_dir = dest_dir

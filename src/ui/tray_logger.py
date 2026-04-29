@@ -1,7 +1,8 @@
+import logging
+
 from PySide6.QtCore import QSize
 from PySide6.QtGui import QKeySequence, QShortcut
-from PySide6.QtWidgets import QPlainTextEdit, QVBoxLayout, QComboBox, QLabel, QHBoxLayout
-import logging
+from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QPlainTextEdit, QVBoxLayout
 
 from ..base.persistent_dialog import PersistentSizeDialog
 from ..base.user_settings import UserSettings

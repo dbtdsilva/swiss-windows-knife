@@ -1,7 +1,8 @@
 import logging
 import queue
 import threading
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 
 class SamplerRunner:

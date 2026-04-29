@@ -1,34 +1,33 @@
-from typing import Optional
-from PySide6.QtCore import Slot, QCoreApplication, QObject
-from PySide6.QtGui import QAction, QIcon, QActionGroup
-from PySide6.QtWidgets import QMenu, QSystemTrayIcon, QWidget, QMessageBox
+import logging
+import sys
 
-from ..components.update_checker import UpdateChecker
+from PySide6.QtCore import QCoreApplication, QObject, Slot
+from PySide6.QtGui import QAction, QActionGroup, QIcon
+from PySide6.QtWidgets import QMenu, QMessageBox, QSystemTrayIcon, QWidget
+
+from .. import resources  # noqa: F401,E261
+from ..app_info import APP_INFO
 from ..base.base_widget import BaseWidget
 from ..base.config_panel import ConfigPanel
-from ..plugins.display_image_tuner.image_tuner_plugin import DisplayImageTunerPlugin
+from ..components.update_checker import UpdateChecker
 from ..plugins.device_display_mapper.device_display_mapper_plugin import DeviceDisplayMapperPlugin
+from ..plugins.display_image_tuner.image_tuner_plugin import DisplayImageTunerPlugin
 from ..plugins.home_assistant_mqtt_pub.home_assistant_mqtt_pub_plugin import HomeAssistantMqttPubPlugin
-from .. import resources # noqa: F401,E261
-
-from ..app_info import APP_INFO
 from .about_dialog import AboutDialog
 from .configuration_dialog import ConfigurationDialog
 from .tray_logger import TrayLogger
-import logging
-import sys
 
 
 class TrayWidget(QWidget):
 
-    def __init__(self, dev_mode: bool = False, parent: Optional[QObject] = None) -> None:
+    def __init__(self, dev_mode: bool = False, parent: QObject | None = None) -> None:
         super().__init__(parent=None)
 
         if not QSystemTrayIcon.isSystemTrayAvailable():
             QMessageBox.critical(self, "Systray", "I couldn't detect any system tray on this system.")
             sys.exit(1)
 
-        self._config_dialog: Optional[ConfigurationDialog] = None
+        self._config_dialog: ConfigurationDialog | None = None
 
         self.logger_window = TrayLogger(self)
         self.logger_window.hide()

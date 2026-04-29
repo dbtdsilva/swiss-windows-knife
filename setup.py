@@ -1,8 +1,9 @@
+import logging
 import os
 import subprocess
 from pathlib import Path
+
 from src.app_info import APP_INFO
-import logging
 
 BASE_DIR = Path(__file__).parent.absolute()
 
@@ -57,11 +58,11 @@ def build_exe():
 
 def build_win_install():
     cmd = '"C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe"' +\
-        ' /DMyAppVersion="{}"'.format(APP_INFO.APP_VERSION) +\
-        ' /DMyAppName="{}"'.format(APP_INFO.APP_NAME) +\
+        f' /DMyAppVersion="{APP_INFO.APP_VERSION}"' +\
+        f' /DMyAppName="{APP_INFO.APP_NAME}"' +\
         ' /DMyAppNameNoSpaces="{}"'.format(APP_INFO.APP_NAME.replace(' ', '')) +\
-        ' /DMyAppPublisher="{}"'.format(APP_INFO.APP_PUBLISHER) +\
-        ' /DMyAppURL="{}"'.format(APP_INFO.APP_URL) +\
+        f' /DMyAppPublisher="{APP_INFO.APP_PUBLISHER}"' +\
+        f' /DMyAppURL="{APP_INFO.APP_URL}"' +\
         ' /DMyAppExeName="{}"'.format(APP_INFO.APP_NAME.replace(' ', '') + ".exe") +\
         ' /DMyAppIcon={}'.format(os.path.join("icons", 'coat-of-arms.ico')) +\
         ' /DMyAppIconName={}'.format('coat-of-arms.ico') +\

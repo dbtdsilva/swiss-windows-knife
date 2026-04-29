@@ -1,19 +1,17 @@
-from functools import partial
+import logging
 import time
+from functools import partial
 
+import monitorcontrol
+from PySide6.QtCore import Slot
 from PySide6.QtGui import QAction, QActionGroup
 from PySide6.QtWidgets import QMenu, QWidget
-from PySide6.QtCore import Slot
 
-from .monitor_info import MonitorInfoCtx
-from .device_listener import DeviceListener, DeviceNotificationType, Device
 from ...base.base_widget import BaseWidget
 from ...base.monitor_runner import runner
 from ...base.user_settings import UserSettings
-
-import monitorcontrol
-import logging
-
+from .device_listener import Device, DeviceListener, DeviceNotificationType
+from .monitor_info import MonitorInfoCtx
 
 USER_SETTINGS_DISPLAY_USB_WATCHER_KEY = 'display_usb_watcher'
 

@@ -4,9 +4,7 @@ from PySide6.QtCore import QFile, QIODevice, QObject, QUrl, Signal, Slot
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import QFormLayout, QLabel, QVBoxLayout, QWidget
-
 from timezonefinder import TimezoneFinder
-
 
 _QWEBCHANNEL_JS_PATH = ":/qtwebchannel/qwebchannel.js"
 _TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

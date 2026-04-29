@@ -1,7 +1,7 @@
 import logging
 import queue
 import threading
-from typing import Callable
+from collections.abc import Callable
 
 
 class _MonitorRunner:

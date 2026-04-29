@@ -34,9 +34,9 @@ class ShutdownCommand:
     @staticmethod
     def _can_acquire_shutdown_privilege() -> bool:
         try:
-            import win32security
             import win32api
             import win32con
+            import win32security
             tok = win32security.OpenProcessToken(
                 win32api.GetCurrentProcess(),
                 win32con.TOKEN_ADJUST_PRIVILEGES | win32con.TOKEN_QUERY,

@@ -1,10 +1,9 @@
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 from PySide6.QtWidgets import QWidget
 
 from .base import SampleResult
-
 
 WM_WTSSESSION_CHANGE = 0x02B1
 WTS_SESSION_LOCK = 0x7

@@ -1,12 +1,13 @@
 import inspect
-import sys
+import logging
 import signal
+import sys
+import traceback
 
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
+
 from src.ui.tray_widget import TrayWidget
-import logging
-import traceback
 
 
 class SwissWindowsKnife:

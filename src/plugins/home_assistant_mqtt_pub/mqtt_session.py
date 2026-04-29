@@ -1,5 +1,5 @@
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 import paho.mqtt.client as mqtt_client
 import paho.mqtt.enums as mqtt_enums

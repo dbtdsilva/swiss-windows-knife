@@ -1,4 +1,5 @@
 import logging
+
 import psutil
 
 from .base import SampleResult
