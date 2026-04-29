@@ -95,11 +95,10 @@ class MqttConfigPanel(ConfigPanel):
 
         entities_box = QGroupBox("Entities", self)
         grid = QGridLayout(entities_box)
-        grid.addWidget(QLabel("Name", entities_box), 0, 0)
-        grid.addWidget(QLabel("Value", entities_box), 0, 1)
-        grid.addWidget(QLabel("Unit", entities_box), 0, 2)
-        grid.addWidget(QLabel("Publish", entities_box), 0, 3)
-        grid.addWidget(QLabel("Interval (s)", entities_box), 0, 4)
+        for col, header in enumerate(("Name", "Value", "Unit", "Publish", "Interval (s)")):
+            label = QLabel(header, entities_box)
+            label.setStyleSheet("font-weight: bold")
+            grid.addWidget(label, 0, col)
 
         for row_idx, entity in enumerate(build_entity_registry(), start=1):
             row = _EntityRow(entities_box, entity, self._entity_settings)

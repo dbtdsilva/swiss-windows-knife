@@ -96,7 +96,7 @@ class TrayWidget(QWidget):
         menu.addAction(config_action)
         menu.addSeparator()
 
-        logs_action = QAction('View logs', self)
+        logs_action = QAction('View Logs', self)
         logs_action.triggered.connect(self.open_logs_window)
         menu.addAction(logs_action)
 

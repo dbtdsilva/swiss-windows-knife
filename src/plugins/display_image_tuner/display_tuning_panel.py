@@ -20,6 +20,15 @@ from .sun_strength_notifier import (
 )
 
 
+def _make_value_label(text: str, sample: str) -> QLabel:
+    """A right-aligned readout label whose width is fixed to fit `sample`,
+    so the slider next to it doesn't shift as the displayed text changes."""
+    label = QLabel(text)
+    label.setMinimumWidth(label.fontMetrics().horizontalAdvance(sample) + 4)
+    label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+    return label
+
+
 SAMPLES_PER_DAY = 96  # 15-minute resolution
 COLOR_BRIGHTNESS = QColor(255, 191, 0)
 COLOR_CONTRAST = QColor(64, 156, 255)
@@ -231,17 +240,17 @@ class _AxisControls:
         self.fixed = QSlider(Qt.Orientation.Horizontal)
         self.fixed.setRange(0, 100)
         self.fixed.setValue(int(current) if is_fixed else 50)
-        self.fixed_label = QLabel(str(self.fixed.value()))
+        self.fixed_label = _make_value_label(str(self.fixed.value()), "100")
 
         self.night = QSlider(Qt.Orientation.Horizontal)
         self.night.setRange(0, 100)
         self.night.setValue(self._read_int(f'{axis}_night_level', 0))
-        self.night_label = QLabel(str(self.night.value()))
+        self.night_label = _make_value_label(str(self.night.value()), "100")
 
         self.day = QSlider(Qt.Orientation.Horizontal)
         self.day.setRange(0, 100)
         self.day.setValue(self._read_int(f'{axis}_day_level', 100))
-        self.day_label = QLabel(str(self.day.value()))
+        self.day_label = _make_value_label(str(self.day.value()), "100")
 
         self.fixed.valueChanged.connect(lambda v: self.fixed_label.setText(str(v)))
         self.night.valueChanged.connect(lambda v: self.night_label.setText(str(v)))
@@ -313,29 +322,33 @@ class DisplayTuningConfigPanel(ConfigPanel):
         self._sunrise_offset = QSlider(Qt.Orientation.Horizontal)
         self._sunrise_offset.setRange(RAMP_OFFSET_RANGE_MIN, RAMP_OFFSET_RANGE_MAX)
         self._sunrise_offset.setValue(self._read_int('auto_sunrise_offset_minutes', 0))
-        self._sunrise_offset_label = QLabel(self._format_minutes(self._sunrise_offset.value()))
+        self._sunrise_offset_label = _make_value_label(
+            self._format_minutes(self._sunrise_offset.value()), "+120 min")
 
         self._sunset_offset = QSlider(Qt.Orientation.Horizontal)
         self._sunset_offset.setRange(RAMP_OFFSET_RANGE_MIN, RAMP_OFFSET_RANGE_MAX)
         self._sunset_offset.setValue(self._read_int('auto_sunset_offset_minutes', 0))
-        self._sunset_offset_label = QLabel(self._format_minutes(self._sunset_offset.value()))
+        self._sunset_offset_label = _make_value_label(
+            self._format_minutes(self._sunset_offset.value()), "+120 min")
 
         self._ramp_duration = QSlider(Qt.Orientation.Horizontal)
         self._ramp_duration.setRange(0, RAMP_DURATION_RANGE_MAX)
         self._ramp_duration.setValue(self._read_int('auto_ramp_duration_minutes', 60))
-        self._ramp_duration_label = QLabel(self._format_minutes(self._ramp_duration.value()))
+        self._ramp_duration_label = _make_value_label(
+            self._format_minutes(self._ramp_duration.value()), "+120 min")
 
         self._ramp_smoothness = QSlider(Qt.Orientation.Horizontal)
         self._ramp_smoothness.setRange(0, SMOOTHNESS_SLIDER_RANGE)
         self._ramp_smoothness.setValue(slider_from_smoothness(
             self._read_float('auto_ramp_smoothness', 0.0)
         ))
-        self._ramp_smoothness_label = QLabel(self._format_smoothness(self._ramp_smoothness.value()))
+        self._ramp_smoothness_label = _make_value_label(
+            self._format_smoothness(self._ramp_smoothness.value()), "ease-out -0.50")
 
         self._day = QSlider(Qt.Orientation.Horizontal)
         self._day.setRange(1, 366)
         self._day.setValue(date.today().timetuple().tm_yday)
-        self._day_label = QLabel(self._format_day(self._day.value()))
+        self._day_label = _make_value_label(self._format_day(self._day.value()), "Sep 30")
 
         self._preview = DisplayTuningPreview()
 
@@ -374,7 +387,7 @@ class DisplayTuningConfigPanel(ConfigPanel):
         ramp_form.addRow("Sunset offset", self._row(self._sunset_offset, self._sunset_offset_label))
         ramp_form.addRow("Duration", self._row(self._ramp_duration, self._ramp_duration_label))
         ramp_form.addRow("Smoothness", self._row(self._ramp_smoothness, self._ramp_smoothness_label))
-        ramp_form.addRow("Day of year", self._row(self._day, self._day_label))
+        ramp_form.addRow("Preview day", self._row(self._day, self._day_label))
         layout.addWidget(ramp_box)
 
         self._refresh_preview()

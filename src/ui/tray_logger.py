@@ -1,3 +1,4 @@
+from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import QDialog, QPlainTextEdit, QVBoxLayout, QComboBox, QLabel, QHBoxLayout
 import logging
 
@@ -18,6 +19,8 @@ class QTextEditLogger(logging.Handler):
 class TrayLogger(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setWindowTitle("Logs")
+        QShortcut(QKeySequence(QKeySequence.StandardKey.Cancel), self, self.close)
 
         # logger widget
         logger_text_box = QTextEditLogger(self)
