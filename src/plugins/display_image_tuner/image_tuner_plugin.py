@@ -12,6 +12,7 @@ from ...base.monitor_runner import runner
 from .curve import compute_target, ease
 from .sun_strength_notifier import SunStrengthNotifier
 from .sun_location_panel import SunLocationConfigPanel
+from .display_tuning_panel import DisplayTuningConfigPanel
 
 import monitorcontrol
 import logging
@@ -76,7 +77,10 @@ class DisplayImageTunerPlugin(BaseWidget):
         ]
 
     def retrieve_config_panels(self) -> list[ConfigPanel]:
-        return [SunLocationConfigPanel(self.sun_strength_plugin, self)]
+        return [
+            SunLocationConfigPanel(self.sun_strength_plugin, self),
+            DisplayTuningConfigPanel(self),
+        ]
 
     @Slot(int)
     def _on_sun_strength(self, value: int) -> None:
