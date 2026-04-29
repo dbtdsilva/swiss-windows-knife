@@ -17,3 +17,18 @@ def compute_target(
     s = max(0.0, min(100.0, float(sun))) / 100.0
     shaped = s ** gamma
     return float(min_value) + (float(max_value) - float(min_value)) * shaped
+
+
+def ease(
+    actual: float,
+    target: float,
+    *,
+    dt: float,
+    smoothing_seconds: float,
+) -> float:
+    if smoothing_seconds <= 0.0:
+        return float(target)
+    fraction = dt / smoothing_seconds
+    if fraction >= 1.0:
+        return float(target)
+    return float(actual) + (float(target) - float(actual)) * fraction
