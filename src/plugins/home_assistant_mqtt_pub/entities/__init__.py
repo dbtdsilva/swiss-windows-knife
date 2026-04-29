@@ -3,6 +3,7 @@ from .cpu_frequency import CpuFrequencyEntity
 from .cpu_temperature import CpuTemperatureEntity
 from .cpu_usage import CpuUsageEntity
 from .memory_usage import MemoryUsageEntity
+from .uptime import UptimeEntity
 
 
 def build_entity_registry() -> list:
@@ -11,4 +12,5 @@ def build_entity_registry() -> list:
         CpuTemperatureEntity(),
         CpuFrequencyEntity(),
         MemoryUsageEntity(),
+        UptimeEntity(),
     ]
