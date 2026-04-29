@@ -2,10 +2,9 @@ import logging
 import os
 import subprocess
 import tempfile
-from collections.abc import Callable
 
 import requests
-from PySide6.QtCore import QCoreApplication, QObject, QThread, QTimer, Signal, Slot
+from PySide6.QtCore import QCoreApplication, QThread, QTimer, Signal, Slot
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QCheckBox, QMenu, QMessageBox, QWidget
 
@@ -35,18 +34,21 @@ def _parse_version(text: str) -> tuple[int, ...]:
     return tuple(out)
 
 
-class _CheckWorker(QObject):
-    finished = Signal(object)
+class _CheckThread(QThread):
+    """Fetches the latest release metadata from GitHub on its own thread.
 
-    @Slot()
+    Subclasses `QThread` directly (rather than the worker-as-QObject +
+    `moveToThread` + `started.connect(run)` pattern) because, in the frozen
+    cx_Freeze build, the latter pattern was reproducibly failing to invoke
+    the worker's `run()` slot — the thread started, but the started→run
+    signal-slot connection never fired. Putting the work in `QThread.run`
+    bypasses that connection entirely; the thread's main function IS the
+    worker code.
+    """
+
+    result_ready = Signal(object)
+
     def run(self) -> None:
-        # `finished` MUST be emitted on every exit path so that the caller's
-        # `_busy` flag is cleared. We catch a broad Exception (rather than only
-        # `requests.RequestException` / `ValueError`) because frozen builds
-        # have surfaced unexpected error types from inside requests / urllib3
-        # / SSL — when one escaped this method, the worker thread died
-        # without emitting `finished`, leaving subsequent clicks silently
-        # no-oping for the lifetime of the process.
         logging.info("Update-check worker started; fetching %s", LATEST_RELEASE_URL)
         try:
             response = requests.get(
@@ -65,26 +67,29 @@ class _CheckWorker(QObject):
 
             if installer_url is None or 'tag_name' not in data:
                 logging.warning("No installer asset in latest release")
-                self.finished.emit(None)
+                self.result_ready.emit(None)
                 return
 
-            self.finished.emit((data['tag_name'], installer_url))
+            self.result_ready.emit((data['tag_name'], installer_url))
         except Exception:
             logging.exception("Failed to query for updates")
-            self.finished.emit(None)
+            self.result_ready.emit(None)
 
 
-class _DownloadWorker(QObject):
-    finished = Signal(object)
+class _DownloadThread(QThread):
+    """Streams the installer to disk on its own thread. Same QThread-subclass
+    rationale as `_CheckThread`."""
 
-    def __init__(self, url: str, dest_dir: str, parent: QObject | None = None) -> None:
+    result_ready = Signal(object)
+
+    def __init__(self, url: str, dest_dir: str, parent=None) -> None:
         super().__init__(parent)
         self._url = url
         self._dest_dir = dest_dir
 
-    @Slot()
     def run(self) -> None:
         path = os.path.join(self._dest_dir, os.path.basename(self._url))
+        logging.info("Update-download worker started; fetching %s", self._url)
         try:
             with requests.get(self._url, stream=True, timeout=DOWNLOAD_TIMEOUT_S) as r:
                 r.raise_for_status()
@@ -92,11 +97,10 @@ class _DownloadWorker(QObject):
                     for chunk in r.iter_content(chunk_size=8192):
                         f.write(chunk)
             logging.info(f"Downloaded installer to {path}")
-            self.finished.emit(path)
+            self.result_ready.emit(path)
         except Exception:
-            # Same defensive-broad-except rationale as `_CheckWorker.run`.
             logging.exception("Failed to download installer")
-            self.finished.emit(None)
+            self.result_ready.emit(None)
 
 
 class UpdateChecker(BaseWidget):
@@ -110,6 +114,7 @@ class UpdateChecker(BaseWidget):
         self._busy = False
         self._interactive = False
         self._check_action: QAction | None = None
+        self._active_thread: QThread | None = None
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.check_updates)
@@ -136,7 +141,11 @@ class UpdateChecker(BaseWidget):
         if interactive and self._check_action is not None:
             self._check_action.setText(CHECK_LABEL_CHECKING)
         logging.info("Spawning update-check worker (interactive=%s)", interactive)
-        self._spawn_worker(_CheckWorker(), self._on_check_finished)
+        thread = _CheckThread(self)
+        thread.result_ready.connect(self._on_check_finished)
+        thread.finished.connect(thread.deleteLater)
+        self._active_thread = thread
+        thread.start()
         QTimer.singleShot(WATCHDOG_MS, self._check_watchdog)
 
     def _check_watchdog(self) -> None:
@@ -161,16 +170,6 @@ class UpdateChecker(BaseWidget):
                 f'No response within {WATCHDOG_MS // 1000} seconds. '
                 'See logs for details.',
             )
-
-    def _spawn_worker(self, worker: QObject, on_finished: Callable[[object], None]) -> None:
-        thread = QThread(self)
-        worker.moveToThread(thread)
-        thread.started.connect(worker.run)  # type: ignore[attr-defined]
-        worker.finished.connect(on_finished)  # type: ignore[attr-defined]
-        worker.finished.connect(thread.quit)  # type: ignore[attr-defined]
-        thread.finished.connect(worker.deleteLater)
-        thread.finished.connect(thread.deleteLater)
-        thread.start()
 
     @Slot(object)
     def _on_check_finished(self, result) -> None:
@@ -205,7 +204,11 @@ class UpdateChecker(BaseWidget):
             return
 
         dest_dir = tempfile.mkdtemp(prefix='swk-update-')
-        self._spawn_worker(_DownloadWorker(installer_url, dest_dir), self._on_download_finished)
+        thread = _DownloadThread(installer_url, dest_dir, self)
+        thread.result_ready.connect(self._on_download_finished)
+        thread.finished.connect(thread.deleteLater)
+        self._active_thread = thread
+        thread.start()
 
     @Slot(object)
     def _on_download_finished(self, path) -> None:
