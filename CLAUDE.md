@@ -38,7 +38,6 @@ Python floor is 3.12 (uses `typing.override`, `enum.StrEnum`). Runtime deps in `
 
 ## Gotchas
 
-- `setup.py` imports `cx_Freeze` unconditionally — even `python setup.py dev` fails without it. Either install the `build` group or run via `python -m src.swiss_windows_knife`.
-- The Home Assistant MQTT plugin (`src/plugins/home_assistant_mqtt_pub/`) is a work-in-progress with several known bugs (uninitialized `is_homeassistant_online`, `status_changed` signature mismatch, port saved as string, paho disconnect order). **Do not "fix" any of it without an explicit ask** — the maintainer is iterating.
+- `setup.py` is a CLI for `resources` / `dev` / `exe` / `installer`; `cx_Freeze` is imported lazily inside `build_exe()`. When invoked without one of those modes (e.g. by pip during `pip install -e .`), it falls through to `setuptools.setup()` so pyproject.toml's `[project]` table drives the install.
 - The dev venv is at `./env/`. The base Python on PATH does not have the deps installed.
 - When testing runtime changes locally, kill the running tray Python (`Get-Process | Where-Object { $_.Path -eq "...env\Scripts\python.exe" } | Stop-Process -Force`) before relaunching — only one instance should hold the tray icon and the registry singleton.
