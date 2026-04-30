@@ -15,7 +15,7 @@ _COLORS: dict[HealthState, QColor] = {
 _ICON_SIZE = QSize(12, 12)
 
 _TRAY_ICON_SIZE = QSize(64, 64)
-_TRAY_DOT_RECT = (40, 0, 24, 24)  # x, y, width, height — top-right
+_TRAY_DOT_RECT = (40, 40, 24, 24)  # x, y, width, height — bottom-right
 
 
 @cache
@@ -43,7 +43,7 @@ def icon_for_state(state: HealthState) -> QIcon:
 def tray_icon_for_state(state: HealthState) -> QIcon:
     """Return the app's tray icon overlaid with a coloured dot for `state`.
 
-    The dot sits in the top-right corner of a 64x64 composed pixmap;
+    The dot sits in the bottom-right corner of a 64x64 composed pixmap;
     Windows downsamples for the systray slot. Cached per state.
     """
     base = QIcon(":/icons/coat-of-arms.ico").pixmap(_TRAY_ICON_SIZE)
