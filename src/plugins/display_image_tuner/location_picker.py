@@ -1,11 +1,15 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QUrl, Signal, Slot
-from PySide6.QtQuickWidgets import QQuickWidget
+from PySide6.QtCore import QFile, QIODevice, QObject, QUrl, Signal, Slot
+from PySide6.QtWebChannel import QWebChannel
+from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import QFormLayout, QLabel, QVBoxLayout, QWidget
 from timezonefinder import TimezoneFinder
 
-_QML_URL = QUrl("qrc:/qml/MapPicker.qml")
+_QWEBCHANNEL_JS_PATH = ":/qtwebchannel/qwebchannel.js"
+_TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+_LEAFLET_CSS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+_LEAFLET_JS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
 
 _tz_finder: TimezoneFinder | None = None
 
@@ -18,16 +22,68 @@ def coordinates_to_timezone(latitude: float, longitude: float) -> str | None:
     return _tz_finder.timezone_at(lat=latitude, lng=longitude)
 
 
+def _read_qwebchannel_js() -> str:
+    f = QFile(_QWEBCHANNEL_JS_PATH)
+    if not f.open(QIODevice.OpenModeFlag.ReadOnly | QIODevice.OpenModeFlag.Text):
+        raise RuntimeError(f"Could not open {_QWEBCHANNEL_JS_PATH}")
+    try:
+        return bytes(f.readAll()).decode("utf-8")
+    finally:
+        f.close()
+
+
+def _build_html(initial_lat: float, initial_lng: float, qwebchannel_js: str) -> str:
+    return f"""<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" href="{_LEAFLET_CSS}" />
+  <style>
+    html, body, #map {{ height: 100%; margin: 0; }}
+    #map {{ background: #1e1e1e; }}
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>{qwebchannel_js}</script>
+  <script src="{_LEAFLET_JS}"></script>
+  <script>
+    const map = L.map('map').setView([{initial_lat}, {initial_lng}], 6);
+    L.tileLayer('{_TILE_URL}', {{
+      attribution: '&copy; OpenStreetMap contributors',
+      maxZoom: 18,
+    }}).addTo(map);
+    let marker = L.marker([{initial_lat}, {initial_lng}]).addTo(map);
+
+    new QWebChannel(qt.webChannelTransport, function(channel) {{
+      const bridge = channel.objects.bridge;
+      map.on('click', function(e) {{
+        marker.setLatLng(e.latlng);
+        bridge.set_coordinates(e.latlng.lat, e.latlng.lng);
+      }});
+    }});
+  </script>
+</body>
+</html>"""
+
+
+class _MapBridge(QObject):
+    coordinates_picked = Signal(float, float)
+
+    @Slot(float, float)
+    def set_coordinates(self, lat: float, lng: float) -> None:
+        self.coordinates_picked.emit(lat, lng)
+
+
 class LocationPickerWidget(QWidget):
     """Interactive OpenStreetMap-backed coordinate + timezone picker.
 
-    Embeds a small Qt Quick scene (`MapPicker.qml`, baked into the qrc
-    resources) via `QQuickWidget`. The QML uses Qt's native QtLocation /
-    QtPositioning — no Chromium, no QWebChannel, no separate process.
-    QML emits `coordinatesPicked(lat, lng)` on tap; we propagate as
-    `location_changed(lat, lng, timezone)` after timezone resolution.
-    The Qt Quick scene is built lazily on first show so headless tests
-    can construct the widget without instantiating it.
+    Emits `location_changed(lat, lng, timezone)` when the user clicks a
+    new location on the map. The QWebEngineView and its Chromium plumbing
+    are constructed lazily on first show — instantiating them during
+    headless test collection would otherwise leave a QWebEnginePage alive
+    past QWebEngineProfile destruction at interpreter shutdown, segfaulting
+    pytest under Windows.
     """
 
     location_changed = Signal(float, float, str)
@@ -48,14 +104,17 @@ class LocationPickerWidget(QWidget):
         self._coords_label = QLabel(self._format_coords(self._lat, self._lng))
         self._timezone_label = QLabel(self._timezone or "(unknown)")
 
-        self._quick = QQuickWidget(self)
-        self._quick.setMinimumHeight(360)
-        self._quick.setResizeMode(QQuickWidget.ResizeMode.SizeRootObjectToView)
-        self._quick.statusChanged.connect(self._on_quick_status_changed)
-        self._quick.setSource(_QML_URL)
+        self._map_container = QWidget(self)
+        self._map_container.setMinimumHeight(360)
+        self._map_layout = QVBoxLayout(self._map_container)
+        self._map_layout.setContentsMargins(0, 0, 0, 0)
+
+        self._view: QWebEngineView | None = None
+        self._channel: QWebChannel | None = None
+        self._bridge: _MapBridge | None = None
 
         layout = QVBoxLayout(self)
-        layout.addWidget(self._quick, 1)
+        layout.addWidget(self._map_container, 1)
         info = QFormLayout()
         info.addRow("Coordinates:", self._coords_label)
         info.addRow("Timezone:", self._timezone_label)
@@ -70,15 +129,23 @@ class LocationPickerWidget(QWidget):
     def timezone(self) -> str:
         return self._timezone
 
-    def _on_quick_status_changed(self, status: QQuickWidget.Status) -> None:
-        if status != QQuickWidget.Status.Ready:
-            return
-        root = self._quick.rootObject() if self._quick is not None else None
-        if root is None:
-            return
-        root.setProperty("markerLat", self._lat)
-        root.setProperty("markerLng", self._lng)
-        root.coordinatesPicked.connect(self._on_coordinates_picked)
+    def showEvent(self, event) -> None:
+        if self._view is None:
+            self._build_view()
+        super().showEvent(event)
+
+    def _build_view(self) -> None:
+        self._view = QWebEngineView(self._map_container)
+        self._map_layout.addWidget(self._view)
+
+        self._channel = QWebChannel(self._view.page())
+        self._bridge = _MapBridge(self)
+        self._bridge.coordinates_picked.connect(self._on_coordinates_picked)
+        self._channel.registerObject("bridge", self._bridge)
+        self._view.page().setWebChannel(self._channel)
+
+        html = _build_html(self._lat, self._lng, _read_qwebchannel_js())
+        self._view.setHtml(html, QUrl("https://maps.local/"))
 
     @Slot(float, float)
     def _on_coordinates_picked(self, lat: float, lng: float) -> None:
@@ -91,4 +158,4 @@ class LocationPickerWidget(QWidget):
 
     @staticmethod
     def _format_coords(lat: float, lng: float) -> str:
-        return f"{lat:.4f}, {lng:.4f}"
+        return f"{lat:.5f}, {lng:.5f}"
