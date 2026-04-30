@@ -1,5 +1,6 @@
 import logging
 
+from PySide6.QtCore import Signal
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QMenu, QWidget
 
@@ -31,6 +32,8 @@ def _coerce_bool(value: object, default: bool) -> bool:
 class BaseWidget(QWidget):
 
     display_name: str = ""
+
+    health_changed = Signal()
 
     def __init__(self, parent: QWidget, is_toggleable: bool = True, is_enabled: bool = True) -> None:
         super().__init__(parent)
@@ -83,4 +86,8 @@ class BaseWidget(QWidget):
         return self._current_health
 
     def _set_health(self, state: HealthState, message: str) -> None:
-        self._current_health = HealthReport(state, message)
+        new_report = HealthReport(state, message)
+        if new_report == self._current_health:
+            return
+        self._current_health = new_report
+        self.health_changed.emit()
