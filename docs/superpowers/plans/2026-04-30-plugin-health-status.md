@@ -320,6 +320,7 @@ def test_health_is_warning_connecting_after_session_starts(qtbot, configured_set
 def test_health_is_ok_connected_after_on_connect(qtbot, configured_settings, fake_paho_client):
     plugin = _make_plugin(qtbot)
     fake_paho_client[0].fire_on_connect(rc=0)
+    qtbot.wait(20)  # cross to GUI thread via QMetaObject.invokeMethod
     report = plugin.health()
     assert report.state is HealthState.OK
     assert report.message == "Connected"
