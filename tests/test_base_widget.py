@@ -1,7 +1,7 @@
 from src.base.base_widget import BaseWidget
 
 
-def test_set_enabled_is_noop_when_state_unchanged(qtbot):
+def test_set_enabled_is_noop_when_state_unchanged(qtbot, fake_user_settings):
     widget = BaseWidget(None, is_enabled=True)
     qtbot.addWidget(widget)
 
@@ -13,7 +13,7 @@ def test_set_enabled_is_noop_when_state_unchanged(qtbot):
     assert widget.is_enabled() is True
 
 
-def test_set_enabled_transitions_and_notifies(qtbot):
+def test_set_enabled_transitions_and_notifies(qtbot, fake_user_settings):
     widget = BaseWidget(None, is_enabled=False)
     qtbot.addWidget(widget)
 
@@ -25,7 +25,7 @@ def test_set_enabled_transitions_and_notifies(qtbot):
     assert captured == [True]
 
 
-def test_set_enabled_round_trip(qtbot):
+def test_set_enabled_round_trip(qtbot, fake_user_settings):
     widget = BaseWidget(None, is_enabled=False)
     qtbot.addWidget(widget)
 
@@ -39,13 +39,13 @@ def test_set_enabled_round_trip(qtbot):
     assert widget.is_enabled() is False
 
 
-def test_get_display_name_falls_back_to_class_name(qtbot):
+def test_get_display_name_falls_back_to_class_name(qtbot, fake_user_settings):
     widget = BaseWidget(None)
     qtbot.addWidget(widget)
     assert widget.get_display_name() == "BaseWidget"
 
 
-def test_get_display_name_uses_explicit_attribute(qtbot):
+def test_get_display_name_uses_explicit_attribute(qtbot, fake_user_settings):
     class NamedWidget(BaseWidget):
         display_name = "My Plugin"
 
@@ -54,7 +54,7 @@ def test_get_display_name_uses_explicit_attribute(qtbot):
     assert widget.get_display_name() == "My Plugin"
 
 
-def test_is_toggleable_reflects_constructor_arg(qtbot):
+def test_is_toggleable_reflects_constructor_arg(qtbot, fake_user_settings):
     on = BaseWidget(None, is_toggleable=True)
     off = BaseWidget(None, is_toggleable=False)
     qtbot.addWidget(on)
@@ -62,3 +62,50 @@ def test_is_toggleable_reflects_constructor_arg(qtbot):
 
     assert on.is_toggleable() is True
     assert off.is_toggleable() is False
+
+
+def test_enabled_state_persists_via_user_settings(qtbot, fake_user_settings):
+    class _Persisted(BaseWidget):
+        pass
+
+    w1 = _Persisted(None)
+    qtbot.addWidget(w1)
+    assert w1.is_enabled() is True  # default
+
+    w1.set_enabled(False)
+    assert w1.is_enabled() is False
+    assert fake_user_settings.get('plugin_enabled__Persisted') is False
+
+    # New instance picks up the persisted value.
+    w2 = _Persisted(None)
+    qtbot.addWidget(w2)
+    assert w2.is_enabled() is False
+
+
+def test_enabled_state_normalises_string_values(qtbot, fake_user_settings):
+    """QSettings on Windows returns booleans as the strings 'true' / 'false'."""
+    class _StrBool(BaseWidget):
+        pass
+
+    fake_user_settings.set('plugin_enabled__StrBool', 'false')
+    w = _StrBool(None)
+    qtbot.addWidget(w)
+    assert w.is_enabled() is False
+
+
+def test_set_enabled_no_change_does_not_invoke_status_changed(qtbot, fake_user_settings):
+    class _Spy(BaseWidget):
+        def __init__(self, parent):
+            super().__init__(parent)
+            self.calls: list[bool] = []
+
+        def status_changed(self, status: bool) -> None:
+            self.calls.append(status)
+
+    w = _Spy(None)
+    qtbot.addWidget(w)
+    w.set_enabled(True)  # already True
+    assert w.calls == []
+
+    w.set_enabled(False)
+    assert w.calls == [False]
