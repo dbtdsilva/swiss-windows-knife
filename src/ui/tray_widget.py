@@ -29,7 +29,11 @@ class TrayWidget(QWidget):
 
         self._config_dialog: ConfigurationDialog | None = None
 
-        self.logger_window = TrayLogger(self)
+        # Dialogs use `parent=None` so Windows treats them as top-level
+        # owned-by-nothing — required for them to get their own taskbar
+        # entry and the app icon. With a parent, the OS treats them as
+        # owned by the (hidden) TrayWidget and hides them from the taskbar.
+        self.logger_window = TrayLogger(None)
         self.logger_window.hide()
 
         self.child_components: list[BaseWidget] = [
@@ -122,7 +126,7 @@ class TrayWidget(QWidget):
         if not panels:
             logging.info("No plugin contributes a configuration panel")
             return
-        self._config_dialog = ConfigurationDialog(self, panels)
+        self._config_dialog = ConfigurationDialog(None, panels)
         try:
             self._config_dialog.exec()
         finally:
@@ -143,4 +147,4 @@ class TrayWidget(QWidget):
 
     @Slot()
     def open_about_dialog(self) -> None:
-        AboutDialog(self).exec()
+        AboutDialog(None).exec()

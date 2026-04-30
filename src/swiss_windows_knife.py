@@ -1,3 +1,4 @@
+import ctypes
 import inspect
 import logging
 import signal
@@ -7,7 +8,25 @@ import traceback
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
+from src.app_info import APP_INFO
 from src.ui.tray_widget import TrayWidget
+
+
+def _set_windows_app_user_model_id() -> None:
+    """Tell Windows this process is its own app, not Python.
+
+    Without this, the Windows taskbar groups by the host `python.exe` (in
+    dev runs) or by the frozen exe path (in cx_Freeze builds), and shows
+    Python's icon and "python" title rather than ours. Setting an
+    explicit AppUserModelID makes Windows use the QApplication icon and
+    window titles instead. No-op on non-Windows.
+    """
+    try:
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+            f"com.dbtdsilva.{APP_INFO.APP_NAME}".lower().replace(" ", "-"),
+        )
+    except (AttributeError, OSError):
+        pass
 
 
 class SwissWindowsKnife:
@@ -16,7 +35,9 @@ class SwissWindowsKnife:
         self.init_logging()
 
         signal.signal(signal.SIGINT, signal.SIG_DFL)
+        _set_windows_app_user_model_id()
         app = QApplication(sys.argv)
+        app.setApplicationName(APP_INFO.APP_NAME)
         app.setQuitOnLastWindowClosed(False)
         app.setWindowIcon(QIcon(":/icons/coat-of-arms.ico"))
 
