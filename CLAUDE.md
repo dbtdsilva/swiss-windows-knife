@@ -4,11 +4,12 @@ Personal Windows tray app (PySide6) bundling small plugins. Frozen with cx_Freez
 
 ## Run / build
 
+Build helpers live in `tools/build.py` (resources / dev / exe / installer). `setup.py` is a one-liner setuptools shim — it does **not** dispatch builds.
+
 - **Dev (no build step):** `./env/Scripts/python.exe -m src.swiss_windows_knife`
-  Bypasses `setup.py`, which imports `cx_Freeze` at module load even for `dev` mode.
-- **Resources:** `python setup.py resources` regenerates `src/resources.py` from `resources.qrc` via `pyside6-rcc`. `src/resources.py` and the legacy `resources_rc.py` are gitignored — do not commit.
-- **Frozen exe:** `python setup.py exe` (cx_Freeze, declared in the `build` optional dep group).
-- **Installer:** `python setup.py installer` — calls Inno Setup at `C:\Program Files (x86)\Inno Setup 6\ISCC.exe`. Output under `build/installer/`.
+- **Resources:** `python tools/build.py resources` regenerates `src/resources.py` from `resources.qrc` via `pyside6-rcc`. `src/resources.py` and the legacy `resources_rc.py` are gitignored — do not commit.
+- **Frozen exe:** `python tools/build.py exe` (cx_Freeze, declared in the `build` optional dep group).
+- **Installer:** `python tools/build.py installer` — calls Inno Setup at `C:\Program Files (x86)\Inno Setup 6\ISCC.exe`. Output under `build/installer/`.
 
 Python floor is 3.12 (uses `typing.override`, `enum.StrEnum`). Runtime deps in `[project.dependencies]`; build dep `cx_Freeze` only in `[project.optional-dependencies].build`.
 
@@ -38,6 +39,5 @@ Python floor is 3.12 (uses `typing.override`, `enum.StrEnum`). Runtime deps in `
 
 ## Gotchas
 
-- `setup.py` is a CLI for `resources` / `dev` / `exe` / `installer`; `cx_Freeze` is imported lazily inside `build_exe()`. When invoked without one of those modes (e.g. by pip during `pip install -e .`), it falls through to `setuptools.setup()` so pyproject.toml's `[project]` table drives the install.
 - The dev venv is at `./env/`. The base Python on PATH does not have the deps installed.
 - When testing runtime changes locally, kill the running tray Python (`Get-Process | Where-Object { $_.Path -eq "...env\Scripts\python.exe" } | Stop-Process -Force`) before relaunching — only one instance should hold the tray icon and the registry singleton.

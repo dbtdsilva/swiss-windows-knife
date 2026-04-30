@@ -29,9 +29,9 @@ jobs:
         python -m pip install --upgrade pip
         pip install -e .[build]
 
-    - name: Build executable
+    - name: Build installer
       run: |
-        python setup.py installer
+        python tools/build.py installer
     
     - name: Upload Installer to GitHub Release
       uses: softprops/action-gh-release@v1

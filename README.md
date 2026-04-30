@@ -41,13 +41,13 @@ The project pins **Python 3.12** and uses a virtual environment at `./env/`. Fro
 ./env/Scripts/python.exe -m src.swiss_windows_knife
 
 # regenerate Qt resources after editing resources.qrc
-python setup.py resources
+python tools/build.py resources
 
 # freeze the executable with cx_Freeze
-python setup.py exe
+python tools/build.py exe
 
 # package the Inno Setup installer (Windows only)
-python setup.py installer
+python tools/build.py installer
 ```
 
 Wire the same lint hook CI uses:

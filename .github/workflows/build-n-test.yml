@@ -17,7 +17,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -e .[build,test]
     - name: Generate Qt resources
-      run: python setup.py resources
+      run: python tools/build.py resources
     - name: Lint with ruff
       run: |
         pip install ruff
@@ -28,7 +28,7 @@ jobs:
       run: pytest tests/
     - name: Build executable
       run: |
-        python setup.py exe
+        python tools/build.py exe
     - name: Upload built exe folder
       uses: actions/upload-artifact@v4
       with:
