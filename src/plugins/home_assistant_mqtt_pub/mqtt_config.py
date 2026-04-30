@@ -13,17 +13,17 @@ class MqttConfig:
     @staticmethod
     def load_from_settings(settings: UserSettings):
         return MqttConfig(
-            settings.get("homeassistant_host"),
-            settings.get("homeassistant_port"),
-            settings.get("homeassistant_username"),
-            settings.get("homeassistant_password"),
-            settings.get("homeassistant_client_id"),
-            settings.get("homeassistant_device_name"),
+            settings.get_optional_str("homeassistant_host"),
+            settings.get_optional_int("homeassistant_port"),
+            settings.get_optional_str("homeassistant_username"),
+            settings.get_optional_str("homeassistant_password"),
+            settings.get_optional_str("homeassistant_client_id"),
+            settings.get_optional_str("homeassistant_device_name"),
         )
 
     def save_to_settings(self, settings):
         settings.set("homeassistant_host", self.host)
-        settings.set("homeassistant_port", int(self.port) if self.port not in (None, "") else self.port)
+        settings.set("homeassistant_port", self.port)
         settings.set("homeassistant_username", self.username)
         settings.set("homeassistant_password", self.password)
         settings.set("homeassistant_client_id", self.client_id)
@@ -31,6 +31,6 @@ class MqttConfig:
 
     def is_complete(self) -> bool:
         return all(
-            v not in (None, "")
+            v is not None and v != ""
             for v in (self.host, self.port, self.username, self.password, self.client_id, self.device_name)
         )

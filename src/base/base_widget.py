@@ -12,22 +12,6 @@ def _settings_key(cls: type) -> str:
     return f"plugin_enabled_{cls.__name__}"
 
 
-def _coerce_bool(value: object, default: bool) -> bool:
-    """QSettings on Windows returns booleans as the literal strings 'true'
-    or 'false'. Accept either form, falling back to `default` for unknown."""
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, str):
-        lowered = value.strip().lower()
-        if lowered in ("true", "1", "yes"):
-            return True
-        if lowered in ("false", "0", "no"):
-            return False
-    if value is None:
-        return default
-    return bool(value)
-
-
 class BaseWidget(HealthReporter):
 
     def __init__(self, parent: QWidget | None, is_toggleable: bool = True, is_enabled: bool = True) -> None:
@@ -35,11 +19,7 @@ class BaseWidget(HealthReporter):
         self._is_toggleable = is_toggleable
 
         settings = UserSettings.instance()
-        key = _settings_key(self.__class__)
-        if settings.has_key(key):
-            self._is_enabled = _coerce_bool(settings.get(key), is_enabled)
-        else:
-            self._is_enabled = is_enabled
+        self._is_enabled = settings.get_bool(_settings_key(self.__class__), is_enabled)
 
     def set_enabled(self, enabled: bool) -> None:
         if self._is_enabled == enabled:

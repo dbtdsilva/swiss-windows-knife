@@ -80,12 +80,15 @@ class SunStrengthNotifier(BaseWidget):
             self.user_settings.set('sun_timezone', DEFAULT_TIMEZONE)
 
     def resolve_location(self) -> tuple[float, float, "pytz.tzinfo.BaseTzInfo"]:
+        latitude = self.user_settings.get_optional_float('sun_latitude')
+        longitude = self.user_settings.get_optional_float('sun_longitude')
+        timezone_name = self.user_settings.get_str('sun_timezone', DEFAULT_TIMEZONE)
+        if latitude is None or longitude is None:
+            logging.warning("Invalid sun-strength settings, falling back to defaults")
+            return DEFAULT_LATITUDE, DEFAULT_LONGITUDE, pytz.timezone(DEFAULT_TIMEZONE)
         try:
-            latitude = float(self.user_settings.get('sun_latitude'))  # type: ignore[arg-type]
-            longitude = float(self.user_settings.get('sun_longitude'))  # type: ignore[arg-type]
-            timezone = pytz.timezone(str(self.user_settings.get('sun_timezone')))
-            return latitude, longitude, timezone
-        except (TypeError, ValueError, pytz.UnknownTimeZoneError):
+            return latitude, longitude, pytz.timezone(timezone_name)
+        except pytz.UnknownTimeZoneError:
             logging.warning("Invalid sun-strength settings, falling back to defaults")
             return DEFAULT_LATITUDE, DEFAULT_LONGITUDE, pytz.timezone(DEFAULT_TIMEZONE)
 

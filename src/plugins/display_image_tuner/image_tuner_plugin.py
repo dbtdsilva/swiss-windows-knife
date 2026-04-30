@@ -33,8 +33,8 @@ class DisplayImageTunerPlugin(BaseWidget):
         self.user_settings = UserSettings.instance()
         self._seed_default_settings()
 
-        logging.info(f"Starting with the 'brightness' set to {self.user_settings.get('brightness')}")
-        logging.info(f"Starting with the 'contrast' set to {self.user_settings.get('contrast')}")
+        logging.info(f"Starting with the 'brightness' set to {self.user_settings.get_optional_int('brightness')}")
+        logging.info(f"Starting with the 'contrast' set to {self.user_settings.get_optional_int('contrast')}")
 
         self.sun_strength_plugin = SunStrengthNotifier(self)
 
@@ -53,7 +53,7 @@ class DisplayImageTunerPlugin(BaseWidget):
             self._tick_timer.start(TICK_MS)
 
     def _mode_message(self) -> str:
-        b = self.user_settings.get('brightness')
+        b = self.user_settings.get_optional_int('brightness')
         if b is None:
             return "Auto"
         return f"Manual {b}"
@@ -78,11 +78,11 @@ class DisplayImageTunerPlugin(BaseWidget):
     def retrieve_menus(self) -> list[QMenu | QAction]:
         return [
             self.create_value_control_menu('Brightness',
-                                           lambda: self.user_settings.get('brightness'),
+                                           lambda: self.user_settings.get_optional_int('brightness'),
                                            self.change_brightness_manual,
                                            self.change_brightness_automatic),
             self.create_value_control_menu('Contrast',
-                                           lambda: self.user_settings.get('contrast'),
+                                           lambda: self.user_settings.get_optional_int('contrast'),
                                            self.change_contrast_manual,
                                            self.change_contrast_automatic),
         ]
@@ -96,7 +96,7 @@ class DisplayImageTunerPlugin(BaseWidget):
     @Slot()
     def _tick(self) -> None:
         for axis in ('brightness', 'contrast'):
-            if self.user_settings.get(axis) is not None:
+            if self.user_settings.get_optional_int(axis) is not None:
                 continue
             target = self._auto_target(axis)
             new_value = max(0, min(100, int(round(target))))
@@ -105,17 +105,12 @@ class DisplayImageTunerPlugin(BaseWidget):
                 getattr(self, f'{axis}_changed').emit(new_value)
 
     def _auto_target(self, axis: str) -> float:
-        try:
-            night = float(self.user_settings.get(f'{axis}_night_level'))
-            day = float(self.user_settings.get(f'{axis}_day_level'))
-            sunrise_offset = float(self.user_settings.get('auto_sunrise_offset_minutes'))
-            sunset_offset = float(self.user_settings.get('auto_sunset_offset_minutes'))
-            duration = float(self.user_settings.get('auto_ramp_duration_minutes'))
-            smoothness = float(self.user_settings.get('auto_ramp_smoothness'))
-        except (TypeError, ValueError):
-            night, day = 0.0, 100.0
-            sunrise_offset, sunset_offset = 0.0, 0.0
-            duration, smoothness = 60.0, 0.0
+        night = self.user_settings.get_float(f'{axis}_night_level', 0.0)
+        day = self.user_settings.get_float(f'{axis}_day_level', 100.0)
+        sunrise_offset = self.user_settings.get_float('auto_sunrise_offset_minutes', 0.0)
+        sunset_offset = self.user_settings.get_float('auto_sunset_offset_minutes', 0.0)
+        duration = self.user_settings.get_float('auto_ramp_duration_minutes', 60.0)
+        smoothness = self.user_settings.get_float('auto_ramp_smoothness', 0.0)
 
         sunrise_h, sunset_h = self._sun_events_for_today()
         _, _, tz = self.sun_strength_plugin.resolve_location()

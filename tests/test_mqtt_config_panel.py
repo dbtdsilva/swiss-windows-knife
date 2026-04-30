@@ -18,11 +18,11 @@ def test_apply_persists_all_fields(panel, fake_user_settings):
     panel.device_name_field.setText("PC")
 
     assert panel.apply() is True
-    assert fake_user_settings.get('homeassistant_username') == "user1"
-    assert fake_user_settings.get('homeassistant_password') == "secret"
-    assert fake_user_settings.get('homeassistant_host') == "broker.example.com"
-    assert fake_user_settings.get('homeassistant_port') == 1883
-    assert fake_user_settings.get('homeassistant_client_id') == "client-x"
+    assert fake_user_settings.get_optional_str('homeassistant_username') == "user1"
+    assert fake_user_settings.get_optional_str('homeassistant_password') == "secret"
+    assert fake_user_settings.get_optional_str('homeassistant_host') == "broker.example.com"
+    assert fake_user_settings.get_optional_int('homeassistant_port') == 1883
+    assert fake_user_settings.get_optional_str('homeassistant_client_id') == "client-x"
 
 
 def test_init_loads_existing_values(qtbot, fake_user_settings):
@@ -66,7 +66,7 @@ def test_apply_coerces_port_to_int(qtbot, fake_user_settings, silent_messagebox)
     panel.client_id_field.setText("cid")
     panel.device_name_field.setText("PC One")
     assert panel.apply() is True
-    assert fake_user_settings.get("homeassistant_port") == 1883
+    assert fake_user_settings.get_optional_int("homeassistant_port") == 1883
 
 
 def test_apply_rejects_non_numeric_port(qtbot, fake_user_settings, silent_messagebox):
@@ -119,5 +119,5 @@ def test_apply_persists_entity_publish_and_interval(qtbot, fake_user_settings, s
     row.publish_checkbox.setChecked(False)
     row.interval_field.setText("90")
     assert panel.apply() is True
-    assert fake_user_settings.get("homeassistant_publish_cpu_usage") is False
-    assert fake_user_settings.get("homeassistant_interval_cpu_usage") == 90
+    assert fake_user_settings.get_bool("homeassistant_publish_cpu_usage", default=True) is False
+    assert fake_user_settings.get_optional_int("homeassistant_interval_cpu_usage") == 90

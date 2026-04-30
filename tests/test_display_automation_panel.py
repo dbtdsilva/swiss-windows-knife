@@ -41,7 +41,7 @@ def test_panel_with_no_monitors_or_devices_apply_is_noop(make_panel, fake_user_s
     panel = make_panel(monitors=[], usb_devices=[])
     assert panel.apply() is True
     # No settings should be written when there is nothing to choose from.
-    assert fake_user_settings.get('display_usb_watcher') is None
+    assert fake_user_settings.get_optional_str('display_usb_watcher') is None
 
 
 def test_panel_renders_usb_devices_and_persists_selection(make_panel, fake_user_settings):
@@ -57,7 +57,7 @@ def test_panel_renders_usb_devices_and_persists_selection(make_panel, fake_user_
 
     panel._usb_combo.setCurrentIndex(2)  # Select "Mouse"
     assert panel.apply() is True
-    assert fake_user_settings.get('display_usb_watcher') == "USB\\VID_9999&PID_1111\\BBB"
+    assert fake_user_settings.get_optional_str('display_usb_watcher') == "USB\\VID_9999&PID_1111\\BBB"
 
 
 def test_panel_preselects_existing_usb_watcher(make_panel, fake_user_settings):
@@ -79,7 +79,7 @@ def test_panel_apply_with_none_clears_usb_watcher(make_panel, fake_user_settings
     panel._usb_combo.setCurrentIndex(0)  # "(none)"
 
     assert panel.apply() is True
-    assert fake_user_settings.get('display_usb_watcher') is None
+    assert fake_user_settings.get_optional_str('display_usb_watcher') is None
 
 
 def test_panel_renders_per_monitor_input_choices_and_persists(make_panel, fake_user_settings):
@@ -111,10 +111,10 @@ def test_panel_renders_per_monitor_input_choices_and_persists(make_panel, fake_u
     a["disconnect_combo"].setCurrentIndex(1)  # "DP1" on disconnect
 
     assert panel.apply() is True
-    assert fake_user_settings.get('display_on_connect_MON-A-DEVID') == "HDMI1"
-    assert fake_user_settings.get('display_on_disconnect_MON-A-DEVID') == "DP1"
+    assert fake_user_settings.get_optional_str('display_on_connect_MON-A-DEVID') == "HDMI1"
+    assert fake_user_settings.get_optional_str('display_on_disconnect_MON-A-DEVID') == "DP1"
     # Untouched monitor keeps its "(unchanged)" sentinel — no key written.
-    assert fake_user_settings.get('display_on_connect_MON-B-DEVID') is None
+    assert fake_user_settings.get_optional_str('display_on_connect_MON-B-DEVID') is None
 
 
 def test_panel_populates_when_discovery_completes_async(qtbot, fake_user_settings, silent_messagebox):

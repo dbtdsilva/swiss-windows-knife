@@ -242,23 +242,23 @@ class _AxisControls:
         self.mode = QComboBox()
         self.mode.addItems(["Auto", "Fixed"])
 
-        current = settings.get(axis)
+        current = settings.get_optional_int(axis)
         is_fixed = current is not None
         self.mode.setCurrentIndex(1 if is_fixed else 0)
 
         self.fixed = QSlider(Qt.Orientation.Horizontal)
         self.fixed.setRange(0, 100)
-        self.fixed.setValue(int(current) if is_fixed else 50)
+        self.fixed.setValue(current if is_fixed else 50)
         self.fixed_label = _make_value_label(str(self.fixed.value()), "100")
 
         self.night = QSlider(Qt.Orientation.Horizontal)
         self.night.setRange(0, 100)
-        self.night.setValue(self._read_int(f'{axis}_night_level', 0))
+        self.night.setValue(settings.get_int(f'{axis}_night_level', 0))
         self.night_label = _make_value_label(str(self.night.value()), "100")
 
         self.day = QSlider(Qt.Orientation.Horizontal)
         self.day.setRange(0, 100)
-        self.day.setValue(self._read_int(f'{axis}_day_level', 100))
+        self.day.setValue(settings.get_int(f'{axis}_day_level', 100))
         self.day_label = _make_value_label(str(self.day.value()), "100")
 
         self.fixed.valueChanged.connect(lambda v: self.fixed_label.setText(str(v)))
@@ -310,12 +310,6 @@ class _AxisControls:
         row.addWidget(label)
         return row
 
-    def _read_int(self, key: str, default: int) -> int:
-        try:
-            return int(self._settings.get(key))
-        except (TypeError, ValueError):
-            return default
-
 
 class DisplayTuningConfigPanel(ConfigPanel):
 
@@ -330,26 +324,26 @@ class DisplayTuningConfigPanel(ConfigPanel):
 
         self._sunrise_offset = QSlider(Qt.Orientation.Horizontal)
         self._sunrise_offset.setRange(RAMP_OFFSET_RANGE_MIN, RAMP_OFFSET_RANGE_MAX)
-        self._sunrise_offset.setValue(self._read_int('auto_sunrise_offset_minutes', 0))
+        self._sunrise_offset.setValue(self._user_settings.get_int('auto_sunrise_offset_minutes', 0))
         self._sunrise_offset_label = _make_value_label(
             self._format_minutes(self._sunrise_offset.value()), "+120 min")
 
         self._sunset_offset = QSlider(Qt.Orientation.Horizontal)
         self._sunset_offset.setRange(RAMP_OFFSET_RANGE_MIN, RAMP_OFFSET_RANGE_MAX)
-        self._sunset_offset.setValue(self._read_int('auto_sunset_offset_minutes', 0))
+        self._sunset_offset.setValue(self._user_settings.get_int('auto_sunset_offset_minutes', 0))
         self._sunset_offset_label = _make_value_label(
             self._format_minutes(self._sunset_offset.value()), "+120 min")
 
         self._ramp_duration = QSlider(Qt.Orientation.Horizontal)
         self._ramp_duration.setRange(0, RAMP_DURATION_RANGE_MAX)
-        self._ramp_duration.setValue(self._read_int('auto_ramp_duration_minutes', 60))
+        self._ramp_duration.setValue(self._user_settings.get_int('auto_ramp_duration_minutes', 60))
         self._ramp_duration_label = _make_value_label(
             self._format_minutes(self._ramp_duration.value()), "+120 min")
 
         self._ramp_smoothness = QSlider(Qt.Orientation.Horizontal)
         self._ramp_smoothness.setRange(0, SMOOTHNESS_SLIDER_RANGE)
         self._ramp_smoothness.setValue(slider_from_smoothness(
-            self._read_float('auto_ramp_smoothness', 0.0)
+            self._user_settings.get_float('auto_ramp_smoothness', 0.0)
         ))
         self._ramp_smoothness_label = _make_value_label(
             self._format_smoothness(self._ramp_smoothness.value()), "ease-out -0.50")
@@ -408,25 +402,15 @@ class DisplayTuningConfigPanel(ConfigPanel):
         row.addWidget(label)
         return row
 
-    def _read_int(self, key: str, default: int) -> int:
-        try:
-            return int(self._user_settings.get(key))
-        except (TypeError, ValueError):
-            return default
-
-    def _read_float(self, key: str, default: float) -> float:
-        try:
-            return float(self._user_settings.get(key))
-        except (TypeError, ValueError):
-            return default
-
     def _resolve_location(self) -> tuple[float, float, pytz.tzinfo.BaseTzInfo]:
+        latitude = self._user_settings.get_optional_float('sun_latitude')
+        longitude = self._user_settings.get_optional_float('sun_longitude')
+        timezone_name = self._user_settings.get_str('sun_timezone', DEFAULT_TIMEZONE)
+        if latitude is None or longitude is None:
+            return DEFAULT_LATITUDE, DEFAULT_LONGITUDE, pytz.timezone(DEFAULT_TIMEZONE)
         try:
-            latitude = float(self._user_settings.get('sun_latitude'))
-            longitude = float(self._user_settings.get('sun_longitude'))
-            timezone = pytz.timezone(str(self._user_settings.get('sun_timezone')))
-            return latitude, longitude, timezone
-        except (TypeError, ValueError, pytz.UnknownTimeZoneError):
+            return latitude, longitude, pytz.timezone(timezone_name)
+        except pytz.UnknownTimeZoneError:
             return DEFAULT_LATITUDE, DEFAULT_LONGITUDE, pytz.timezone(DEFAULT_TIMEZONE)
 
     def _format_day(self, day_of_year: int) -> str:

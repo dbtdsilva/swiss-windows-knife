@@ -74,7 +74,7 @@ def test_enabled_state_persists_via_user_settings(qtbot, fake_user_settings):
 
     w1.set_enabled(False)
     assert w1.is_enabled() is False
-    assert fake_user_settings.get('plugin_enabled__Persisted') is False
+    assert fake_user_settings.get_bool('plugin_enabled__Persisted', default=True) is False
 
     # New instance picks up the persisted value.
     w2 = _Persisted(None)

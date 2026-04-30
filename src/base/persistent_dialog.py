@@ -38,11 +38,8 @@ class PersistentSizeDialog(QDialog):
         if not self.size_settings_prefix:
             self.resize(default)
             return
-        try:
-            saved_w = int(self._user_settings.get(f'{self.size_settings_prefix}_width'))
-            saved_h = int(self._user_settings.get(f'{self.size_settings_prefix}_height'))
-        except (TypeError, ValueError):
-            saved_w, saved_h = 0, 0
+        saved_w = self._user_settings.get_int(f'{self.size_settings_prefix}_width', 0)
+        saved_h = self._user_settings.get_int(f'{self.size_settings_prefix}_height', 0)
         if saved_w > 0 and saved_h > 0:
             self.resize(saved_w, saved_h)
         else:

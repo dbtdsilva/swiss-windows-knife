@@ -29,13 +29,12 @@ class SunLocationConfigPanel(ConfigPanel):
             self._user_settings.has_key('sun_latitude')
             and self._user_settings.has_key('sun_longitude')
         )
-        try:
-            latitude = float(self._user_settings.get('sun_latitude'))  # type: ignore[arg-type]
-            longitude = float(self._user_settings.get('sun_longitude'))  # type: ignore[arg-type]
-        except (TypeError, ValueError):
+        latitude = self._user_settings.get_optional_float('sun_latitude')
+        longitude = self._user_settings.get_optional_float('sun_longitude')
+        if latitude is None or longitude is None:
             latitude, longitude = DEFAULT_LATITUDE, DEFAULT_LONGITUDE
             has_saved_location = False
-        timezone = str(self._user_settings.get('sun_timezone') or DEFAULT_TIMEZONE)
+        timezone = self._user_settings.get_str('sun_timezone', DEFAULT_TIMEZONE)
 
         # If the user has previously saved a location, open zoomed in so
         # they can see the placed marker in context. Otherwise show a

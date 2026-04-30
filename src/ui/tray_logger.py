@@ -41,7 +41,7 @@ class TrayLogger(PersistentSizeDialog):
         if not self.user_settings.has_key('logging_level'):
             self.user_settings.set('logging_level', 'INFO')
 
-        default_logging_level = str(self.user_settings.get('logging_level'))
+        default_logging_level = self.user_settings.get_str('logging_level', 'INFO')
         self.level_selector = QComboBox()
         self.level_selector.addItems(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
         self.level_selector.setCurrentText(default_logging_level)

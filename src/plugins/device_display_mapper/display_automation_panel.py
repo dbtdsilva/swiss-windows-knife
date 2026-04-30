@@ -87,10 +87,10 @@ class DisplayAutomationConfigPanel(ConfigPanel):
         for entry in inputs:
             combo.addItem(str(entry), userData=entry)
 
-        current = self._user_settings.get(key_prefix + device_id)
+        current = self._user_settings.get_optional_str(key_prefix + device_id)
         if current is not None:
             for i in range(combo.count()):
-                if str(combo.itemData(i)) == str(current):
+                if str(combo.itemData(i)) == current:
                     combo.setCurrentIndex(i)
                     break
         return combo
@@ -105,7 +105,7 @@ class DisplayAutomationConfigPanel(ConfigPanel):
             label = f"{device.name} ({device.id})"
             combo.addItem(label, userData=device.id)
 
-        current = self._user_settings.get(USB_WATCHER_KEY)
+        current = self._user_settings.get_optional_str(USB_WATCHER_KEY)
         if current is not None:
             for i in range(combo.count()):
                 if combo.itemData(i) == current:

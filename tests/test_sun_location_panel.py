@@ -25,9 +25,9 @@ def test_apply_persists_picked_coordinates_and_timezone(panel, fake_user_setting
     p.picker._on_coordinates_picked(48.8566, 2.3522)  # Paris
 
     assert p.apply() is True
-    assert fake_user_settings.get('sun_latitude') == pytest.approx(48.8566)
-    assert fake_user_settings.get('sun_longitude') == pytest.approx(2.3522)
-    assert fake_user_settings.get('sun_timezone') == "Europe/Paris"
+    assert fake_user_settings.get_optional_float('sun_latitude') == pytest.approx(48.8566)
+    assert fake_user_settings.get_optional_float('sun_longitude') == pytest.approx(2.3522)
+    assert fake_user_settings.get_optional_str('sun_timezone') == "Europe/Paris"
     assert sun.recalc_count == 1
 
 
@@ -42,7 +42,7 @@ def test_apply_rejects_when_timezone_cannot_be_resolved(panel, fake_user_setting
 
     assert p.apply() is False
     assert sun.recalc_count == 0
-    assert fake_user_settings.get('sun_timezone') is None
+    assert fake_user_settings.get_optional_str('sun_timezone') is None
 
 
 def test_init_seeds_defaults_when_settings_empty(panel):

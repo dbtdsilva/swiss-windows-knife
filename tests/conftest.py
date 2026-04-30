@@ -34,14 +34,44 @@ class _FakeUserSettings:
     def __init__(self) -> None:
         self._data: dict = {}
 
-    def get(self, key):
-        return self._data.get(key)
-
     def has_key(self, key) -> bool:
         return key in self._data
 
     def set(self, key, value) -> None:
         self._data[key] = value
+
+    def get_bool(self, key, default):
+        from src.base.user_settings import _coerce_bool
+        return _coerce_bool(self._data.get(key), default)
+
+    def get_int(self, key, default):
+        from src.base.user_settings import _coerce_optional_int
+        out = _coerce_optional_int(self._data.get(key))
+        return default if out is None else out
+
+    def get_optional_int(self, key):
+        from src.base.user_settings import _coerce_optional_int
+        return _coerce_optional_int(self._data.get(key))
+
+    def get_float(self, key, default):
+        from src.base.user_settings import _coerce_optional_float
+        out = _coerce_optional_float(self._data.get(key))
+        return default if out is None else out
+
+    def get_optional_float(self, key):
+        from src.base.user_settings import _coerce_optional_float
+        return _coerce_optional_float(self._data.get(key))
+
+    def get_str(self, key, default=""):
+        value = self._data.get(key)
+        return default if value is None else str(value)
+
+    def get_optional_str(self, key):
+        value = self._data.get(key)
+        if value is None:
+            return None
+        text = str(value)
+        return text if text != "" else None
 
 
 @pytest.fixture
