@@ -58,6 +58,7 @@ class BaseWidget(QWidget):
         UserSettings.instance().set(_settings_key(self.__class__), enabled)
         logging.info(f'Plugin {self.__class__.__name__} is enabled: {enabled}')
         self.status_changed(enabled)
+        self.health_changed.emit()
 
     def is_enabled(self) -> bool:
         return self._is_enabled
