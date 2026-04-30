@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QMenu, QWidget
 
 from ...base.base_widget import BaseWidget
 from ...base.config_panel import ConfigPanel
+from ...base.health import HealthState
 from ...base.user_settings import UserSettings
 from .commands import build_command_registry
 from .device_context import DeviceContext
@@ -34,7 +35,10 @@ class HomeAssistantMqttPubPlugin(BaseWidget):
         cfg = MqttConfig.load_from_settings(self._user_settings)
         self.is_homeassistant_configured = cfg.is_complete()
         if self.is_homeassistant_configured:
+            self._set_health(HealthState.WARNING, "Connecting…")
             self._start_session(cfg)
+        else:
+            self._set_health(HealthState.WARNING, "Not configured")
 
     def _start_session(self, cfg: MqttConfig) -> None:
         ctx = DeviceContext(name=str(cfg.device_name))
@@ -55,10 +59,14 @@ class HomeAssistantMqttPubPlugin(BaseWidget):
                 lambda payload, c=command: c.run(),
             )
         self._session.on_connected = self._dispatch_on_connected
+        self._session.on_disconnected = self._dispatch_on_disconnected
         self._session.start()
 
     def _dispatch_on_connected(self) -> None:
         QMetaObject.invokeMethod(self, "_run_on_connected", Qt.ConnectionType.QueuedConnection)
+
+    def _dispatch_on_disconnected(self) -> None:
+        QMetaObject.invokeMethod(self, "_run_on_disconnected", Qt.ConnectionType.QueuedConnection)
 
     def _dispatch_ha_status(self, payload: str) -> None:
         QMetaObject.invokeMethod(
@@ -68,8 +76,13 @@ class HomeAssistantMqttPubPlugin(BaseWidget):
 
     @Slot()
     def _run_on_connected(self) -> None:
+        self._set_health(HealthState.OK, "Connected")
         if self._publisher is not None:
             self._publisher.on_connected()
+
+    @Slot()
+    def _run_on_disconnected(self) -> None:
+        self._set_health(HealthState.WARNING, "Disconnected")
 
     @Slot(str)
     def _run_on_ha_status(self, payload: str) -> None:
@@ -80,6 +93,7 @@ class HomeAssistantMqttPubPlugin(BaseWidget):
     def status_changed(self, status: bool) -> None:
         if status and self._session is None and self.is_homeassistant_configured:
             cfg = MqttConfig.load_from_settings(self._user_settings)
+            self._set_health(HealthState.WARNING, "Connecting…")
             self._start_session(cfg)
         elif not status and self._publisher is not None and self._session is not None:
             try:
@@ -92,11 +106,7 @@ class HomeAssistantMqttPubPlugin(BaseWidget):
 
     @override
     def retrieve_menus(self) -> list[QMenu | QAction]:
-        menu = QMenu("Home Assistant", self)
-        configured = QAction("Configured" if self.is_homeassistant_configured else "Not configured", self)
-        configured.setEnabled(False)
-        menu.addAction(configured)
-        return [menu]
+        return []
 
     @override
     def retrieve_config_panels(self) -> list[ConfigPanel]:
@@ -114,7 +124,10 @@ class HomeAssistantMqttPubPlugin(BaseWidget):
         cfg = MqttConfig.load_from_settings(self._user_settings)
         self.is_homeassistant_configured = cfg.is_complete()
         if self.is_homeassistant_configured and self.is_enabled():
+            self._set_health(HealthState.WARNING, "Connecting…")
             self._start_session(cfg)
+        elif not self.is_homeassistant_configured:
+            self._set_health(HealthState.WARNING, "Not configured")
 
     def closeEvent(self, event):
         if self._publisher is not None:
