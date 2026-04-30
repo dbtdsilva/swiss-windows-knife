@@ -30,24 +30,7 @@ class DisplayImageTunerPlugin(BaseWidget):
         super().__init__(parent)
 
         self.user_settings = UserSettings.instance()
-        if not self.user_settings.has_key('brightness'):
-            self.user_settings.set('brightness', None)
-        if not self.user_settings.has_key('contrast'):
-            self.user_settings.set('contrast', 90)
-
-        for axis in ('brightness', 'contrast'):
-            if not self.user_settings.has_key(f'{axis}_night_level'):
-                self.user_settings.set(f'{axis}_night_level', 0)
-            if not self.user_settings.has_key(f'{axis}_day_level'):
-                self.user_settings.set(f'{axis}_day_level', 100)
-        if not self.user_settings.has_key('auto_sunrise_offset_minutes'):
-            self.user_settings.set('auto_sunrise_offset_minutes', 0)
-        if not self.user_settings.has_key('auto_sunset_offset_minutes'):
-            self.user_settings.set('auto_sunset_offset_minutes', 0)
-        if not self.user_settings.has_key('auto_ramp_duration_minutes'):
-            self.user_settings.set('auto_ramp_duration_minutes', 60)
-        if not self.user_settings.has_key('auto_ramp_smoothness'):
-            self.user_settings.set('auto_ramp_smoothness', 0.0)
+        self._seed_default_settings()
 
         logging.info(f"Starting with the 'brightness' set to {self.user_settings.get('brightness')}")
         logging.info(f"Starting with the 'contrast' set to {self.user_settings.get('contrast')}")
@@ -63,7 +46,25 @@ class DisplayImageTunerPlugin(BaseWidget):
 
         self._tick_timer = QTimer(self)
         self._tick_timer.timeout.connect(self._tick)
-        self._tick_timer.start(TICK_MS)
+        if self.is_enabled():
+            self._tick_timer.start(TICK_MS)
+
+    def _seed_default_settings(self) -> None:
+        defaults: dict[str, object] = {
+            'brightness': None,
+            'contrast': 90,
+            'brightness_night_level': 0,
+            'brightness_day_level': 100,
+            'contrast_night_level': 0,
+            'contrast_day_level': 100,
+            'auto_sunrise_offset_minutes': 0,
+            'auto_sunset_offset_minutes': 0,
+            'auto_ramp_duration_minutes': 60,
+            'auto_ramp_smoothness': 0.0,
+        }
+        for key, value in defaults.items():
+            if not self.user_settings.has_key(key):
+                self.user_settings.set(key, value)
 
     def retrieve_menus(self) -> list[QMenu | QAction]:
         return [
@@ -204,6 +205,13 @@ class DisplayImageTunerPlugin(BaseWidget):
         self.user_settings.set('contrast', contrast_level)
         self._last_emitted['contrast'] = contrast_level
         self.contrast_changed.emit(contrast_level)
+
+    def status_changed(self, status: bool) -> None:
+        if status:
+            if not self._tick_timer.isActive():
+                self._tick_timer.start(TICK_MS)
+        else:
+            self._tick_timer.stop()
 
     def closeEvent(self, event):
         self._tick_timer.stop()
