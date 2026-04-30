@@ -28,6 +28,7 @@ class MqttSession:
         self._client.on_message = self._on_message
 
         self.on_connected: Callable[[], None] | None = None
+        self.on_disconnected: Callable[[], None] | None = None
 
     def subscribe(self, topic: str, handler: Callable[[str], None]) -> None:
         """Register a handler for the topic.
@@ -72,6 +73,11 @@ class MqttSession:
 
     def _on_disconnect(self, client, userdata, flags, rc, properties):
         logging.info("MQTT disconnected rc=%s", rc)
+        if self.on_disconnected is not None:
+            try:
+                self.on_disconnected()
+            except Exception:
+                logging.exception("on_disconnected hook raised")
 
     def _on_message(self, client, userdata, msg):
         handler = self._handlers.get(msg.topic)

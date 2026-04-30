@@ -99,6 +99,11 @@ class _FakePahoClient:
         m.timestamp = 0
         self.on_message(self, None, m)
 
+    def fire_on_disconnect(self, rc=0):
+        self.connected = False
+        if self.on_disconnect is not None:
+            self.on_disconnect(self, None, None, rc, None)
+
 
 @pytest.fixture
 def fake_paho_client(monkeypatch):
