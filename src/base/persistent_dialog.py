@@ -1,4 +1,4 @@
-from PySide6.QtCore import QSize
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import QDialog, QWidget
 
 from .user_settings import UserSettings
@@ -20,6 +20,19 @@ class PersistentSizeDialog(QDialog):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._user_settings = UserSettings.instance()
+        # Promote from Qt.Dialog (no taskbar entry on Windows) to Qt.Window
+        # so this dialog gets its own taskbar button + the app icon while
+        # the tray's hidden TrayWidget would otherwise leave it iconless.
+        # Set flags explicitly because Qt.Dialog has the Qt.Window bit
+        # baked in — toggling the Dialog bit alone strips Window too.
+        self.setWindowFlags(
+            Qt.WindowType.Window
+            | Qt.WindowType.WindowTitleHint
+            | Qt.WindowType.WindowSystemMenuHint
+            | Qt.WindowType.WindowCloseButtonHint
+            | Qt.WindowType.WindowMinimizeButtonHint
+            | Qt.WindowType.WindowMaximizeButtonHint
+        )
 
     def restore_size(self, default: QSize) -> None:
         if not self.size_settings_prefix:

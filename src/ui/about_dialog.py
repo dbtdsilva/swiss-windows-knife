@@ -1,7 +1,6 @@
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
-    QDialog,
     QDialogButtonBox,
     QLabel,
     QVBoxLayout,
@@ -9,9 +8,13 @@ from PySide6.QtWidgets import (
 )
 
 from ..app_info import APP_INFO
+from ..base.persistent_dialog import PersistentSizeDialog
 
 
-class AboutDialog(QDialog):
+class AboutDialog(PersistentSizeDialog):
+
+    size_settings_prefix = "about_dialog"
+
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle(f'About {APP_INFO.APP_NAME}')
@@ -44,3 +47,6 @@ class AboutDialog(QDialog):
         layout.addWidget(icon_label)
         layout.addWidget(info_label)
         layout.addWidget(button_box)
+
+        self.adjustSize()
+        self.restore_size(self.size())
