@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QMenu, QWidget
 from ...base.base_widget import BaseWidget
 from ...base.cancellation import Token
 from ...base.config_panel import ConfigPanel
+from ...base.health import HealthState
 from ...base.monitor_runner import runner
 from ...base.user_settings import UserSettings
 from .device_listener import Device, DeviceListener, DeviceNotificationType
@@ -49,7 +50,12 @@ class DeviceDisplayMapperPlugin(BaseWidget):
     def _start_runtime(self) -> None:
         """Spin up the USB watcher and warm caches. Idempotent."""
         if self.device_listener is None:
-            self.device_listener = DeviceListener(self)
+            try:
+                self.device_listener = DeviceListener(self)
+            except Exception as e:
+                logging.exception("Failed to start device listener")
+                self._set_health(HealthState.ERROR, str(e))
+                return
             self.device_listener.change_detected.connect(self.device_changed)
         # Pre-warm both caches in the background so the first time the user
         # opens Configuration the panel populates instantly. Both calls
@@ -58,6 +64,7 @@ class DeviceDisplayMapperPlugin(BaseWidget):
         # cache. No-op callback because no live receiver is interested yet.
         runner().submit(self._prewarm_monitor_cache)
         self.request_usb_devices(lambda _devices: None)
+        self._set_health(HealthState.OK, "Listening")
 
     def _stop_runtime(self) -> None:
         """Tear down the USB watcher. Pre-warmed caches stay (harmless)."""
