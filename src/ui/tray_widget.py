@@ -1,3 +1,4 @@
+import logging
 import sys
 
 from PySide6.QtCore import QCoreApplication, QObject, Slot
@@ -7,13 +8,31 @@ from PySide6.QtWidgets import QMenu, QMessageBox, QSystemTrayIcon, QWidget
 from .. import resources  # noqa: F401,E261
 from ..app_info import APP_INFO
 from ..base.base_widget import BaseWidget
+from ..base.health import HealthReport, HealthState
 from ..components.update_checker import UpdateChecker
 from ..plugins.device_display_mapper.device_display_mapper_plugin import DeviceDisplayMapperPlugin
 from ..plugins.display_image_tuner.image_tuner_plugin import DisplayImageTunerPlugin
 from ..plugins.home_assistant_mqtt_pub.home_assistant_mqtt_pub_plugin import HomeAssistantMqttPubPlugin
 from .about_dialog import AboutDialog
 from .configuration_dialog import ConfigurationDialog
+from .health_icons import icon_for_state
 from .tray_logger import TrayLogger
+
+
+def aggregate_health(reports: list[HealthReport]) -> tuple[HealthState, str]:
+    """Compute (worst-state, summary-text) for the tray top line.
+
+    Reports in DISABLED state are ignored entirely. When no plugins are
+    in WARNING or ERROR, the summary is "Health: All OK"; otherwise it's
+    "Health: N warning(s), M error(s)".
+    """
+    n_warning = sum(1 for r in reports if r.state is HealthState.WARNING)
+    n_error = sum(1 for r in reports if r.state is HealthState.ERROR)
+    if n_error > 0:
+        return HealthState.ERROR, f"Health: {n_warning} warning(s), {n_error} error(s)"
+    if n_warning > 0:
+        return HealthState.WARNING, f"Health: {n_warning} warning(s), {n_error} error(s)"
+    return HealthState.OK, "Health: All OK"
 
 
 class TrayWidget(QWidget):
@@ -57,7 +76,30 @@ class TrayWidget(QWidget):
     def _populate_main_menu(self, menu: QMenu) -> None:
         menu.clear()
 
+        reports: list[tuple[BaseWidget, HealthReport]] = []
         for plugin in self.child_components:
+            try:
+                reports.append((plugin, plugin.health()))
+            except Exception:
+                logging.exception("plugin %s health() raised", plugin.__class__.__name__)
+                reports.append((plugin, HealthReport(HealthState.WARNING, "health() failed")))
+
+        worst_state, summary_text = aggregate_health([r for _, r in reports])
+        summary_action = QAction(summary_text, self)
+        summary_action.setIcon(icon_for_state(worst_state))
+        summary_action.setEnabled(False)
+        menu.addAction(summary_action)
+
+        health_submenu = QMenu("Health", menu)
+        for plugin, report in reports:
+            row = QAction(f"{plugin.get_display_name()} — {report.message}", self)
+            row.setIcon(icon_for_state(report.state))
+            row.setEnabled(False)
+            health_submenu.addAction(row)
+        menu.addMenu(health_submenu)
+        menu.addSeparator()
+
+        for plugin, _ in reports:
             if plugin.is_toggleable() and not plugin.is_enabled():
                 continue
             for action in plugin.retrieve_menus():
