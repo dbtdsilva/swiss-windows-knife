@@ -80,28 +80,39 @@ class ConfigurationDialog(PersistentSizeDialog):
         scroll.setWidget(panel)
         return scroll
 
-    def _insert_plugin_panel(self, plugin, panel: ConfigPanel) -> None:
-        if panel in self._tab_index:
-            return
-        index = self._tabs.addTab(
-            self._wrap_in_scroll(panel),
-            panel.title or panel.__class__.__name__,
-        )
-        self._tab_index[panel] = index
+    def _tab_title(self, panel: ConfigPanel) -> str:
+        return panel.title or panel.__class__.__name__
 
-    def _remove_plugin_panel(self, panel: ConfigPanel) -> None:
-        index = self._tab_index.pop(panel, None)
-        if index is None:
-            return
-        # Removing a tab shifts indices of later tabs; rebuild the map by
-        # rescanning what's still in the QTabWidget.
-        self._tabs.removeTab(index)
+    def _alphabetical_insert_index(self, title: str) -> int:
+        """First tab index (>= 1, since Plugins is pinned at 0) whose title
+        sorts after `title`. Returns `count()` if `title` belongs at the end."""
+        for i in range(1, self._tabs.count()):
+            if self._tabs.tabText(i).lower() > title.lower():
+                return i
+        return self._tabs.count()
+
+    def _rebuild_tab_index(self) -> None:
         self._tab_index.clear()
         for i in range(self._tabs.count()):
             scroll = self._tabs.widget(i)
             inner = scroll.widget() if isinstance(scroll, QScrollArea) else scroll
             if isinstance(inner, ConfigPanel) and inner is not self._plugins_panel:
                 self._tab_index[inner] = i
+
+    def _insert_plugin_panel(self, plugin, panel: ConfigPanel) -> None:
+        if panel in self._tab_index:
+            return
+        title = self._tab_title(panel)
+        insert_at = self._alphabetical_insert_index(title)
+        self._tabs.insertTab(insert_at, self._wrap_in_scroll(panel), title)
+        self._rebuild_tab_index()
+
+    def _remove_plugin_panel(self, panel: ConfigPanel) -> None:
+        index = self._tab_index.pop(panel, None)
+        if index is None:
+            return
+        self._tabs.removeTab(index)
+        self._rebuild_tab_index()
 
     def _on_plugin_toggled(self, plugin, enabled: bool) -> None:
         panels = self._panels_by_plugin.get(plugin, [])

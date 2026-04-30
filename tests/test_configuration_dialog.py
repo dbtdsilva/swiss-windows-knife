@@ -98,6 +98,28 @@ def test_disabling_via_plugins_panel_removes_tab(make_dialog):
     assert "EPanel" not in titles
 
 
+def test_per_plugin_tabs_render_in_alphabetical_order(make_dialog):
+    p1 = _FakePlugin("Whatever", True, [_NamedPanel("Zeta")])
+    p2 = _FakePlugin("Whatever", True, [_NamedPanel("Alpha"), _NamedPanel("Mu")])
+    dlg = make_dialog([p1, p2])
+    titles = [dlg._tabs.tabText(i) for i in range(dlg._tabs.count())]
+    assert titles == ["Plugins", "Alpha", "Mu", "Zeta"]
+
+
+def test_enabling_inserts_tab_at_alphabetical_position(make_dialog):
+    enabled = _FakePlugin("E", True, [_NamedPanel("Beta"), _NamedPanel("Yankee")])
+    disabled = _FakePlugin("D", False, [_NamedPanel("Mike")])
+    dlg = make_dialog([enabled, disabled])
+    assert [dlg._tabs.tabText(i) for i in range(dlg._tabs.count())] == [
+        "Plugins", "Beta", "Yankee",
+    ]
+
+    dlg._plugins_panel._checkboxes[disabled].setChecked(True)
+    assert [dlg._tabs.tabText(i) for i in range(dlg._tabs.count())] == [
+        "Plugins", "Beta", "Mike", "Yankee",
+    ]
+
+
 def test_apply_runs_per_plugin_panels_before_plugins_panel(make_dialog):
     enabled = _FakePlugin("E", True, [_NamedPanel("EPanel")])
     dlg = make_dialog([enabled])

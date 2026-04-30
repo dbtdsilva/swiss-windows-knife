@@ -1,7 +1,7 @@
 import sys
 
 from PySide6.QtCore import QCoreApplication, QObject, Slot
-from PySide6.QtGui import QAction, QActionGroup, QIcon
+from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QMenu, QMessageBox, QSystemTrayIcon, QWidget
 
 from .. import resources  # noqa: F401,E261
@@ -49,49 +49,22 @@ class TrayWidget(QWidget):
         self._tray_icon.setIcon(QIcon(":/icons/coat-of-arms.ico"))
         self._tray_icon.show()
 
-    def createMenu(self, menu) -> QMenu:
-        tray_icon_menu = QMenu(self)
-        group = QActionGroup(self)
-        group.setExclusive(True)
-        for title, trigger, checkable in menu:
-            if title is None:
-                tray_icon_menu.addSeparator()
-            elif type(trigger) is not list:
-                action = QAction(title, self)
-                action.triggered.connect(trigger)
-                action.setCheckable(checkable)
-                group.addAction(action)
-                tray_icon_menu.addAction(action)
-            else:
-                sub_menu = self.createMenu(trigger)
-                sub_menu.setTitle(title)
-                tray_icon_menu.addMenu(sub_menu)
-        return tray_icon_menu
-
-    def createPluginsMenu(self):
-        menu = QMenu('Plugins', self)
-        for child_component in self.child_components:
-            action = QAction(child_component.get_display_name(), self)
-            action.setCheckable(True)
-            action.setChecked(child_component.is_enabled())
-            if child_component.is_toggleable():
-                action.toggled.connect(child_component.set_enabled)
-            else:
-                action.setDisabled(True)
-            menu.addAction(action)
-        return menu
-
     def createMainMenu(self) -> QMenu:
         menu = QMenu(self)
-        menu.addMenu(self.createPluginsMenu())
-        menu.addSeparator()
+        menu.aboutToShow.connect(lambda m=menu: self._populate_main_menu(m))
+        return menu
+
+    def _populate_main_menu(self, menu: QMenu) -> None:
+        menu.clear()
 
         for plugin in self.child_components:
-            for plugin_menu_action in plugin.retrieve_menus():
-                if isinstance(plugin_menu_action, QMenu):
-                    menu.addMenu(plugin_menu_action)
-                elif isinstance(plugin_menu_action, QAction):
-                    menu.addAction(plugin_menu_action)
+            if plugin.is_toggleable() and not plugin.is_enabled():
+                continue
+            for action in plugin.retrieve_menus():
+                if isinstance(action, QMenu):
+                    menu.addMenu(action)
+                elif isinstance(action, QAction):
+                    menu.addAction(action)
         menu.addSeparator()
 
         config_action = QAction('Configuration...', self)
@@ -107,10 +80,10 @@ class TrayWidget(QWidget):
         about_action.triggered.connect(self.open_about_dialog)
         menu.addAction(about_action)
         menu.addSeparator()
+
         quit_action = QAction('Quit', self)
         quit_action.triggered.connect(self.close_slot)
         menu.addAction(quit_action)
-        return menu
 
     @Slot()
     def open_configuration_dialog(self) -> None:
