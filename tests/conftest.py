@@ -1,4 +1,33 @@
+import os
+
 import pytest
+
+
+@pytest.hookimpl(trylast=True)
+def pytest_unconfigure(config):
+    """Side-step a QtWebEngine teardown segfault on Windows + offscreen Qt.
+
+    `LocationPickerWidget` instantiates a `QWebEngineView` whose default
+    profile keeps a reference to the page beyond pytest's own teardown.
+    When the interpreter then unwinds the QtWebEngine globals, the
+    profile's destructor logs `Release of profile requested but
+    WebEnginePage still not deleted` and segfaults — exit code 1 on CI
+    despite every test passing. `pytest_unconfigure` runs after the
+    terminal summary has already been written and flushed, so we can
+    force an immediate exit and skip Qt's interpreter-shutdown unwinding.
+    """
+    import sys
+    sys.stdout.flush()
+    sys.stderr.flush()
+    if getattr(config, "_test_session_exit_status", 0) == 0:
+        os._exit(0)
+
+
+@pytest.hookimpl(trylast=True)
+def pytest_sessionfinish(session, exitstatus):
+    # Stash exitstatus where pytest_unconfigure can read it. We can't call
+    # os._exit here because the terminal summary hasn't been flushed yet.
+    session.config._test_session_exit_status = exitstatus
 
 
 class _FakeUserSettings:
