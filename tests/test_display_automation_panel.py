@@ -117,6 +117,33 @@ def test_panel_renders_per_monitor_input_choices_and_persists(make_panel, fake_u
     assert fake_user_settings.get('display_on_connect_MON-B-DEVID') is None
 
 
+def test_panel_populates_when_discovery_completes_async(qtbot, fake_user_settings, silent_messagebox):
+    """When schedule_discovery defers `_populate`, the panel still shows the
+    placeholder before discovery and the widgets after."""
+    from src.plugins.device_display_mapper.display_automation_panel import (
+        DisplayAutomationConfigPanel,
+    )
+    deferred: list = []
+
+    panel = DisplayAutomationConfigPanel(
+        parent=None,
+        list_monitors=lambda: [],
+        list_usb_devices=lambda: [_FakeDevice(id="X", name="X")],
+        schedule_discovery=lambda fn: deferred.append(fn),
+    )
+    qtbot.addWidget(panel)
+
+    assert panel._placeholder.isHidden() is False  # placeholder visible
+    assert panel._usb_combo is None  # not yet populated
+
+    # Simulate async completion.
+    for fn in deferred:
+        fn()
+
+    assert panel._placeholder.isHidden() is True
+    assert panel._usb_combo is not None
+
+
 def test_panel_preselects_existing_per_monitor_choice(make_panel, fake_user_settings):
     fake_user_settings.set('display_on_connect_MON-A-DEVID', "HDMI1")
     fake_user_settings.set('display_on_disconnect_MON-A-DEVID', "DP1")

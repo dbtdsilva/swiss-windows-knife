@@ -1,10 +1,15 @@
+import logging
 from collections.abc import Callable
 from typing import Any
 
+from PySide6.QtCore import QObject, Qt, QThread, Signal
 from PySide6.QtWidgets import QComboBox, QFormLayout, QGroupBox, QLabel, QVBoxLayout, QWidget
 
 from ...base.config_panel import ConfigPanel
+from ...base.monitor_runner import runner
 from ...base.user_settings import UserSettings
+from .discovery import list_monitors as _list_monitors_default
+from .discovery import list_usb_devices as _list_usb_devices_default
 
 USB_WATCHER_KEY = 'display_usb_watcher'
 ON_CONNECT_KEY_PREFIX = 'display_on_connect_'
@@ -41,8 +46,15 @@ class DisplayAutomationConfigPanel(ConfigPanel):
         self._monitor_groups: dict[str, dict] = {}
         self._usb_combo: QComboBox | None = None
 
-        if list_monitors is not None or list_usb_devices is not None:
-            self._schedule(self._populate)
+        if schedule_discovery is not None:
+            schedule_discovery(self._populate)
+        elif list_monitors is not None or list_usb_devices is not None:
+            # Test path with explicit fakes — populate inline.
+            self._populate()
+        else:
+            # Production: parent must be the plugin so we can reach its
+            # monitor_info_ctx and device_listener.
+            _default_schedule(self, parent)
 
     def _populate(self) -> None:
         self._monitors = list(self._list_monitors()) if self._list_monitors else []
@@ -118,3 +130,83 @@ class DisplayAutomationConfigPanel(ConfigPanel):
                     continue
                 self._user_settings.set(key_prefix + device_id, data)
         return True
+
+
+class _DiscoveryBridge(QObject):
+    """Marshals discovery results from the runner / worker threads back to GUI."""
+
+    monitors_ready = Signal(list)
+
+    def __init__(self, panel: "DisplayAutomationConfigPanel") -> None:
+        super().__init__(panel)
+        self._panel = panel
+        self._monitors: list | None = None
+        self._usb: list | None = None
+        self.monitors_ready.connect(self._on_monitors, Qt.ConnectionType.QueuedConnection)
+
+    def _on_monitors(self, monitors: list) -> None:
+        self._monitors = monitors
+        self._maybe_finalize()
+
+    def _on_usb(self, devices: list) -> None:
+        self._usb = devices
+        self._maybe_finalize()
+
+    def _maybe_finalize(self) -> None:
+        if self._monitors is None or self._usb is None:
+            return
+        self._panel._monitors = self._monitors
+        self._panel._usb_devices = self._usb
+        self._panel._placeholder.hide()
+        self._panel._build_usb_section()
+        for info in self._panel._monitors:
+            self._panel._build_monitor_section(info)
+
+
+class _UsbWorker(QObject):
+    finished = Signal(list)
+
+    def __init__(self, device_listener) -> None:
+        super().__init__()
+        self._device_listener = device_listener
+
+    def run(self) -> None:
+        try:
+            devices = list(_list_usb_devices_default(self._device_listener))
+        except Exception:
+            logging.exception("USB discovery failed")
+            devices = []
+        self.finished.emit(devices)
+
+
+def _default_schedule(panel: "DisplayAutomationConfigPanel", plugin) -> None:
+    """Real-world scheduler: monitor discovery on `runner()`, USB on a QThread.
+
+    Both results land back on the GUI thread via queued Qt signals so the
+    panel can rebuild widgets safely.
+    """
+    bridge = _DiscoveryBridge(panel)
+
+    def _read_monitors() -> None:
+        try:
+            monitors = _list_monitors_default(plugin.monitor_info_ctx)
+        except Exception:
+            logging.exception("Monitor discovery failed")
+            monitors = []
+        try:
+            bridge.monitors_ready.emit(monitors)
+        except RuntimeError:
+            # Bridge was destroyed (e.g., user closed Configuration mid-discovery).
+            logging.debug("Discovery bridge gone before monitor results landed")
+
+    runner().submit(_read_monitors)
+
+    thread = QThread(panel)
+    worker = _UsbWorker(plugin.device_listener)
+    worker.moveToThread(thread)
+    thread.started.connect(worker.run)
+    worker.finished.connect(bridge._on_usb, Qt.ConnectionType.QueuedConnection)
+    worker.finished.connect(thread.quit)
+    thread.finished.connect(worker.deleteLater)
+    thread.finished.connect(thread.deleteLater)
+    thread.start()
