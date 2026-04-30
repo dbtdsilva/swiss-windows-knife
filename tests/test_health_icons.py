@@ -15,3 +15,22 @@ def test_icon_is_cached_per_state(qtbot):
     a = icon_for_state(HealthState.OK)
     b = icon_for_state(HealthState.OK)
     assert a is b
+
+
+def test_tray_icon_for_state_returns_non_null(qtbot):
+    # Resources must be loaded so :/icons/coat-of-arms.ico resolves.
+    from src import resources  # noqa: F401
+    from src.ui.health_icons import tray_icon_for_state
+
+    for state in HealthState:
+        icon = tray_icon_for_state(state)
+        assert not icon.isNull(), f"tray icon for {state} is null"
+
+
+def test_tray_icon_for_state_is_cached(qtbot):
+    from src import resources  # noqa: F401
+    from src.ui.health_icons import tray_icon_for_state
+
+    a = tray_icon_for_state(HealthState.OK)
+    b = tray_icon_for_state(HealthState.OK)
+    assert a is b
