@@ -34,7 +34,12 @@ class SwissWindowsKnife:
 
     def __init__(self, dev_mode: bool = False) -> None:
         self.init_logging()
-        faulthandler.enable()  # native crashes print a C-stack to stderr
+        # Native crashes print a C-stack to stderr — but cx_Freeze with
+        # `base='Win32GUI'` builds the frozen exe without a console, so
+        # `sys.stderr` is None and `faulthandler.enable()` raises
+        # `RuntimeError: sys.stderr is None`. Skip it in that case.
+        if sys.stderr is not None:
+            faulthandler.enable()
 
         signal.signal(signal.SIGINT, signal.SIG_DFL)
         _set_windows_app_user_model_id()
