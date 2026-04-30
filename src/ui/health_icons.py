@@ -27,4 +27,10 @@ def icon_for_state(state: HealthState) -> QIcon:
         painter.drawEllipse(0, 0, _ICON_SIZE.width(), _ICON_SIZE.height())
     finally:
         painter.end()
-    return QIcon(pix)
+    icon = QIcon()
+    # Health rows and the summary line are disabled QActions, so Qt would
+    # auto-grey a single-mode icon. Register the coloured pixmap for both
+    # Normal and Disabled modes so the dot keeps its colour either way.
+    icon.addPixmap(pix, QIcon.Mode.Normal)
+    icon.addPixmap(pix, QIcon.Mode.Disabled)
+    return icon

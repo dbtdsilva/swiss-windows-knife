@@ -85,12 +85,8 @@ class TrayWidget(QWidget):
                 reports.append((plugin, HealthReport(HealthState.WARNING, "health() failed")))
 
         worst_state, summary_text = aggregate_health([r for _, r in reports])
-        summary_action = QAction(summary_text, self)
-        summary_action.setIcon(icon_for_state(worst_state))
-        summary_action.setEnabled(False)
-        menu.addAction(summary_action)
-
-        health_submenu = QMenu("Health", menu)
+        health_submenu = QMenu(summary_text, menu)
+        health_submenu.setIcon(icon_for_state(worst_state))
         for plugin, report in reports:
             row = QAction(f"{plugin.get_display_name()} — {report.message}", self)
             row.setIcon(icon_for_state(report.state))
