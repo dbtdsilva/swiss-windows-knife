@@ -14,6 +14,9 @@ _COLORS: dict[HealthState, QColor] = {
 
 _ICON_SIZE = QSize(12, 12)
 
+_TRAY_ICON_SIZE = QSize(64, 64)
+_TRAY_DOT_RECT = (40, 0, 24, 24)  # x, y, width, height — top-right
+
 
 @cache
 def icon_for_state(state: HealthState) -> QIcon:
@@ -33,4 +36,29 @@ def icon_for_state(state: HealthState) -> QIcon:
     # Normal and Disabled modes so the dot keeps its colour either way.
     icon.addPixmap(pix, QIcon.Mode.Normal)
     icon.addPixmap(pix, QIcon.Mode.Disabled)
+    return icon
+
+
+@cache
+def tray_icon_for_state(state: HealthState) -> QIcon:
+    """Return the app's tray icon overlaid with a coloured dot for `state`.
+
+    The dot sits in the top-right corner of a 64x64 composed pixmap;
+    Windows downsamples for the systray slot. Cached per state.
+    """
+    base = QIcon(":/icons/coat-of-arms.ico").pixmap(_TRAY_ICON_SIZE)
+    composed = QPixmap(_TRAY_ICON_SIZE)
+    composed.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(composed)
+    try:
+        painter.drawPixmap(0, 0, base)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter.setBrush(_COLORS[state])
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawEllipse(*_TRAY_DOT_RECT)
+    finally:
+        painter.end()
+    icon = QIcon()
+    icon.addPixmap(composed, QIcon.Mode.Normal)
+    icon.addPixmap(composed, QIcon.Mode.Disabled)
     return icon
