@@ -63,3 +63,24 @@ def test_stop_publishes_offline_then_disconnects(fake_paho_client):
     assert ("homeassistant/swk_pc/availability", "offline", True) in client.published
     assert client.loop_started is False
     assert client.connected is False
+
+
+def test_on_disconnect_fires_callback(fake_paho_client):
+    sess = MqttSession(broker_config=_broker(), availability_topic=_ctx().availability_topic)
+    fired: list[bool] = []
+    sess.on_disconnected = lambda: fired.append(True)
+    sess.start()
+    fake_paho_client[0].fire_on_connect(rc=0)
+    fake_paho_client[0].fire_on_disconnect(rc=0)
+    assert fired == [True]
+
+
+def test_on_disconnect_callback_exceptions_are_swallowed(fake_paho_client):
+    sess = MqttSession(broker_config=_broker(), availability_topic=_ctx().availability_topic)
+
+    def boom():
+        raise RuntimeError("ignored")
+
+    sess.on_disconnected = boom
+    sess.start()
+    fake_paho_client[0].fire_on_disconnect(rc=0)  # must not raise
