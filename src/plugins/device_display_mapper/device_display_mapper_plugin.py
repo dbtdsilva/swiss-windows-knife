@@ -8,6 +8,7 @@ from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QMenu, QWidget
 
 from ...base.base_widget import BaseWidget
+from ...base.cancellation import Token
 from ...base.config_panel import ConfigPanel
 from ...base.monitor_runner import runner
 from ...base.user_settings import UserSettings
@@ -40,7 +41,7 @@ class DeviceDisplayMapperPlugin(BaseWidget):
         self.device_listener.change_detected.connect(self.device_changed)
 
         self._usb_device_cache: list[Device] | None = None
-        self._usb_fetch_callbacks: list[Callable[[list[Device]], None]] = []
+        self._usb_fetch_subscriptions: list[tuple[Token, Callable[[list[Device]], None]]] = []
         self._usb_fetch_thread: QThread | None = None
 
     def retrieve_menus(self) -> list[QMenu | QAction]:
@@ -50,24 +51,30 @@ class DeviceDisplayMapperPlugin(BaseWidget):
         from .display_automation_panel import DisplayAutomationConfigPanel
         return [DisplayAutomationConfigPanel(parent=self)]
 
-    def request_usb_devices(self, callback: Callable[[list[Device]], None]) -> None:
+    def request_usb_devices(self, callback: Callable[[list[Device]], None]) -> Token:
         """Provide the USB device list to `callback` on the GUI thread.
 
-        Returns the cached list immediately (via a 0-ms QTimer to keep
-        delivery asynchronous and predictable for callers). Otherwise
-        dispatches a single `UsbWorker` on its own QThread (or joins an
-        in-flight fetch) and fires every queued callback when results
-        arrive. Cache is invalidated on every USB hot-plug event so the
-        next request re-enumerates.
+        Returns a `Token`; if the caller cancels it (e.g., from the panel's
+        `destroyed` signal) the callback is suppressed even if results have
+        already arrived. Cached lists are delivered via `QTimer.singleShot`
+        so all paths are reliably asynchronous; cold lookups dispatch a
+        single `UsbWorker` (or join an in-flight fetch). The cache is
+        invalidated on every USB hot-plug event so the next request
+        re-enumerates.
         """
+        token = Token()
         if self._usb_device_cache is not None:
             cached = list(self._usb_device_cache)
-            QTimer.singleShot(0, lambda: callback(cached))
-            return
 
-        self._usb_fetch_callbacks.append(callback)
+            def _deliver_cached() -> None:
+                if not token.is_cancelled:
+                    callback(cached)
+            QTimer.singleShot(0, _deliver_cached)
+            return token
+
+        self._usb_fetch_subscriptions.append((token, callback))
         if self._usb_fetch_thread is not None:
-            return  # already in flight; will fire all callbacks when done
+            return token  # already in flight; we'll fire when results land
 
         thread = QThread(self)
         worker = UsbWorker()
@@ -83,18 +90,18 @@ class DeviceDisplayMapperPlugin(BaseWidget):
         thread._usb_worker_anchor = worker  # type: ignore[attr-defined]
         thread.start()
         self._usb_fetch_thread = thread
+        return token
 
     @Slot(list)
     def _on_usb_fetched(self, devices: list) -> None:
         self._usb_device_cache = list(devices)
-        callbacks = self._usb_fetch_callbacks
-        self._usb_fetch_callbacks = []
+        subscriptions = self._usb_fetch_subscriptions
+        self._usb_fetch_subscriptions = []
         self._usb_fetch_thread = None
-        for cb in callbacks:
-            try:
-                cb(list(devices))
-            except Exception:
-                logging.exception("USB fetch callback failed")
+        for token, cb in subscriptions:
+            if token.is_cancelled:
+                continue
+            cb(list(devices))
 
     @Slot(object, object)
     def device_changed(self, device_notification_type: DeviceNotificationType, usb_device: Device):

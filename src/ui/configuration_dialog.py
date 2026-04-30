@@ -59,3 +59,16 @@ class ConfigurationDialog(PersistentSizeDialog):
             if not panel.apply():
                 return
         self.accept()
+
+    def done(self, result: int) -> None:
+        # Fires on OK (`accept()`), Cancel (`reject()`), and X (`closeEvent`
+        # → default `done(Rejected)`). Run panel cleanup *before* Qt starts
+        # destroying anything so panels can cancel in-flight async work
+        # while their child widgets are still alive.
+        for panel in self._panels:
+            try:
+                panel.cleanup()
+            except Exception:
+                import logging
+                logging.exception("ConfigPanel.cleanup raised")
+        super().done(result)

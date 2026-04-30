@@ -3,6 +3,8 @@ import queue
 import threading
 from collections.abc import Callable
 
+from .cancellation import Token
+
 
 class _MonitorRunner:
     def __init__(self) -> None:
@@ -10,12 +12,23 @@ class _MonitorRunner:
         self._thread = threading.Thread(target=self._run, daemon=True, name="MonitorRunner")
         self._thread.start()
 
-    def submit(self, fn: Callable, *args, **kwargs) -> None:
-        self._queue.put((fn, args, kwargs))
+    def submit(self, fn: Callable, *args, **kwargs) -> Token:
+        """Submit work; returns a token the caller can cancel.
+
+        If the token is cancelled before the worker dequeues this entry, `fn`
+        is skipped entirely. Once `fn` starts running it can't be aborted —
+        but `fn` itself may consult the token to skip side effects (e.g.,
+        emitting back into a Qt object that is being destroyed).
+        """
+        token = Token()
+        self._queue.put((fn, args, kwargs, token))
+        return token
 
     def _run(self) -> None:
         while True:
-            fn, args, kwargs = self._queue.get()
+            fn, args, kwargs, token = self._queue.get()
+            if token.is_cancelled:
+                continue
             try:
                 fn(*args, **kwargs)
             except Exception:

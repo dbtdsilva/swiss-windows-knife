@@ -77,6 +77,7 @@ class Publisher:
         self._entities = list(entities)
         self._commands = list(commands)
         self._timers: dict[str, QTimer] = {}
+        self._sample_tokens: list = []
 
     def _enabled_entities(self) -> list:
         return [e for e in self._entities
@@ -137,7 +138,8 @@ class Publisher:
         self._restart_timers()
 
     def tick(self, entity) -> None:
-        self._sampler.submit(entity.sample, lambda result: self._publish_state(entity, result))
+        token = self._sampler.submit(entity.sample, lambda result: self._publish_state(entity, result))
+        self._sample_tokens.append(token)
 
     def _publish_state(self, entity, result: SampleResult) -> None:
         if not result.is_available:
@@ -171,6 +173,9 @@ class Publisher:
         for timer in self._timers.values():
             timer.stop()
         self._timers.clear()
+        for token in self._sample_tokens:
+            token.cancel()
+        self._sample_tokens.clear()
         for entity in self._entities:
             if entity.is_event_driven:
                 try:
