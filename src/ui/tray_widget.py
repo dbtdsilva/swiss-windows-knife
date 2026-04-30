@@ -1,4 +1,3 @@
-import logging
 import sys
 
 from PySide6.QtCore import QCoreApplication, QObject, Slot
@@ -8,7 +7,6 @@ from PySide6.QtWidgets import QMenu, QMessageBox, QSystemTrayIcon, QWidget
 from .. import resources  # noqa: F401,E261
 from ..app_info import APP_INFO
 from ..base.base_widget import BaseWidget
-from ..base.config_panel import ConfigPanel
 from ..components.update_checker import UpdateChecker
 from ..plugins.device_display_mapper.device_display_mapper_plugin import DeviceDisplayMapperPlugin
 from ..plugins.display_image_tuner.image_tuner_plugin import DisplayImageTunerPlugin
@@ -120,13 +118,7 @@ class TrayWidget(QWidget):
             self._config_dialog.raise_()
             self._config_dialog.activateWindow()
             return
-        panels: list[ConfigPanel] = []
-        for plugin in self.child_components:
-            panels.extend(plugin.retrieve_config_panels())
-        if not panels:
-            logging.info("No plugin contributes a configuration panel")
-            return
-        self._config_dialog = ConfigurationDialog(None, panels)
+        self._config_dialog = ConfigurationDialog(None, self.child_components)
         try:
             self._config_dialog.exec()
         finally:
