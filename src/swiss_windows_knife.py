@@ -85,4 +85,4 @@ class SwissWindowsKnife:
 
 
 if __name__ == '__main__':
-    SwissWindowsKnife()
+    SwissWindowsKnife(dev_mode=not getattr(sys, 'frozen', False))
