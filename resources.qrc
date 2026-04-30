@@ -2,6 +2,5 @@
 <RCC version="1.0">
    <qresource prefix="/">
       <file>icons/coat-of-arms.ico</file>
-      <file alias="qml/MapPicker.qml">src/plugins/display_image_tuner/MapPicker.qml</file>
    </qresource>
 </RCC>
