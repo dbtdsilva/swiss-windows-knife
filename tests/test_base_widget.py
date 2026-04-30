@@ -140,3 +140,41 @@ def test_health_ignores_is_enabled_for_non_toggleable_widget(qtbot, fake_user_se
     qtbot.addWidget(widget)
     widget._set_health(HealthState.OK, "running")
     assert widget.health() == HealthReport(HealthState.OK, "running")
+
+
+def test_health_changed_emits_on_state_change(qtbot, fake_user_settings):
+    from src.base.health import HealthState
+    widget = BaseWidget(None)
+    qtbot.addWidget(widget)
+
+    fired: list[None] = []
+    widget.health_changed.connect(lambda: fired.append(None))
+
+    widget._set_health(HealthState.WARNING, "x")
+    assert fired == [None]
+
+
+def test_health_changed_emits_on_message_change(qtbot, fake_user_settings):
+    from src.base.health import HealthState
+    widget = BaseWidget(None)
+    qtbot.addWidget(widget)
+    widget._set_health(HealthState.OK, "Auto")
+
+    fired: list[None] = []
+    widget.health_changed.connect(lambda: fired.append(None))
+
+    widget._set_health(HealthState.OK, "Manual 60")
+    assert fired == [None]
+
+
+def test_health_changed_does_not_emit_on_noop(qtbot, fake_user_settings):
+    from src.base.health import HealthState
+    widget = BaseWidget(None)
+    qtbot.addWidget(widget)
+    widget._set_health(HealthState.OK, "Auto")
+
+    fired: list[None] = []
+    widget.health_changed.connect(lambda: fired.append(None))
+
+    widget._set_health(HealthState.OK, "Auto")  # same value
+    assert fired == []
