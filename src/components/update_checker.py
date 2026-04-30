@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QCheckBox, QMenu, QMessageBox, QWidget
 
 from ..app_info import APP_INFO
 from ..base.base_widget import BaseWidget
+from ..base.health import HealthState
 from ..base.user_settings import UserSettings
 
 LATEST_RELEASE_URL = 'https://api.github.com/repos/dbtdsilva/swiss-windows-knife/releases/latest'
@@ -116,6 +117,8 @@ class UpdateChecker(BaseWidget):
         self._check_action: QAction | None = None
         self._active_thread: QThread | None = None
 
+        self._set_health(HealthState.OK, "Checking…")
+
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.check_updates)
         self.timer.start(CHECK_INTERVAL_MS)
@@ -164,6 +167,7 @@ class UpdateChecker(BaseWidget):
         if self._check_action is not None:
             self._check_action.setText(CHECK_LABEL_IDLE)
         self._set_busy(False)
+        self._set_health(HealthState.WARNING, "Check timed out")
         if self._interactive:
             QMessageBox.warning(
                 self, 'Update check timed out',
@@ -186,6 +190,7 @@ class UpdateChecker(BaseWidget):
                 QMessageBox.warning(
                     self, 'Update check failed',
                     'Could not check for updates. See logs for details.')
+            self._set_health(HealthState.WARNING, "Check failed")
             self._set_busy(False)
             return
         remote_version, installer_url = result
@@ -195,10 +200,12 @@ class UpdateChecker(BaseWidget):
                 QMessageBox.information(
                     self, 'No update available',
                     f'You are on the latest version ({APP_INFO.APP_VERSION}).')
+            self._set_health(HealthState.OK, "Up to date")
             self._set_busy(False)
             return
 
         logging.info(f'Update available: {APP_INFO.APP_VERSION} -> {remote_version}')
+        self._set_health(HealthState.OK, f"Update available {remote_version}")
         if not self._confirm_update(remote_version):
             self._set_busy(False)
             return
