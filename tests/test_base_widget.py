@@ -178,3 +178,25 @@ def test_health_changed_does_not_emit_on_noop(qtbot, fake_user_settings):
 
     widget._set_health(HealthState.OK, "Auto")  # same value
     assert fired == []
+
+
+def test_health_changed_emits_on_set_enabled_transition(qtbot, fake_user_settings):
+    widget = BaseWidget(None, is_toggleable=True, is_enabled=True)
+    qtbot.addWidget(widget)
+
+    fired: list[None] = []
+    widget.health_changed.connect(lambda: fired.append(None))
+
+    widget.set_enabled(False)
+    assert fired == [None]
+
+
+def test_health_changed_does_not_emit_on_set_enabled_noop(qtbot, fake_user_settings):
+    widget = BaseWidget(None, is_toggleable=True, is_enabled=True)
+    qtbot.addWidget(widget)
+
+    fired: list[None] = []
+    widget.health_changed.connect(lambda: fired.append(None))
+
+    widget.set_enabled(True)  # already True
+    assert fired == []
