@@ -2,14 +2,13 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
-from PySide6.QtCore import QObject, Qt, QThread, Signal
+from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtWidgets import QComboBox, QFormLayout, QGroupBox, QLabel, QVBoxLayout, QWidget
 
 from ...base.config_panel import ConfigPanel
 from ...base.monitor_runner import runner
 from ...base.user_settings import UserSettings
 from .discovery import list_monitors as _list_monitors_default
-from .discovery import list_usb_devices as _list_usb_devices_default
 
 USB_WATCHER_KEY = 'display_usb_watcher'
 ON_CONNECT_KEY_PREFIX = 'display_on_connect_'
@@ -163,27 +162,10 @@ class _DiscoveryBridge(QObject):
             self._panel._build_monitor_section(info)
 
 
-class _UsbWorker(QObject):
-    finished = Signal(list)
-
-    def __init__(self, device_listener) -> None:
-        super().__init__()
-        self._device_listener = device_listener
-
-    def run(self) -> None:
-        try:
-            devices = list(_list_usb_devices_default(self._device_listener))
-        except Exception:
-            logging.exception("USB discovery failed")
-            devices = []
-        self.finished.emit(devices)
-
-
 def _default_schedule(panel: "DisplayAutomationConfigPanel", plugin) -> None:
-    """Real-world scheduler: monitor discovery on `runner()`, USB on a QThread.
-
-    Both results land back on the GUI thread via queued Qt signals so the
-    panel can rebuild widgets safely.
+    """Real-world scheduler: monitor discovery on `runner()`, USB via the
+    plugin's cached `request_usb_devices`. Both results land back on the GUI
+    thread via queued Qt signals so the panel can rebuild widgets safely.
     """
     bridge = _DiscoveryBridge(panel)
 
@@ -196,17 +178,7 @@ def _default_schedule(panel: "DisplayAutomationConfigPanel", plugin) -> None:
         try:
             bridge.monitors_ready.emit(monitors)
         except RuntimeError:
-            # Bridge was destroyed (e.g., user closed Configuration mid-discovery).
             logging.debug("Discovery bridge gone before monitor results landed")
 
     runner().submit(_read_monitors)
-
-    thread = QThread(panel)
-    worker = _UsbWorker(plugin.device_listener)
-    worker.moveToThread(thread)
-    thread.started.connect(worker.run)
-    worker.finished.connect(bridge._on_usb, Qt.ConnectionType.QueuedConnection)
-    worker.finished.connect(thread.quit)
-    thread.finished.connect(worker.deleteLater)
-    thread.finished.connect(thread.deleteLater)
-    thread.start()
+    plugin.request_usb_devices(bridge._on_usb)

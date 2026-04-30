@@ -1,8 +1,8 @@
 import logging
 
 import monitorcontrol
+from PySide6.QtCore import QObject, Signal
 
-from .device_listener import DeviceListener
 from .monitor_info import MonitorInfo, MonitorInfoCtx
 
 
@@ -11,7 +11,7 @@ def list_monitors(monitor_info_ctx: MonitorInfoCtx) -> list[MonitorInfo]:
 
     MUST run on the dedicated monitor-runner thread (see
     `src/base/monitor_runner.py`); calling from the GUI thread will block
-    for seconds per monitor.
+    for seconds per monitor on a cold cache.
     """
     out: list[MonitorInfo] = []
     for monitor in monitorcontrol.get_monitors():
@@ -24,9 +24,34 @@ def list_monitors(monitor_info_ctx: MonitorInfoCtx) -> list[MonitorInfo]:
     return out
 
 
-def list_usb_devices(device_listener: DeviceListener):
-    """Enumerate currently-attached real USB devices via WMI.
+class UsbWorker(QObject):
+    """One-shot WMI Win32_PnPEntity enumeration on a worker thread.
 
-    MUST run off the GUI thread; `Win32_PnPEntity` enumeration is multi-second.
+    Each instance runs once: `moveToThread(thread)`, connect `thread.started`
+    to `run`, start the thread; emits `finished(list[Device])` when done.
+    `run` initialises COM on the worker thread (the GUI-thread `wmi.WMI()`
+    instance can't be used cross-thread without crashing).
     """
-    return device_listener.get_real_usb_devices()
+
+    finished = Signal(list)
+
+    def run(self) -> None:
+        import pythoncom
+        import wmi
+
+        from .device_listener import Device, DeviceListener
+        pythoncom.CoInitialize()
+        try:
+            local_wmi = wmi.WMI()
+            devices: list[Device] = []
+            for entity in local_wmi.Win32_PnPEntity():
+                pnp_id = getattr(entity, "PNPDeviceID", "")
+                if DeviceListener.is_real_usb_device(pnp_id):
+                    devices.append(Device(entity.DeviceID, entity.Name, entity.Description, entity.Manufacturer))
+            devices.sort(key=lambda d: d.name)
+        except Exception:
+            logging.exception("USB discovery failed")
+            devices = []
+        finally:
+            pythoncom.CoUninitialize()
+        self.finished.emit(devices)
