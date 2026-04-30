@@ -94,7 +94,7 @@ def tray_with_stubs(qtbot, fake_user_settings):
     return _make
 
 
-def test_main_menu_starts_with_summary_and_health_submenu(qtbot, tray_with_stubs):
+def test_main_menu_first_entry_is_health_submenu_with_summary_title(qtbot, tray_with_stubs):
     plugins = [
         _StubPlugin("Alpha", HealthReport(HealthState.OK, "Auto")),
         _StubPlugin("Bravo", HealthReport(HealthState.WARNING, "Disconnected")),
@@ -104,13 +104,10 @@ def test_main_menu_starts_with_summary_and_health_submenu(qtbot, tray_with_stubs
     from PySide6.QtWidgets import QMenu
     menu = QMenu()
     tray._populate_main_menu(menu)
-    actions = menu.actions()
 
-    assert actions[0].text() == "Health: 1 warning(s), 0 error(s)"
-    assert actions[0].isEnabled() is False  # summary line is informational
-
-    health_submenu = actions[1].menu()
+    health_submenu = menu.actions()[0].menu()
     assert health_submenu is not None
+    assert health_submenu.title() == "Health: 1 warning(s), 0 error(s)"
     rows = [a.text() for a in health_submenu.actions()]
     assert rows == ["Alpha — Auto", "Bravo — Disconnected"]
 
@@ -125,9 +122,9 @@ def test_main_menu_summary_all_ok_when_only_disabled_remain(qtbot, tray_with_stu
     from PySide6.QtWidgets import QMenu
     menu = QMenu()
     tray._populate_main_menu(menu)
-    assert menu.actions()[0].text() == "Health: All OK"
 
-    health_submenu = menu.actions()[1].menu()
+    health_submenu = menu.actions()[0].menu()
+    assert health_submenu.title() == "Health: All OK"
     rows = [a.text() for a in health_submenu.actions()]
     assert rows == ["Alpha — Disabled", "Bravo — Listening"]
 
@@ -146,7 +143,7 @@ def test_health_row_for_failing_plugin_does_not_break_menu(qtbot, tray_with_stub
     from PySide6.QtWidgets import QMenu
     menu = QMenu()
     tray._populate_main_menu(menu)
-    health_submenu = menu.actions()[1].menu()
+    health_submenu = menu.actions()[0].menu()
     rows = [a.text() for a in health_submenu.actions()]
     assert rows[0] == "Bad — health() failed"
     assert rows[1] == "Good — ok"
