@@ -9,6 +9,7 @@ from PySide6.QtWidgets import QMenu, QWidget
 
 from ...base.base_widget import BaseWidget
 from ...base.config_panel import ConfigPanel
+from ...base.health import HealthState
 from ...base.monitor_runner import runner
 from ...base.user_settings import UserSettings
 from .curve import compute_keyframe_value
@@ -44,10 +45,18 @@ class DisplayImageTunerPlugin(BaseWidget):
         self.brightness_changed.connect(self.change_monitor_brightness)
         self.contrast_changed.connect(self.change_monitor_contrast)
 
+        self._set_health(HealthState.OK, self._mode_message())
+
         self._tick_timer = QTimer(self)
         self._tick_timer.timeout.connect(self._tick)
         if self.is_enabled():
             self._tick_timer.start(TICK_MS)
+
+    def _mode_message(self) -> str:
+        b = self.user_settings.get('brightness')
+        if b is None:
+            return "Auto"
+        return f"Manual {b}"
 
     def _seed_default_settings(self) -> None:
         defaults: dict[str, object] = {
@@ -144,8 +153,10 @@ class DisplayImageTunerPlugin(BaseWidget):
                     if monitor.get_luminance() != brightness:
                         monitor.set_luminance(brightness)
                         logging.info(f"Setting brightness to {brightness} on monitor {i}")
+            self._set_health(HealthState.OK, self._mode_message())
         except (ValueError, monitorcontrol.VCPError) as e:
             logging.warning(f"Exception was caught while changing brightness: {e}")
+            self._set_health(HealthState.WARNING, f"Monitor error: {e}")
 
     def change_monitor_contrast(self, contrast):
         runner().submit(self._apply_contrast, contrast)
@@ -157,8 +168,10 @@ class DisplayImageTunerPlugin(BaseWidget):
                     if monitor.get_contrast() != contrast:
                         monitor.set_contrast(contrast)
                         logging.info(f"Setting contrast to {contrast} on monitor {i}")
+            self._set_health(HealthState.OK, self._mode_message())
         except (ValueError, monitorcontrol.VCPError) as e:
             logging.warning(f"Exception was caught while changing contrast: {e}")
+            self._set_health(HealthState.WARNING, f"Monitor error: {e}")
 
     def create_value_control_menu(self, title, property_get, manual_slot, automatic_slot) -> QMenu:
         menu = QMenu(title, self)
@@ -187,15 +200,21 @@ class DisplayImageTunerPlugin(BaseWidget):
     def change_brightness_automatic(self, is_checked):
         if is_checked:
             self.user_settings.set('brightness', None)
+            if self._current_health.state is HealthState.OK:
+                self._set_health(HealthState.OK, self._mode_message())
 
     def change_contrast_automatic(self, is_checked):
         if is_checked:
             self.user_settings.set('contrast', None)
+            if self._current_health.state is HealthState.OK:
+                self._set_health(HealthState.OK, self._mode_message())
 
     def change_brightness_manual(self, is_checked, brightness_level):
         if not is_checked:
             return
         self.user_settings.set('brightness', brightness_level)
+        if self._current_health.state is HealthState.OK:
+            self._set_health(HealthState.OK, self._mode_message())
         self._last_emitted['brightness'] = brightness_level
         self.brightness_changed.emit(brightness_level)
 
@@ -203,6 +222,8 @@ class DisplayImageTunerPlugin(BaseWidget):
         if not is_checked:
             return
         self.user_settings.set('contrast', contrast_level)
+        if self._current_health.state is HealthState.OK:
+            self._set_health(HealthState.OK, self._mode_message())
         self._last_emitted['contrast'] = contrast_level
         self.contrast_changed.emit(contrast_level)
 
