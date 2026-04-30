@@ -79,7 +79,7 @@ class BaseWidget(QWidget):
         `_set_health` from inside whatever event path changed their state.
         """
         if self._is_toggleable and not self._is_enabled:
-            return HealthReport(HealthState.DISABLED, "")
+            return HealthReport(HealthState.DISABLED, "Disabled")
         return self._current_health
 
     def _set_health(self, state: HealthState, message: str) -> None:

@@ -131,7 +131,7 @@ def test_health_returns_disabled_for_toggleable_off(qtbot, fake_user_settings):
     widget = BaseWidget(None, is_toggleable=True, is_enabled=False)
     qtbot.addWidget(widget)
     widget._set_health(HealthState.WARNING, "ignored while off")
-    assert widget.health() == HealthReport(HealthState.DISABLED, "")
+    assert widget.health() == HealthReport(HealthState.DISABLED, "Disabled")
 
 
 def test_health_ignores_is_enabled_for_non_toggleable_widget(qtbot, fake_user_settings):
