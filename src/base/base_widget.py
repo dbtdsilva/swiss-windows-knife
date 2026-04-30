@@ -4,6 +4,7 @@ from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QMenu, QWidget
 
 from .config_panel import ConfigPanel
+from .health import HealthReport, HealthState
 from .user_settings import UserSettings
 
 
@@ -42,6 +43,8 @@ class BaseWidget(QWidget):
         else:
             self._is_enabled = is_enabled
 
+        self._current_health: HealthReport = HealthReport(HealthState.OK, "")
+
     def get_display_name(self) -> str:
         return self.display_name or self.__class__.__name__
 
@@ -67,3 +70,17 @@ class BaseWidget(QWidget):
 
     def status_changed(self, status: bool) -> None:
         return None
+
+    def health(self) -> HealthReport:
+        """Return the plugin's current health snapshot.
+
+        MUST be cheap and non-blocking — no I/O, no DDC calls, no socket
+        reads. Subclasses do not override this; instead they call
+        `_set_health` from inside whatever event path changed their state.
+        """
+        if self._is_toggleable and not self._is_enabled:
+            return HealthReport(HealthState.DISABLED, "")
+        return self._current_health
+
+    def _set_health(self, state: HealthState, message: str) -> None:
+        self._current_health = HealthReport(state, message)

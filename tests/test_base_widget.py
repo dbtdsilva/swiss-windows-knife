@@ -109,3 +109,34 @@ def test_set_enabled_no_change_does_not_invoke_status_changed(qtbot, fake_user_s
 
     w.set_enabled(False)
     assert w.calls == [False]
+
+
+def test_health_defaults_to_ok_with_empty_message(qtbot, fake_user_settings):
+    from src.base.health import HealthReport, HealthState
+    widget = BaseWidget(None)
+    qtbot.addWidget(widget)
+    assert widget.health() == HealthReport(HealthState.OK, "")
+
+
+def test_set_health_updates_current_health(qtbot, fake_user_settings):
+    from src.base.health import HealthReport, HealthState
+    widget = BaseWidget(None)
+    qtbot.addWidget(widget)
+    widget._set_health(HealthState.WARNING, "broker down")
+    assert widget.health() == HealthReport(HealthState.WARNING, "broker down")
+
+
+def test_health_returns_disabled_for_toggleable_off(qtbot, fake_user_settings):
+    from src.base.health import HealthReport, HealthState
+    widget = BaseWidget(None, is_toggleable=True, is_enabled=False)
+    qtbot.addWidget(widget)
+    widget._set_health(HealthState.WARNING, "ignored while off")
+    assert widget.health() == HealthReport(HealthState.DISABLED, "")
+
+
+def test_health_ignores_is_enabled_for_non_toggleable_widget(qtbot, fake_user_settings):
+    from src.base.health import HealthReport, HealthState
+    widget = BaseWidget(None, is_toggleable=False, is_enabled=False)
+    qtbot.addWidget(widget)
+    widget._set_health(HealthState.OK, "running")
+    assert widget.health() == HealthReport(HealthState.OK, "running")
