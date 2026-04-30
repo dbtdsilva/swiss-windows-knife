@@ -13,7 +13,7 @@ from ...base.config_panel import ConfigPanel
 from ...base.monitor_runner import runner
 from ...base.user_settings import UserSettings
 from .device_listener import Device, DeviceListener, DeviceNotificationType
-from .discovery import UsbWorker
+from .discovery import UsbWorker, list_monitors
 from .monitor_info import MonitorInfoCtx
 
 USER_SETTINGS_DISPLAY_USB_WATCHER_KEY = 'display_usb_watcher'
@@ -43,6 +43,20 @@ class DeviceDisplayMapperPlugin(BaseWidget):
         self._usb_device_cache: list[Device] | None = None
         self._usb_fetch_subscriptions: list[tuple[Token, Callable[[list[Device]], None]]] = []
         self._usb_fetch_thread: QThread | None = None
+
+        # Pre-warm both caches in the background so the first time the user
+        # opens Configuration the panel populates instantly. Both calls
+        # schedule work off the GUI thread (runner / QThread) and return
+        # immediately; results land in `monitor_info_ctx` and the USB
+        # cache. No-op callback because no live receiver is interested yet.
+        runner().submit(self._prewarm_monitor_cache)
+        self.request_usb_devices(lambda _devices: None)
+
+    def _prewarm_monitor_cache(self) -> None:
+        try:
+            list_monitors(self.monitor_info_ctx)
+        except Exception:
+            logging.exception("Monitor cache pre-warm failed")
 
     def retrieve_menus(self) -> list[QMenu | QAction]:
         return []
