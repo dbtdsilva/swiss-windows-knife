@@ -147,3 +147,68 @@ def test_health_row_for_failing_plugin_does_not_break_menu(qtbot, tray_with_stub
     rows = [a.text() for a in health_submenu.actions()]
     assert rows[0] == "Bad — health() failed"
     assert rows[1] == "Good — ok"
+
+
+def test_tray_icon_refreshes_on_plugin_health_change(qtbot, fake_user_settings):
+    """The tray's icon refresh slot is wired to each plugin's health_changed
+    signal and rebuilds the icon via tray_icon_for_state."""
+    from unittest.mock import MagicMock
+
+    from PySide6.QtCore import Signal
+    from PySide6.QtWidgets import QWidget
+
+    from src import resources  # noqa: F401
+    from src.base.health import HealthState
+    from src.ui.tray_widget import TrayWidget
+
+    class _SignalingPlugin(QWidget):
+        health_changed = Signal()
+
+        def __init__(self, name: str, report: HealthReport):
+            super().__init__()
+            self._name = name
+            self._report = report
+
+        def get_display_name(self):
+            return self._name
+
+        def is_toggleable(self):
+            return True
+
+        def is_enabled(self):
+            return self._report.state is not HealthState.DISABLED
+
+        def health(self):
+            return self._report
+
+        def retrieve_menus(self):
+            return []
+
+        def set_report(self, report: HealthReport) -> None:
+            self._report = report
+            self.health_changed.emit()
+
+    plugins = [
+        _SignalingPlugin("Alpha", HealthReport(HealthState.OK, "ok")),
+        _SignalingPlugin("Bravo", HealthReport(HealthState.OK, "ok")),
+    ]
+
+    class _TrayForTest(TrayWidget):
+        def __init__(self, components):
+            QWidget.__init__(self, parent=None)
+            self._config_dialog = None
+            self.logger_window = None
+            self.child_components = components
+            self._tray_icon = MagicMock()
+            self._wire_health_signals()
+            self._refresh_tray_icon()
+
+    tray = _TrayForTest(plugins)
+    qtbot.addWidget(tray)
+
+    # Initial refresh in __init__ called setIcon once with the OK icon.
+    assert tray._tray_icon.setIcon.call_count == 1
+
+    tray._tray_icon.setIcon.reset_mock()
+    plugins[1].set_report(HealthReport(HealthState.WARNING, "broker down"))
+    assert tray._tray_icon.setIcon.call_count == 1
