@@ -9,8 +9,8 @@ from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QCheckBox, QMenu, QMessageBox, QWidget
 
 from ..app_info import APP_INFO
-from ..base.base_widget import BaseWidget
 from ..base.health import HealthState
+from ..base.health_reporter import HealthReporter
 from ..base.user_settings import UserSettings
 
 LATEST_RELEASE_URL = 'https://api.github.com/repos/dbtdsilva/swiss-windows-knife/releases/latest'
@@ -20,7 +20,7 @@ READ_TIMEOUT_S = 15
 DOWNLOAD_TIMEOUT_S = 120
 WATCHDOG_MS = 30_000
 SKIP_VERSION_KEY = 'update_skip_version'
-CHECK_LABEL_IDLE = 'Check for updates...'
+CHECK_LABEL_IDLE = 'Check for updates'
 CHECK_LABEL_CHECKING = 'Checking…'
 
 
@@ -104,12 +104,12 @@ class _DownloadThread(QThread):
             self.result_ready.emit(None)
 
 
-class UpdateChecker(BaseWidget):
+class UpdateChecker(HealthReporter):
 
     display_name = "Auto-updater"
 
     def __init__(self, parent: QWidget) -> None:
-        super().__init__(parent, is_toggleable=False)
+        super().__init__(parent)
 
         self.user_settings = UserSettings.instance()
         self._busy = False

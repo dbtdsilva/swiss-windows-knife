@@ -1,11 +1,10 @@
 import logging
 
-from PySide6.QtCore import Signal
-from PySide6.QtGui import QAction
-from PySide6.QtWidgets import QMenu, QWidget
+from PySide6.QtWidgets import QWidget
 
 from .config_panel import ConfigPanel
 from .health import HealthReport, HealthState
+from .health_reporter import HealthReporter
 from .user_settings import UserSettings
 
 
@@ -29,13 +28,9 @@ def _coerce_bool(value: object, default: bool) -> bool:
     return bool(value)
 
 
-class BaseWidget(QWidget):
+class BaseWidget(HealthReporter):
 
-    display_name: str = ""
-
-    health_changed = Signal()
-
-    def __init__(self, parent: QWidget, is_toggleable: bool = True, is_enabled: bool = True) -> None:
+    def __init__(self, parent: QWidget | None, is_toggleable: bool = True, is_enabled: bool = True) -> None:
         super().__init__(parent)
         self._is_toggleable = is_toggleable
 
@@ -45,11 +40,6 @@ class BaseWidget(QWidget):
             self._is_enabled = _coerce_bool(settings.get(key), is_enabled)
         else:
             self._is_enabled = is_enabled
-
-        self._current_health: HealthReport = HealthReport(HealthState.OK, "")
-
-    def get_display_name(self) -> str:
-        return self.display_name or self.__class__.__name__
 
     def set_enabled(self, enabled: bool) -> None:
         if self._is_enabled == enabled:
@@ -66,9 +56,6 @@ class BaseWidget(QWidget):
     def is_toggleable(self) -> bool:
         return self._is_toggleable
 
-    def retrieve_menus(self) -> list[QMenu | QAction]:
-        return []
-
     def retrieve_config_panels(self) -> list[ConfigPanel]:
         return []
 
@@ -76,19 +63,6 @@ class BaseWidget(QWidget):
         return None
 
     def health(self) -> HealthReport:
-        """Return the plugin's current health snapshot.
-
-        MUST be cheap and non-blocking — no I/O, no DDC calls, no socket
-        reads. Subclasses do not override this; instead they call
-        `_set_health` from inside whatever event path changed their state.
-        """
         if self._is_toggleable and not self._is_enabled:
             return HealthReport(HealthState.DISABLED, "Disabled")
-        return self._current_health
-
-    def _set_health(self, state: HealthState, message: str) -> None:
-        new_report = HealthReport(state, message)
-        if new_report == self._current_health:
-            return
-        self._current_health = new_report
-        self.health_changed.emit()
+        return super().health()

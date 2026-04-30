@@ -9,6 +9,7 @@ from .. import resources  # noqa: F401,E261
 from ..app_info import APP_INFO
 from ..base.base_widget import BaseWidget
 from ..base.health import HealthReport, HealthState
+from ..base.health_reporter import HealthReporter
 from ..components.update_checker import UpdateChecker
 from ..plugins.device_display_mapper.device_display_mapper_plugin import DeviceDisplayMapperPlugin
 from ..plugins.display_image_tuner.image_tuner_plugin import DisplayImageTunerPlugin
@@ -59,8 +60,9 @@ class TrayWidget(QWidget):
             HomeAssistantMqttPubPlugin(self),
         ]
 
-        if not dev_mode:
-            self.child_components.append(UpdateChecker(self))
+        self.update_checker: UpdateChecker | None = (
+            None if dev_mode else UpdateChecker(self)
+        )
 
         self._tray_icon = QSystemTrayIcon(parent=parent)
         self._tray_icon.setContextMenu(self.createMainMenu())
@@ -75,52 +77,62 @@ class TrayWidget(QWidget):
         menu.aboutToShow.connect(lambda m=menu: self._populate_main_menu(m))
         return menu
 
+    def _health_sources(self) -> list[HealthReporter]:
+        sources: list[HealthReporter] = list(self.child_components)
+        update_checker = getattr(self, 'update_checker', None)
+        if update_checker is not None:
+            sources.append(update_checker)
+        return sources
+
     def _wire_health_signals(self) -> None:
-        for plugin in self.child_components:
-            plugin.health_changed.connect(self._refresh_tray_icon)
+        for source in self._health_sources():
+            source.health_changed.connect(self._refresh_tray_icon)
 
     @Slot()
     def _refresh_tray_icon(self) -> None:
         reports: list[HealthReport] = []
-        for plugin in self.child_components:
+        for source in self._health_sources():
             try:
-                reports.append(plugin.health())
+                reports.append(source.health())
             except Exception:
-                logging.exception("plugin %s health() raised", plugin.__class__.__name__)
+                logging.exception("plugin %s health() raised", source.__class__.__name__)
                 reports.append(HealthReport(HealthState.WARNING, "health() failed"))
         worst_state, _ = aggregate_health(reports)
         self._tray_icon.setIcon(tray_icon_for_state(worst_state))
 
+    def _add_menu_entries(self, menu: QMenu, entries) -> None:
+        for action in entries:
+            if isinstance(action, QMenu):
+                menu.addMenu(action)
+            elif isinstance(action, QAction):
+                menu.addAction(action)
+
     def _populate_main_menu(self, menu: QMenu) -> None:
         menu.clear()
 
-        reports: list[tuple[BaseWidget, HealthReport]] = []
-        for plugin in self.child_components:
+        reports: list[tuple[HealthReporter, HealthReport]] = []
+        for source in self._health_sources():
             try:
-                reports.append((plugin, plugin.health()))
+                reports.append((source, source.health()))
             except Exception:
-                logging.exception("plugin %s health() raised", plugin.__class__.__name__)
-                reports.append((plugin, HealthReport(HealthState.WARNING, "health() failed")))
+                logging.exception("plugin %s health() raised", source.__class__.__name__)
+                reports.append((source, HealthReport(HealthState.WARNING, "health() failed")))
 
         worst_state, summary_text = aggregate_health([r for _, r in reports])
         health_submenu = QMenu(summary_text, menu)
         health_submenu.setIcon(icon_for_state(worst_state))
-        for plugin, report in reports:
-            row = QAction(f"{plugin.get_display_name()} — {report.message}", self)
+        for source, report in reports:
+            row = QAction(f"{source.get_display_name()} — {report.message}", self)
             row.setIcon(icon_for_state(report.state))
             row.setEnabled(False)
             health_submenu.addAction(row)
         menu.addMenu(health_submenu)
         menu.addSeparator()
 
-        for plugin, _ in reports:
+        for plugin in self.child_components:
             if plugin.is_toggleable() and not plugin.is_enabled():
                 continue
-            for action in plugin.retrieve_menus():
-                if isinstance(action, QMenu):
-                    menu.addMenu(action)
-                elif isinstance(action, QAction):
-                    menu.addAction(action)
+            self._add_menu_entries(menu, plugin.retrieve_menus())
         menu.addSeparator()
 
         config_action = QAction('Configuration...', self)
@@ -132,7 +144,11 @@ class TrayWidget(QWidget):
         logs_action.triggered.connect(self.open_logs_window)
         menu.addAction(logs_action)
 
-        about_action = QAction('About...', self)
+        update_checker = getattr(self, 'update_checker', None)
+        if update_checker is not None:
+            self._add_menu_entries(menu, update_checker.retrieve_menus())
+
+        about_action = QAction('About', self)
         about_action.triggered.connect(self.open_about_dialog)
         menu.addAction(about_action)
         menu.addSeparator()
@@ -158,8 +174,8 @@ class TrayWidget(QWidget):
         self.close()
 
     def closeEvent(self, event):
-        for child_component in self.child_components:
-            child_component.close()
+        for source in self._health_sources():
+            source.close()
         QCoreApplication.exit()
 
     @Slot()
