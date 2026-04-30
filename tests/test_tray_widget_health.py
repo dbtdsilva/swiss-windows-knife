@@ -117,7 +117,7 @@ def test_main_menu_starts_with_summary_and_health_submenu(qtbot, tray_with_stubs
 
 def test_main_menu_summary_all_ok_when_only_disabled_remain(qtbot, tray_with_stubs):
     plugins = [
-        _StubPlugin("Alpha", HealthReport(HealthState.DISABLED, "")),
+        _StubPlugin("Alpha", HealthReport(HealthState.DISABLED, "Disabled")),
         _StubPlugin("Bravo", HealthReport(HealthState.OK, "Listening")),
     ]
     tray = tray_with_stubs(plugins)
@@ -126,6 +126,10 @@ def test_main_menu_summary_all_ok_when_only_disabled_remain(qtbot, tray_with_stu
     menu = QMenu()
     tray._populate_main_menu(menu)
     assert menu.actions()[0].text() == "Health: All OK"
+
+    health_submenu = menu.actions()[1].menu()
+    rows = [a.text() for a in health_submenu.actions()]
+    assert rows == ["Alpha — Disabled", "Bravo — Listening"]
 
 
 def test_health_row_for_failing_plugin_does_not_break_menu(qtbot, tray_with_stubs):
