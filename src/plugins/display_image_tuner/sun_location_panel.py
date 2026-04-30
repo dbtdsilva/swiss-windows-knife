@@ -25,14 +25,23 @@ class SunLocationConfigPanel(ConfigPanel):
         self._sun_strength = sun_strength_notifier
         self._user_settings = UserSettings.instance()
 
+        has_saved_location = (
+            self._user_settings.has_key('sun_latitude')
+            and self._user_settings.has_key('sun_longitude')
+        )
         try:
             latitude = float(self._user_settings.get('sun_latitude'))  # type: ignore[arg-type]
             longitude = float(self._user_settings.get('sun_longitude'))  # type: ignore[arg-type]
         except (TypeError, ValueError):
             latitude, longitude = DEFAULT_LATITUDE, DEFAULT_LONGITUDE
+            has_saved_location = False
         timezone = str(self._user_settings.get('sun_timezone') or DEFAULT_TIMEZONE)
 
-        self.picker = LocationPickerWidget(latitude, longitude, timezone, self)
+        # If the user has previously saved a location, open zoomed in so
+        # they can see the placed marker in context. Otherwise show a
+        # wider view to make the initial picking easier.
+        initial_zoom = 11 if has_saved_location else 6
+        self.picker = LocationPickerWidget(latitude, longitude, timezone, self, initial_zoom=initial_zoom)
 
         layout = QVBoxLayout(self)
         layout.addWidget(self.picker)

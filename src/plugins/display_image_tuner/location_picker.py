@@ -1,15 +1,20 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QFile, QIODevice, QObject, QUrl, Signal, Slot
+import logging
+
+import requests
+from PySide6.QtCore import QFile, QIODevice, QObject, Qt, QThread, QUrl, Signal, Slot
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtWidgets import QFormLayout, QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFormLayout, QLabel, QMessageBox, QVBoxLayout, QWidget
 from timezonefinder import TimezoneFinder
 
 _QWEBCHANNEL_JS_PATH = ":/qtwebchannel/qwebchannel.js"
 _TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 _LEAFLET_CSS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
 _LEAFLET_JS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+_IPAPI_URL = "https://ipinfo.io/json"
+_IPAPI_TIMEOUT_S = 5
 
 _tz_finder: TimezoneFinder | None = None
 
@@ -32,7 +37,7 @@ def _read_qwebchannel_js() -> str:
         f.close()
 
 
-def _build_html(initial_lat: float, initial_lng: float, qwebchannel_js: str) -> str:
+def _build_html(initial_lat: float, initial_lng: float, initial_zoom: int, qwebchannel_js: str) -> str:
     return f"""<!DOCTYPE html>
 <html>
 <head>
@@ -41,6 +46,17 @@ def _build_html(initial_lat: float, initial_lng: float, qwebchannel_js: str) -> 
   <style>
     html, body, #map {{ height: 100%; margin: 0; }}
     #map {{ background: #1e1e1e; }}
+    .swk-detect-button {{
+      background: white;
+      border: 2px solid rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+      cursor: pointer;
+      padding: 4px 8px;
+      font: 12px/1.4 system-ui, sans-serif;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }}
+    .swk-detect-button:hover {{ background: #f4f4f4; }}
+    .swk-detect-button:disabled {{ color: #888; cursor: progress; }}
   </style>
 </head>
 <body>
@@ -48,20 +64,52 @@ def _build_html(initial_lat: float, initial_lng: float, qwebchannel_js: str) -> 
   <script>{qwebchannel_js}</script>
   <script src="{_LEAFLET_JS}"></script>
   <script>
-    const map = L.map('map').setView([{initial_lat}, {initial_lng}], 6);
+    const map = L.map('map').setView([{initial_lat}, {initial_lng}], {initial_zoom});
     L.tileLayer('{_TILE_URL}', {{
       attribution: '&copy; OpenStreetMap contributors',
       maxZoom: 18,
     }}).addTo(map);
     let marker = L.marker([{initial_lat}, {initial_lng}]).addTo(map);
 
+    // Detect-from-IP control. The button is a real Leaflet control so it
+    // sits cleanly with the zoom controls and follows the map's chrome.
+    const DetectControl = L.Control.extend({{
+      onAdd: function() {{
+        const btn = L.DomUtil.create('button', 'swk-detect-button');
+        btn.id = 'swk-detect';
+        btn.type = 'button';
+        btn.textContent = '📍 Detect';
+        btn.title = 'Detect my location from IP';
+        L.DomEvent.disableClickPropagation(btn);
+        L.DomEvent.on(btn, 'click', function() {{
+          if (window._swkBridge) window._swkBridge.request_geolocate();
+        }});
+        return btn;
+      }},
+      onRemove: function() {{}}
+    }});
+    new DetectControl({{ position: 'topright' }}).addTo(map);
+
     new QWebChannel(qt.webChannelTransport, function(channel) {{
       const bridge = channel.objects.bridge;
+      window._swkBridge = bridge;
       map.on('click', function(e) {{
         marker.setLatLng(e.latlng);
         bridge.set_coordinates(e.latlng.lat, e.latlng.lng);
       }});
     }});
+
+    // Helpers callable from Python via runJavaScript.
+    window.swkSetMarker = function(lat, lng) {{
+      marker.setLatLng([lat, lng]);
+      map.setView([lat, lng], Math.max(map.getZoom(), 11));
+    }};
+    window.swkSetDetectButtonState = function(enabled, label) {{
+      const btn = document.getElementById('swk-detect');
+      if (!btn) return;
+      btn.disabled = !enabled;
+      btn.textContent = label;
+    }};
   </script>
 </body>
 </html>"""
@@ -69,21 +117,52 @@ def _build_html(initial_lat: float, initial_lng: float, qwebchannel_js: str) -> 
 
 class _MapBridge(QObject):
     coordinates_picked = Signal(float, float)
+    geolocate_requested = Signal()
 
     @Slot(float, float)
     def set_coordinates(self, lat: float, lng: float) -> None:
         self.coordinates_picked.emit(lat, lng)
 
+    @Slot()
+    def request_geolocate(self) -> None:
+        self.geolocate_requested.emit()
+
+
+class _IpGeolocateWorker(QObject):
+    finished = Signal(object)
+
+    @Slot()
+    def run(self) -> None:
+        try:
+            response = requests.get(_IPAPI_URL, timeout=_IPAPI_TIMEOUT_S)
+            response.raise_for_status()
+            data = response.json()
+            # ipinfo.io returns lat/lng as a single "lat,lng" string under
+            # the `loc` key.
+            loc = str(data["loc"])
+            lat_s, lng_s = loc.split(",", 1)
+            lat = float(lat_s)
+            lng = float(lng_s)
+            tz = str(data.get("timezone") or "")
+        except Exception:
+            logging.exception("IP geolocation failed")
+            self.finished.emit(None)
+            return
+        self.finished.emit((lat, lng, tz))
+
 
 class LocationPickerWidget(QWidget):
     """Interactive OpenStreetMap-backed coordinate + timezone picker.
 
-    Emits `location_changed(lat, lng, timezone)` when the user clicks a
-    new location on the map. The QWebEngineView and its Chromium plumbing
-    are constructed lazily on first show — instantiating them during
-    headless test collection would otherwise leave a QWebEnginePage alive
-    past QWebEngineProfile destruction at interpreter shutdown, segfaulting
-    pytest under Windows.
+    Uses QWebEngineView + Leaflet (loaded from a CDN) to render the map
+    and capture clicks; the page talks to Python via QWebChannel. A
+    "📍 Detect" Leaflet control kicks off an IP-based geolocation lookup
+    that updates the marker without leaving the map.
+
+    The QWebEngineView is constructed eagerly in `__init__` rather than
+    lazily on first `showEvent`. Lazy construction during a QTabWidget
+    tab switch hangs the GUI on Windows for any heavy native sub-window;
+    eager construction sidesteps that race.
     """
 
     location_changed = Signal(float, float, str)
@@ -94,6 +173,7 @@ class LocationPickerWidget(QWidget):
         initial_lng: float,
         initial_timezone: str,
         parent: QWidget | None = None,
+        initial_zoom: int = 6,
     ) -> None:
         super().__init__(parent)
 
@@ -104,17 +184,23 @@ class LocationPickerWidget(QWidget):
         self._coords_label = QLabel(self._format_coords(self._lat, self._lng))
         self._timezone_label = QLabel(self._timezone or "(unknown)")
 
-        self._map_container = QWidget(self)
-        self._map_container.setMinimumHeight(360)
-        self._map_layout = QVBoxLayout(self._map_container)
-        self._map_layout.setContentsMargins(0, 0, 0, 0)
+        self._view = QWebEngineView(self)
+        self._view.setMinimumHeight(360)
 
-        self._view: QWebEngineView | None = None
-        self._channel: QWebChannel | None = None
-        self._bridge: _MapBridge | None = None
+        self._channel = QWebChannel(self._view.page())
+        self._bridge = _MapBridge(self)
+        self._bridge.coordinates_picked.connect(self._on_coordinates_picked)
+        self._bridge.geolocate_requested.connect(self._on_geolocate_requested)
+        self._channel.registerObject("bridge", self._bridge)
+        self._view.page().setWebChannel(self._channel)
+
+        html = _build_html(self._lat, self._lng, int(initial_zoom), _read_qwebchannel_js())
+        self._view.setHtml(html, QUrl("https://maps.local/"))
+
+        self._geolocate_thread: QThread | None = None
 
         layout = QVBoxLayout(self)
-        layout.addWidget(self._map_container, 1)
+        layout.addWidget(self._view, 1)
         info = QFormLayout()
         info.addRow("Coordinates:", self._coords_label)
         info.addRow("Timezone:", self._timezone_label)
@@ -129,23 +215,18 @@ class LocationPickerWidget(QWidget):
     def timezone(self) -> str:
         return self._timezone
 
-    def showEvent(self, event) -> None:
-        if self._view is None:
-            self._build_view()
-        super().showEvent(event)
-
-    def _build_view(self) -> None:
-        self._view = QWebEngineView(self._map_container)
-        self._map_layout.addWidget(self._view)
-
-        self._channel = QWebChannel(self._view.page())
-        self._bridge = _MapBridge(self)
-        self._bridge.coordinates_picked.connect(self._on_coordinates_picked)
-        self._channel.registerObject("bridge", self._bridge)
-        self._view.page().setWebChannel(self._channel)
-
-        html = _build_html(self._lat, self._lng, _read_qwebchannel_js())
-        self._view.setHtml(html, QUrl("https://maps.local/"))
+    def set_location(self, lat: float, lng: float, timezone: str | None = None) -> None:
+        """Programmatically move the marker (also pans the Leaflet map)."""
+        self._lat = float(lat)
+        self._lng = float(lng)
+        if timezone:
+            self._timezone = str(timezone)
+        else:
+            self._timezone = coordinates_to_timezone(self._lat, self._lng) or ""
+        self._coords_label.setText(self._format_coords(self._lat, self._lng))
+        self._timezone_label.setText(self._timezone or "(unknown)")
+        self._view.page().runJavaScript(f"window.swkSetMarker({self._lat}, {self._lng});")
+        self.location_changed.emit(self._lat, self._lng, self._timezone)
 
     @Slot(float, float)
     def _on_coordinates_picked(self, lat: float, lng: float) -> None:
@@ -155,6 +236,48 @@ class LocationPickerWidget(QWidget):
         self._coords_label.setText(self._format_coords(lat, lng))
         self._timezone_label.setText(self._timezone or "(unknown)")
         self.location_changed.emit(lat, lng, self._timezone)
+
+    @Slot()
+    def _on_geolocate_requested(self) -> None:
+        if self._geolocate_thread is not None:
+            return  # already in flight
+        self._set_detect_button_state(False, "📍 Detecting…")
+
+        thread = QThread(self)
+        worker = _IpGeolocateWorker()
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run)
+        worker.finished.connect(self._on_geolocate_finished, Qt.ConnectionType.QueuedConnection)
+        worker.finished.connect(thread.quit)
+        thread.finished.connect(worker.deleteLater)
+        thread.finished.connect(thread.deleteLater)
+        # Anchor the worker against PySide6 GC: signal connections are
+        # weak-ref'd, so without this the worker can be collected before
+        # `started` fires and `run` would silently never execute.
+        thread._geolocate_worker_anchor = worker  # type: ignore[attr-defined]
+        thread.start()
+        self._geolocate_thread = thread
+
+    @Slot(object)
+    def _on_geolocate_finished(self, result) -> None:
+        self._set_detect_button_state(True, "📍 Detect")
+        self._geolocate_thread = None
+        if result is None:
+            QMessageBox.warning(
+                self, "Couldn't detect location",
+                "Failed to look up your location from the network. "
+                "See logs for details.",
+            )
+            return
+        lat, lng, tz = result
+        self.set_location(lat, lng, tz)
+
+    def _set_detect_button_state(self, enabled: bool, label: str) -> None:
+        # Single-quoted JS string literal; sanitise: the label is hard-coded
+        # so no escaping needed here, but keep the call defensive.
+        safe_label = label.replace("\\", "\\\\").replace("'", "\\'")
+        js = f"window.swkSetDetectButtonState({'true' if enabled else 'false'}, '{safe_label}');"
+        self._view.page().runJavaScript(js)
 
     @staticmethod
     def _format_coords(lat: float, lng: float) -> str:
