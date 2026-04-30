@@ -9,7 +9,7 @@ forms a real Windows QSettings would hand back.
 
 import pytest
 
-from src.base.user_settings import (
+from swiss_windows_knife.base.user_settings import (
     _coerce_bool,
     _coerce_optional_float,
     _coerce_optional_int,

@@ -9,8 +9,8 @@ import traceback
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
-from src.app_info import APP_INFO
-from src.ui.tray_widget import TrayWidget
+from swiss_windows_knife.app_info import APP_INFO
+from swiss_windows_knife.ui.tray_widget import TrayWidget
 
 
 def _set_windows_app_user_model_id() -> None:

@@ -1,7 +1,7 @@
 import threading
 import time
 
-from src.plugins.home_assistant_mqtt_pub.sampler_runner import SamplerRunner
+from swiss_windows_knife.plugins.home_assistant_mqtt_pub.sampler_runner import SamplerRunner
 
 
 def test_submit_runs_fn_off_calling_thread_and_calls_on_done():

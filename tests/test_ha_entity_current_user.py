@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from src.plugins.home_assistant_mqtt_pub.entities.current_user import CurrentUserEntity
+from swiss_windows_knife.plugins.home_assistant_mqtt_pub.entities.current_user import CurrentUserEntity
 
 
 def test_default_enabled_is_false_for_privacy():

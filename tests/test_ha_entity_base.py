@@ -1,4 +1,4 @@
-from src.plugins.home_assistant_mqtt_pub.entities.base import SampleResult
+from swiss_windows_knife.plugins.home_assistant_mqtt_pub.entities.base import SampleResult
 
 
 def test_sample_result_available():

@@ -1,7 +1,7 @@
 """Build and run helpers for swiss-windows-knife.
 
 Subcommands:
-    resources  Regenerate src/resources.py from resources.qrc via pyside6-rcc.
+    resources  Regenerate swiss_windows_knife/resources.py from resources.qrc via pyside6-rcc.
     dev        Regenerate resources, then run the tray in dev mode.
     exe        Regenerate resources, then build the cx_Freeze frozen exe.
     installer  Regenerate resources, build exe, then build the Inno Setup installer.
@@ -16,10 +16,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from src.app_info import APP_INFO  # noqa: E402
+from swiss_windows_knife.app_info import APP_INFO  # noqa: E402
 
 QRC_FILE = "resources.qrc"
-PY_OUTPUT = os.path.join("src", "resources.py")
+PY_OUTPUT = os.path.join("swiss_windows_knife", "resources.py")
 ICON_PATH = os.path.join("icons", "coat-of-arms.ico")
 
 
@@ -39,7 +39,7 @@ def build_exe() -> None:
 
     executables = [
         cx_Freeze.Executable(
-            os.path.join(str(ROOT), "src", "swiss_windows_knife.py"),
+            os.path.join(str(ROOT), "swiss_windows_knife", "__main__.py"),
             target_name=APP_INFO.APP_NAME.replace(" ", "") + ".exe",
             icon=ICON_PATH,
             base="Win32GUI",
@@ -82,7 +82,7 @@ def build_installer() -> None:
 
 
 def run_dev() -> None:
-    from src.swiss_windows_knife import SwissWindowsKnife
+    from swiss_windows_knife.__main__ import SwissWindowsKnife
     SwissWindowsKnife(True)
 
 
@@ -92,7 +92,7 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     sub = parser.add_subparsers(dest="mode", required=True)
-    sub.add_parser("resources", help="Regenerate src/resources.py from resources.qrc.")
+    sub.add_parser("resources", help="Regenerate swiss_windows_knife/resources.py from resources.qrc.")
     sub.add_parser("dev", help="Build resources and run the tray in dev mode.")
     sub.add_parser("exe", help="Build resources and the cx_Freeze frozen exe.")
     sub.add_parser("installer", help="Build resources, exe, and Inno Setup installer.")

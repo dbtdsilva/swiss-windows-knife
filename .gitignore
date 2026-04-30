@@ -352,5 +352,5 @@ $RECYCLE.BIN/
 
 # End of https://www.toptal.com/developers/gitignore/api/python,pycharm,visualstudiocode,windows,git
 
-src/resources.py
+swiss_windows_knife/resources.py
 resources_rc.py

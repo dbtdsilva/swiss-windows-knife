@@ -1,4 +1,4 @@
-from src.plugins.display_image_tuner.location_picker import coordinates_to_timezone
+from swiss_windows_knife.plugins.display_image_tuner.location_picker import coordinates_to_timezone
 
 
 def test_coordinates_to_timezone_resolves_known_city():

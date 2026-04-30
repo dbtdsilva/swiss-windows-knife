@@ -20,7 +20,7 @@ class _FakeDevice:
 @pytest.fixture
 def make_panel(qtbot, fake_user_settings, silent_messagebox):
     """Build a panel with controllable, sync providers."""
-    from src.plugins.device_display_mapper.display_automation_panel import (
+    from swiss_windows_knife.plugins.device_display_mapper.display_automation_panel import (
         DisplayAutomationConfigPanel,
     )
 
@@ -120,7 +120,7 @@ def test_panel_renders_per_monitor_input_choices_and_persists(make_panel, fake_u
 def test_panel_populates_when_discovery_completes_async(qtbot, fake_user_settings, silent_messagebox):
     """When schedule_discovery defers `_populate`, the panel still shows the
     placeholder before discovery and the widgets after."""
-    from src.plugins.device_display_mapper.display_automation_panel import (
+    from swiss_windows_knife.plugins.device_display_mapper.display_automation_panel import (
         DisplayAutomationConfigPanel,
     )
     deferred: list = []

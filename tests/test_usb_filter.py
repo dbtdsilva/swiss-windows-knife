@@ -1,6 +1,6 @@
 import pytest
 
-from src.plugins.device_display_mapper.device_listener import DeviceListener
+from swiss_windows_knife.plugins.device_display_mapper.device_listener import DeviceListener
 
 
 @pytest.mark.parametrize("pnp_id,expected", [

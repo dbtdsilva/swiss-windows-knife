@@ -1,5 +1,5 @@
-from src.plugins.home_assistant_mqtt_pub.device_context import DeviceContext
-from src.plugins.home_assistant_mqtt_pub.publisher import (
+from swiss_windows_knife.plugins.home_assistant_mqtt_pub.device_context import DeviceContext
+from swiss_windows_knife.plugins.home_assistant_mqtt_pub.publisher import (
     PublishedRef,
     compute_reconciliation,
 )

@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from src.plugins.home_assistant_mqtt_pub.entities.uptime import UptimeEntity
+from swiss_windows_knife.plugins.home_assistant_mqtt_pub.entities.uptime import UptimeEntity
 
 
 def test_sample_returns_seconds_since_boot():

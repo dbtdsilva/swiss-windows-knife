@@ -41,25 +41,25 @@ class _FakeUserSettings:
         self._data[key] = value
 
     def get_bool(self, key, default):
-        from src.base.user_settings import _coerce_bool
+        from swiss_windows_knife.base.user_settings import _coerce_bool
         return _coerce_bool(self._data.get(key), default)
 
     def get_int(self, key, default):
-        from src.base.user_settings import _coerce_optional_int
+        from swiss_windows_knife.base.user_settings import _coerce_optional_int
         out = _coerce_optional_int(self._data.get(key))
         return default if out is None else out
 
     def get_optional_int(self, key):
-        from src.base.user_settings import _coerce_optional_int
+        from swiss_windows_knife.base.user_settings import _coerce_optional_int
         return _coerce_optional_int(self._data.get(key))
 
     def get_float(self, key, default):
-        from src.base.user_settings import _coerce_optional_float
+        from swiss_windows_knife.base.user_settings import _coerce_optional_float
         out = _coerce_optional_float(self._data.get(key))
         return default if out is None else out
 
     def get_optional_float(self, key):
-        from src.base.user_settings import _coerce_optional_float
+        from swiss_windows_knife.base.user_settings import _coerce_optional_float
         return _coerce_optional_float(self._data.get(key))
 
     def get_str(self, key, default=""):
@@ -81,7 +81,7 @@ def fake_user_settings(monkeypatch):
     Panels and plugins fetch settings via the singleton at __init__ time,
     so this fixture must be applied before instantiating them.
     """
-    from src.base.user_settings import UserSettings
+    from swiss_windows_knife.base.user_settings import UserSettings
     fake = _FakeUserSettings()
     monkeypatch.setattr(UserSettings, 'instance', classmethod(lambda cls: fake))
     return fake

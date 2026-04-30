@@ -2,8 +2,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.plugins.home_assistant_mqtt_pub.device_context import DeviceContext
-from src.plugins.home_assistant_mqtt_pub.publisher import Publisher
+from swiss_windows_knife.plugins.home_assistant_mqtt_pub.device_context import DeviceContext
+from swiss_windows_knife.plugins.home_assistant_mqtt_pub.publisher import Publisher
 
 
 class _SyncSampler:
@@ -28,13 +28,13 @@ class _StubEntity:
         return {"name": self.display_name, "state_topic": ctx.state_topic(self.component, self.key)}
 
     def sample(self):
-        from src.plugins.home_assistant_mqtt_pub.entities.base import SampleResult
+        from swiss_windows_knife.plugins.home_assistant_mqtt_pub.entities.base import SampleResult
         return SampleResult.available(value=self._value, unit="%")
 
 
 @pytest.fixture
 def settings(fake_user_settings):
-    from src.plugins.home_assistant_mqtt_pub.entity_settings import EntitySettings
+    from swiss_windows_knife.plugins.home_assistant_mqtt_pub.entity_settings import EntitySettings
     return EntitySettings(fake_user_settings)
 
 
@@ -82,7 +82,7 @@ def test_publish_state_uses_value_and_retain_true(qtbot, fake_user_settings, set
 
 
 def test_unavailable_sample_publishes_nothing(qtbot, fake_user_settings, settings):
-    from src.plugins.home_assistant_mqtt_pub.entities.base import SampleResult
+    from swiss_windows_knife.plugins.home_assistant_mqtt_pub.entities.base import SampleResult
 
     class _Bad(_StubEntity):
         def sample(self):

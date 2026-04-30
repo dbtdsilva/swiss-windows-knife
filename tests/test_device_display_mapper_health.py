@@ -1,6 +1,6 @@
 import pytest
 
-from src.base.health import HealthState
+from swiss_windows_knife.base.health import HealthState
 
 
 class _FakeDeviceListener:
@@ -34,16 +34,16 @@ def _reset():
 
 def _patch(monkeypatch, listener_cls):
     monkeypatch.setattr(
-        "src.plugins.device_display_mapper.device_display_mapper_plugin.DeviceListener",
+        "swiss_windows_knife.plugins.device_display_mapper.device_display_mapper_plugin.DeviceListener",
         listener_cls,
     )
     monkeypatch.setattr(
-        "src.plugins.device_display_mapper.device_display_mapper_plugin."
+        "swiss_windows_knife.plugins.device_display_mapper.device_display_mapper_plugin."
         "DeviceDisplayMapperPlugin._prewarm_monitor_cache",
         lambda self: None,
     )
     monkeypatch.setattr(
-        "src.plugins.device_display_mapper.device_display_mapper_plugin."
+        "swiss_windows_knife.plugins.device_display_mapper.device_display_mapper_plugin."
         "DeviceDisplayMapperPlugin.request_usb_devices",
         lambda self, cb: None,
     )
@@ -51,7 +51,7 @@ def _patch(monkeypatch, listener_cls):
 
 def test_health_is_ok_listening_on_successful_start(qtbot, fake_user_settings, monkeypatch):
     _patch(monkeypatch, _FakeDeviceListener)
-    from src.plugins.device_display_mapper.device_display_mapper_plugin import (
+    from swiss_windows_knife.plugins.device_display_mapper.device_display_mapper_plugin import (
         DeviceDisplayMapperPlugin,
     )
     p = DeviceDisplayMapperPlugin(None)
@@ -62,7 +62,7 @@ def test_health_is_ok_listening_on_successful_start(qtbot, fake_user_settings, m
 
 def test_health_is_error_when_listener_construction_fails(qtbot, fake_user_settings, monkeypatch):
     _patch(monkeypatch, _ExplodingListener)
-    from src.plugins.device_display_mapper.device_display_mapper_plugin import (
+    from swiss_windows_knife.plugins.device_display_mapper.device_display_mapper_plugin import (
         DeviceDisplayMapperPlugin,
     )
     p = DeviceDisplayMapperPlugin(None)

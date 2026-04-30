@@ -1,4 +1,4 @@
-from src.plugins.home_assistant_mqtt_pub.device_context import DeviceContext, slugify
+from swiss_windows_knife.plugins.home_assistant_mqtt_pub.device_context import DeviceContext, slugify
 
 
 def test_slugify_lowercases_and_replaces_spaces():

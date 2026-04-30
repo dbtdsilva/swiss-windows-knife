@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
-from src.plugins.home_assistant_mqtt_pub.device_context import DeviceContext
-from src.plugins.home_assistant_mqtt_pub.entities.cpu_usage import CpuUsageEntity
+from swiss_windows_knife.plugins.home_assistant_mqtt_pub.device_context import DeviceContext
+from swiss_windows_knife.plugins.home_assistant_mqtt_pub.entities.cpu_usage import CpuUsageEntity
 
 
 def test_metadata():
@@ -43,7 +43,7 @@ def test_discovery_payload_shape():
 
 
 def test_registered_in_entity_list(qapp):
-    from src.plugins.home_assistant_mqtt_pub.entities import build_entity_registry
+    from swiss_windows_knife.plugins.home_assistant_mqtt_pub.entities import build_entity_registry
     reg = build_entity_registry()
     keys = [e.key for e in reg]
     assert "cpu_usage" in keys

@@ -1,6 +1,6 @@
 import pytest
 
-from src.base.health import HealthReport, HealthState
+from swiss_windows_knife.base.health import HealthReport, HealthState
 
 
 def test_health_state_has_four_values():

@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "swiss-windows-knife"
 version = "1.16.1"
@@ -21,6 +25,10 @@ dependencies = [
 build = ["cx_Freeze==8.6.4"]
 test = ["pytest>=8", "pytest-qt>=4"]
 
+[tool.setuptools.packages.find]
+include = ["swiss_windows_knife*"]
+exclude = ["tests*", "tools*"]
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
@@ -28,7 +36,7 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 127
 target-version = "py312"
-extend-exclude = ["src/resources.py"]
+extend-exclude = ["swiss_windows_knife/resources.py"]
 
 [tool.ruff.lint]
 select = [
@@ -50,7 +58,7 @@ commit_parser = "angular"
 logging_use_named_masks = true
 tag_format = "{version}"
 major_on_zero = true
-version_variables = ["src/app_info.py:__version__"]
+version_variables = ["swiss_windows_knife/app_info.py:__version__"]
 version_toml = ["pyproject.toml:project.version"]
 
 [tool.semantic_release.branches.main]

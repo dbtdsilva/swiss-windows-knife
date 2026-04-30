@@ -1,6 +1,6 @@
 import pytest
 
-from src.base.config_panel import ConfigPanel
+from swiss_windows_knife.base.config_panel import ConfigPanel
 
 
 class _NamedPanel(ConfigPanel):
@@ -51,7 +51,7 @@ def _reset():
 
 @pytest.fixture
 def make_dialog(qtbot, fake_user_settings):
-    from src.ui.configuration_dialog import ConfigurationDialog
+    from swiss_windows_knife.ui.configuration_dialog import ConfigurationDialog
 
     def _make(plugins):
         dlg = ConfigurationDialog(None, plugins)

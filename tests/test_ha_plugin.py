@@ -13,7 +13,7 @@ def configured_settings(fake_user_settings):
 
 
 def test_plugin_starts_session_when_fully_configured(qtbot, configured_settings, fake_paho_client):
-    from src.plugins.home_assistant_mqtt_pub.home_assistant_mqtt_pub_plugin import (
+    from swiss_windows_knife.plugins.home_assistant_mqtt_pub.home_assistant_mqtt_pub_plugin import (
         HomeAssistantMqttPubPlugin,
     )
     plugin = HomeAssistantMqttPubPlugin(parent=None)
@@ -23,7 +23,7 @@ def test_plugin_starts_session_when_fully_configured(qtbot, configured_settings,
 
 
 def test_plugin_inert_when_unconfigured(qtbot, fake_user_settings, fake_paho_client):
-    from src.plugins.home_assistant_mqtt_pub.home_assistant_mqtt_pub_plugin import (
+    from swiss_windows_knife.plugins.home_assistant_mqtt_pub.home_assistant_mqtt_pub_plugin import (
         HomeAssistantMqttPubPlugin,
     )
     plugin = HomeAssistantMqttPubPlugin(parent=None)
@@ -33,7 +33,7 @@ def test_plugin_inert_when_unconfigured(qtbot, fake_user_settings, fake_paho_cli
 
 
 def test_status_changed_accepts_bool_signature(qtbot, configured_settings, fake_paho_client):
-    from src.plugins.home_assistant_mqtt_pub.home_assistant_mqtt_pub_plugin import (
+    from swiss_windows_knife.plugins.home_assistant_mqtt_pub.home_assistant_mqtt_pub_plugin import (
         HomeAssistantMqttPubPlugin,
     )
     plugin = HomeAssistantMqttPubPlugin(parent=None)
@@ -42,7 +42,7 @@ def test_status_changed_accepts_bool_signature(qtbot, configured_settings, fake_
 
 
 def test_disable_deletes_discovery_and_disconnects(qtbot, configured_settings, fake_paho_client):
-    from src.plugins.home_assistant_mqtt_pub.home_assistant_mqtt_pub_plugin import (
+    from swiss_windows_knife.plugins.home_assistant_mqtt_pub.home_assistant_mqtt_pub_plugin import (
         HomeAssistantMqttPubPlugin,
     )
     plugin = HomeAssistantMqttPubPlugin(parent=None)

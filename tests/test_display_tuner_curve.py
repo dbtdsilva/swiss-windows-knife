@@ -1,6 +1,6 @@
 import pytest
 
-from src.plugins.display_image_tuner.curve import compute_keyframe_value
+from swiss_windows_knife.plugins.display_image_tuner.curve import compute_keyframe_value
 
 
 def call(when, **kwargs):

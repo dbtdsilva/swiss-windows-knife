@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from src.plugins.home_assistant_mqtt_pub.commands.shutdown import ShutdownCommand
+from swiss_windows_knife.plugins.home_assistant_mqtt_pub.commands.shutdown import ShutdownCommand
 
 
 def test_is_available_when_privilege_can_be_acquired():

@@ -33,21 +33,21 @@ def _reset_fake_instances():
 def plugin(qtbot, fake_user_settings, monkeypatch):
     """Construct the plugin with the WMI device-listener stubbed out."""
     monkeypatch.setattr(
-        "src.plugins.device_display_mapper.device_display_mapper_plugin.DeviceListener",
+        "swiss_windows_knife.plugins.device_display_mapper.device_display_mapper_plugin.DeviceListener",
         _FakeDeviceListener,
     )
     monkeypatch.setattr(
-        "src.plugins.device_display_mapper.device_display_mapper_plugin."
+        "swiss_windows_knife.plugins.device_display_mapper.device_display_mapper_plugin."
         "DeviceDisplayMapperPlugin._prewarm_monitor_cache",
         lambda self: None,
     )
     monkeypatch.setattr(
-        "src.plugins.device_display_mapper.device_display_mapper_plugin."
+        "swiss_windows_knife.plugins.device_display_mapper.device_display_mapper_plugin."
         "DeviceDisplayMapperPlugin.request_usb_devices",
         lambda self, cb: None,
     )
 
-    from src.plugins.device_display_mapper.device_display_mapper_plugin import (
+    from swiss_windows_knife.plugins.device_display_mapper.device_display_mapper_plugin import (
         DeviceDisplayMapperPlugin,
     )
     p = DeviceDisplayMapperPlugin(None)
@@ -76,21 +76,21 @@ def test_status_changed_true_creates_new_listener(plugin):
 def test_construction_skips_listener_when_persisted_disabled(qtbot, fake_user_settings, monkeypatch):
     fake_user_settings.set('plugin_enabled_DeviceDisplayMapperPlugin', False)
     monkeypatch.setattr(
-        "src.plugins.device_display_mapper.device_display_mapper_plugin.DeviceListener",
+        "swiss_windows_knife.plugins.device_display_mapper.device_display_mapper_plugin.DeviceListener",
         _FakeDeviceListener,
     )
     monkeypatch.setattr(
-        "src.plugins.device_display_mapper.device_display_mapper_plugin."
+        "swiss_windows_knife.plugins.device_display_mapper.device_display_mapper_plugin."
         "DeviceDisplayMapperPlugin._prewarm_monitor_cache",
         lambda self: None,
     )
     monkeypatch.setattr(
-        "src.plugins.device_display_mapper.device_display_mapper_plugin."
+        "swiss_windows_knife.plugins.device_display_mapper.device_display_mapper_plugin."
         "DeviceDisplayMapperPlugin.request_usb_devices",
         lambda self, cb: None,
     )
 
-    from src.plugins.device_display_mapper.device_display_mapper_plugin import (
+    from swiss_windows_knife.plugins.device_display_mapper.device_display_mapper_plugin import (
         DeviceDisplayMapperPlugin,
     )
     p = DeviceDisplayMapperPlugin(None)

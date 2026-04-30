@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from src.plugins.home_assistant_mqtt_pub.entities.disk_free import (
+from swiss_windows_knife.plugins.home_assistant_mqtt_pub.entities.disk_free import (
     DiskFreeEntity,
     discover_disk_free_entities,
 )

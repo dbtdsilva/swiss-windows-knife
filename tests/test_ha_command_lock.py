@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock, patch
 
-from src.plugins.home_assistant_mqtt_pub.commands.lock import LockCommand
-from src.plugins.home_assistant_mqtt_pub.device_context import DeviceContext
+from swiss_windows_knife.plugins.home_assistant_mqtt_pub.commands.lock import LockCommand
+from swiss_windows_knife.plugins.home_assistant_mqtt_pub.device_context import DeviceContext
 
 
 def test_metadata():

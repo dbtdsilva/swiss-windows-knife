@@ -1,4 +1,4 @@
-from src.plugins.home_assistant_mqtt_pub.mqtt_config import MqttConfig
+from swiss_windows_knife.plugins.home_assistant_mqtt_pub.mqtt_config import MqttConfig
 
 from .conftest import _FakeUserSettings
 

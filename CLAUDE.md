@@ -4,10 +4,10 @@ Personal Windows tray app (PySide6) bundling small plugins. Frozen with cx_Freez
 
 ## Run / build
 
-Build helpers live in `tools/build.py` (resources / dev / exe / installer). `setup.py` is a one-liner setuptools shim — it does **not** dispatch builds.
+Build helpers live in `tools/build.py` (resources / dev / exe / installer). `pyproject.toml` declares the build system and packages — there is no `setup.py`.
 
-- **Dev (no build step):** `./env/Scripts/python.exe -m src.swiss_windows_knife`
-- **Resources:** `python tools/build.py resources` regenerates `src/resources.py` from `resources.qrc` via `pyside6-rcc`. `src/resources.py` and the legacy `resources_rc.py` are gitignored — do not commit.
+- **Dev (no build step):** `./env/Scripts/python.exe -m swiss_windows_knife`
+- **Resources:** `python tools/build.py resources` regenerates `swiss_windows_knife/resources.py` from `resources.qrc` via `pyside6-rcc`. `swiss_windows_knife/resources.py` and the legacy `resources_rc.py` are gitignored — do not commit.
 - **Frozen exe:** `python tools/build.py exe` (cx_Freeze, declared in the `build` optional dep group).
 - **Installer:** `python tools/build.py installer` — calls Inno Setup at `C:\Program Files (x86)\Inno Setup 6\ISCC.exe`. Output under `build/installer/`.
 
@@ -20,15 +20,15 @@ Python floor is 3.12 (uses `typing.override`, `enum.StrEnum`). Runtime deps in `
 
 ## Architecture
 
-- Entry: `src/swiss_windows_knife.py` → `TrayWidget` (`src/ui/tray_widget.py`).
+- Entry: `swiss_windows_knife/__main__.py` → `TrayWidget` (`swiss_windows_knife/ui/tray_widget.py`).
 - Plugins are `BaseWidget` subclasses listed in `TrayWidget.__init__`. Hooks each plugin can opt into:
   - `display_name` — class attr, label in the Plugins toggle menu.
   - `retrieve_menus()` → top-level menu/action entries on the tray.
-  - `retrieve_config_panels()` → list of `ConfigPanel` (in `src/base/config_panel.py`); shown as tabs in the unified Configuration dialog (`src/ui/configuration_dialog.py`).
+  - `retrieve_config_panels()` → list of `ConfigPanel` (in `swiss_windows_knife/base/config_panel.py`); shown as tabs in the unified Configuration dialog (`swiss_windows_knife/ui/configuration_dialog.py`).
   - `set_enabled(bool)` / `status_changed(bool)` for the toggle.
-- **DDC/CI rule:** every `monitorcontrol` operation (luminance, contrast, input source) must go through `runner().submit(fn, ...)` from `src/base/monitor_runner.py`. Single daemon worker thread serializes calls so the GUI stays responsive and operations don't race each other. Don't call `monitorcontrol.get_monitors()` directly from a Qt slot.
+- **DDC/CI rule:** every `monitorcontrol` operation (luminance, contrast, input source) must go through `runner().submit(fn, ...)` from `swiss_windows_knife/base/monitor_runner.py`. Single daemon worker thread serializes calls so the GUI stays responsive and operations don't race each other. Don't call `monitorcontrol.get_monitors()` directly from a Qt slot.
 - **Settings:** `UserSettings.instance()` singleton over `QSettings`, backed by Windows registry at `HKEY_CURRENT_USER\Software\Swiss Windows Knife\UserSettings`.
-- **Adding a new setting:** add a `ConfigPanel` subclass next to the plugin, return it from the plugin's `retrieve_config_panels()`. Do not build a new top-level dialog — the unified one auto-tabs panels.
+- **Adding a new setting:** add a `ConfigPanel` subclass (defined in `swiss_windows_knife/base/config_panel.py`) next to the plugin, return it from the plugin's `retrieve_config_panels()`. Do not build a new top-level dialog — the unified one auto-tabs panels.
 
 ## Conventions
 

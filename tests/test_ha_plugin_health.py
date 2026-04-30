@@ -1,6 +1,6 @@
 import pytest
 
-from src.base.health import HealthState
+from swiss_windows_knife.base.health import HealthState
 
 
 @pytest.fixture
@@ -15,7 +15,7 @@ def configured_settings(fake_user_settings):
 
 
 def _make_plugin(qtbot):
-    from src.plugins.home_assistant_mqtt_pub.home_assistant_mqtt_pub_plugin import (
+    from swiss_windows_knife.plugins.home_assistant_mqtt_pub.home_assistant_mqtt_pub_plugin import (
         HomeAssistantMqttPubPlugin,
     )
     plugin = HomeAssistantMqttPubPlugin(parent=None)

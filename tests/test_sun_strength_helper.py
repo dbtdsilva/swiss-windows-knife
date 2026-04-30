@@ -2,7 +2,7 @@ from datetime import datetime
 
 import pytz
 
-from src.plugins.display_image_tuner.sun_strength_notifier import compute_sun_strength
+from swiss_windows_knife.plugins.display_image_tuner.sun_strength_notifier import compute_sun_strength
 
 
 def test_compute_sun_strength_zero_at_midnight_local():

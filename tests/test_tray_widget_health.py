@@ -1,10 +1,10 @@
 import pytest
 
-from src.base.health import HealthReport, HealthState
+from swiss_windows_knife.base.health import HealthReport, HealthState
 
 
 def test_aggregate_health_all_ok():
-    from src.ui.tray_widget import aggregate_health
+    from swiss_windows_knife.ui.tray_widget import aggregate_health
 
     reports = [HealthReport(HealthState.OK, ""), HealthReport(HealthState.OK, "")]
     state, text = aggregate_health(reports)
@@ -13,7 +13,7 @@ def test_aggregate_health_all_ok():
 
 
 def test_aggregate_health_disabled_does_not_contribute():
-    from src.ui.tray_widget import aggregate_health
+    from swiss_windows_knife.ui.tray_widget import aggregate_health
 
     reports = [HealthReport(HealthState.OK, ""), HealthReport(HealthState.DISABLED, "")]
     state, text = aggregate_health(reports)
@@ -22,7 +22,7 @@ def test_aggregate_health_disabled_does_not_contribute():
 
 
 def test_aggregate_health_warning_count():
-    from src.ui.tray_widget import aggregate_health
+    from swiss_windows_knife.ui.tray_widget import aggregate_health
 
     reports = [
         HealthReport(HealthState.OK, ""),
@@ -35,7 +35,7 @@ def test_aggregate_health_warning_count():
 
 
 def test_aggregate_health_error_outranks_warning():
-    from src.ui.tray_widget import aggregate_health
+    from swiss_windows_knife.ui.tray_widget import aggregate_health
 
     reports = [
         HealthReport(HealthState.WARNING, ""),
@@ -77,7 +77,7 @@ def tray_with_stubs(qtbot, fake_user_settings):
     QSystemTrayIcon side-effects."""
     from PySide6.QtWidgets import QWidget
 
-    from src.ui.tray_widget import TrayWidget
+    from swiss_windows_knife.ui.tray_widget import TrayWidget
 
     class _TrayForTest(TrayWidget):
         def __init__(self, stubs):
@@ -157,9 +157,9 @@ def test_tray_icon_refreshes_on_plugin_health_change(qtbot, fake_user_settings):
     from PySide6.QtCore import Signal
     from PySide6.QtWidgets import QWidget
 
-    from src import resources  # noqa: F401
-    from src.base.health import HealthState
-    from src.ui.tray_widget import TrayWidget
+    from swiss_windows_knife import resources  # noqa: F401
+    from swiss_windows_knife.base.health import HealthState
+    from swiss_windows_knife.ui.tray_widget import TrayWidget
 
     class _SignalingPlugin(QWidget):
         health_changed = Signal()

@@ -26,7 +26,7 @@ class _FakePlugin:
 
 @pytest.fixture
 def make_panel(qtbot, fake_user_settings):
-    from src.ui.plugins_config_panel import PluginsConfigPanel
+    from swiss_windows_knife.ui.plugins_config_panel import PluginsConfigPanel
 
     def _make(plugins):
         panel = PluginsConfigPanel(plugins)

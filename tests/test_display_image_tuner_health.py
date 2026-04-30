@@ -3,12 +3,12 @@ from unittest.mock import MagicMock, patch
 import monitorcontrol
 import pytest
 
-from src.base.health import HealthState
+from swiss_windows_knife.base.health import HealthState
 
 
 @pytest.fixture
 def plugin(qtbot, fake_user_settings):
-    from src.plugins.display_image_tuner.image_tuner_plugin import DisplayImageTunerPlugin
+    from swiss_windows_knife.plugins.display_image_tuner.image_tuner_plugin import DisplayImageTunerPlugin
     p = DisplayImageTunerPlugin(None)
     qtbot.addWidget(p)
     return p
@@ -22,7 +22,7 @@ def test_initial_health_is_ok_auto(plugin):
 
 def test_health_message_reflects_manual_brightness(qtbot, fake_user_settings):
     fake_user_settings.set("brightness", 60)
-    from src.plugins.display_image_tuner.image_tuner_plugin import DisplayImageTunerPlugin
+    from swiss_windows_knife.plugins.display_image_tuner.image_tuner_plugin import DisplayImageTunerPlugin
     p = DisplayImageTunerPlugin(None)
     qtbot.addWidget(p)
     assert p.health().message == "Manual 60"

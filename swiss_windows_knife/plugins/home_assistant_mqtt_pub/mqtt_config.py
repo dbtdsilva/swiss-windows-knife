@@ -1,4 +1,4 @@
-from src.base.user_settings import UserSettings
+from swiss_windows_knife.base.user_settings import UserSettings
 
 
 class MqttConfig:

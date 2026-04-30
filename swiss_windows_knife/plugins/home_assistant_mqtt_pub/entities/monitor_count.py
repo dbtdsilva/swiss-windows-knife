@@ -1,7 +1,7 @@
 import logging
 import threading
 
-from src.base.monitor_runner import runner
+from swiss_windows_knife.base.monitor_runner import runner
 
 from .base import SampleResult
 

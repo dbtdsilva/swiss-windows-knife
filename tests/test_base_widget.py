@@ -1,4 +1,4 @@
-from src.base.base_widget import BaseWidget
+from swiss_windows_knife.base.base_widget import BaseWidget
 
 
 def test_set_enabled_is_noop_when_state_unchanged(qtbot, fake_user_settings):
@@ -112,14 +112,14 @@ def test_set_enabled_no_change_does_not_invoke_status_changed(qtbot, fake_user_s
 
 
 def test_health_defaults_to_ok_with_empty_message(qtbot, fake_user_settings):
-    from src.base.health import HealthReport, HealthState
+    from swiss_windows_knife.base.health import HealthReport, HealthState
     widget = BaseWidget(None)
     qtbot.addWidget(widget)
     assert widget.health() == HealthReport(HealthState.OK, "")
 
 
 def test_set_health_updates_current_health(qtbot, fake_user_settings):
-    from src.base.health import HealthReport, HealthState
+    from swiss_windows_knife.base.health import HealthReport, HealthState
     widget = BaseWidget(None)
     qtbot.addWidget(widget)
     widget._set_health(HealthState.WARNING, "broker down")
@@ -127,7 +127,7 @@ def test_set_health_updates_current_health(qtbot, fake_user_settings):
 
 
 def test_health_returns_disabled_for_toggleable_off(qtbot, fake_user_settings):
-    from src.base.health import HealthReport, HealthState
+    from swiss_windows_knife.base.health import HealthReport, HealthState
     widget = BaseWidget(None, is_toggleable=True, is_enabled=False)
     qtbot.addWidget(widget)
     widget._set_health(HealthState.WARNING, "ignored while off")
@@ -135,7 +135,7 @@ def test_health_returns_disabled_for_toggleable_off(qtbot, fake_user_settings):
 
 
 def test_health_ignores_is_enabled_for_non_toggleable_widget(qtbot, fake_user_settings):
-    from src.base.health import HealthReport, HealthState
+    from swiss_windows_knife.base.health import HealthReport, HealthState
     widget = BaseWidget(None, is_toggleable=False, is_enabled=False)
     qtbot.addWidget(widget)
     widget._set_health(HealthState.OK, "running")
@@ -143,7 +143,7 @@ def test_health_ignores_is_enabled_for_non_toggleable_widget(qtbot, fake_user_se
 
 
 def test_health_changed_emits_on_state_change(qtbot, fake_user_settings):
-    from src.base.health import HealthState
+    from swiss_windows_knife.base.health import HealthState
     widget = BaseWidget(None)
     qtbot.addWidget(widget)
 
@@ -155,7 +155,7 @@ def test_health_changed_emits_on_state_change(qtbot, fake_user_settings):
 
 
 def test_health_changed_emits_on_message_change(qtbot, fake_user_settings):
-    from src.base.health import HealthState
+    from swiss_windows_knife.base.health import HealthState
     widget = BaseWidget(None)
     qtbot.addWidget(widget)
     widget._set_health(HealthState.OK, "Auto")
@@ -168,7 +168,7 @@ def test_health_changed_emits_on_message_change(qtbot, fake_user_settings):
 
 
 def test_health_changed_does_not_emit_on_noop(qtbot, fake_user_settings):
-    from src.base.health import HealthState
+    from swiss_windows_knife.base.health import HealthState
     widget = BaseWidget(None)
     qtbot.addWidget(widget)
     widget._set_health(HealthState.OK, "Auto")

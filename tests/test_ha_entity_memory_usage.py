@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from src.plugins.home_assistant_mqtt_pub.entities.memory_usage import MemoryUsageEntity
+from swiss_windows_knife.plugins.home_assistant_mqtt_pub.entities.memory_usage import MemoryUsageEntity
 
 
 def test_sample_returns_percent():

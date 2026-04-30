@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from src.plugins.home_assistant_mqtt_pub.entities.battery_state import BatteryStateEntity
+from swiss_windows_knife.plugins.home_assistant_mqtt_pub.entities.battery_state import BatteryStateEntity
 
 
 def test_sample_on_ac():
@@ -28,7 +28,7 @@ def test_sample_none_on_desktop():
 
 
 def test_metadata_is_binary_sensor_with_plug_class():
-    from src.plugins.home_assistant_mqtt_pub.device_context import DeviceContext
+    from swiss_windows_knife.plugins.home_assistant_mqtt_pub.device_context import DeviceContext
     e = BatteryStateEntity()
     assert e.component == "binary_sensor"
     payload = e.discovery_payload(DeviceContext(name="pc"))

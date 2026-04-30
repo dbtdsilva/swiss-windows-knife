@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from src.plugins.home_assistant_mqtt_pub.entities.network_io import (
+from swiss_windows_knife.plugins.home_assistant_mqtt_pub.entities.network_io import (
     NetworkRxEntity,
     NetworkTxEntity,
 )

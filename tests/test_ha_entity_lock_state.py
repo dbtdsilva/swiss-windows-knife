@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from src.plugins.home_assistant_mqtt_pub.entities.lock_state import (
+from swiss_windows_knife.plugins.home_assistant_mqtt_pub.entities.lock_state import (
     WTS_SESSION_LOCK,
     WTS_SESSION_UNLOCK,
     LockStateEntity,

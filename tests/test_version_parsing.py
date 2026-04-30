@@ -1,6 +1,6 @@
 import pytest
 
-from src.components.update_checker import _parse_version
+from swiss_windows_knife.components.update_checker import _parse_version
 
 
 @pytest.mark.parametrize("text,expected", [

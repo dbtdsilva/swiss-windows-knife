@@ -38,7 +38,7 @@ The project pins **Python 3.12** and uses a virtual environment at `./env/`. Fro
 ./env/Scripts/python.exe -m pip install -e .[build,test]
 
 # run the tray straight from source (no freeze)
-./env/Scripts/python.exe -m src.swiss_windows_knife
+./env/Scripts/python.exe -m swiss_windows_knife
 
 # regenerate Qt resources after editing resources.qrc
 python tools/build.py resources

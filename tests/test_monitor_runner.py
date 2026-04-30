@@ -1,6 +1,6 @@
 import threading
 
-from src.base.monitor_runner import _MonitorRunner
+from swiss_windows_knife.base.monitor_runner import _MonitorRunner
 
 
 def test_runner_processes_tasks_in_submission_order():

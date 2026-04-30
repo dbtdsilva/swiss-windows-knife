@@ -2,12 +2,12 @@ from unittest.mock import patch
 
 import pytest
 
-from src.base.health import HealthState
+from swiss_windows_knife.base.health import HealthState
 
 
 @pytest.fixture
 def checker(qtbot, fake_user_settings):
-    from src.components.update_checker import UpdateChecker
+    from swiss_windows_knife.components.update_checker import UpdateChecker
     with patch.object(UpdateChecker, "check_updates"):
         c = UpdateChecker(parent=None)
         qtbot.addWidget(c)
@@ -36,7 +36,7 @@ def test_health_warning_when_watchdog_fires(checker):
 
 def test_health_ok_up_to_date_when_remote_version_not_newer(checker):
     checker._busy = True
-    with patch("src.components.update_checker.APP_INFO") as app_info:
+    with patch("swiss_windows_knife.components.update_checker.APP_INFO") as app_info:
         app_info.APP_VERSION = "1.0.0"
         checker._on_check_finished(("1.0.0", "https://example/installer.exe"))
     assert checker.health().state is HealthState.OK
@@ -44,12 +44,12 @@ def test_health_ok_up_to_date_when_remote_version_not_newer(checker):
 
 
 def test_health_ok_update_available_when_remote_newer(qtbot, fake_user_settings):
-    from src.components.update_checker import UpdateChecker
+    from swiss_windows_knife.components.update_checker import UpdateChecker
     with patch.object(UpdateChecker, "check_updates"):
         c = UpdateChecker(parent=None)
         qtbot.addWidget(c)
     c._busy = True
-    with patch("src.components.update_checker.APP_INFO") as app_info, \
+    with patch("swiss_windows_knife.components.update_checker.APP_INFO") as app_info, \
          patch.object(c, "_confirm_update", return_value=False):
         app_info.APP_VERSION = "1.0.0"
         c._on_check_finished(("9.9.9", "https://example/installer.exe"))

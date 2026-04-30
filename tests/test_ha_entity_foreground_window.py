@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from src.plugins.home_assistant_mqtt_pub.entities.foreground_window import ForegroundWindowEntity
+from swiss_windows_knife.plugins.home_assistant_mqtt_pub.entities.foreground_window import ForegroundWindowEntity
 
 
 def test_default_enabled_false():

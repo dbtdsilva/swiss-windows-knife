@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.components.update_checker import _CheckThread, _DownloadThread
+from swiss_windows_knife.components.update_checker import _CheckThread, _DownloadThread
 
 
 def _wait_result(qtbot, thread):
@@ -19,7 +19,7 @@ def check_thread(qtbot):
 
 
 def test_check_thread_emits_none_on_unexpected_exception(qtbot, check_thread):
-    with patch('src.components.update_checker.requests.get', side_effect=OSError("ssl boom")):
+    with patch('swiss_windows_knife.components.update_checker.requests.get', side_effect=OSError("ssl boom")):
         args = _wait_result(qtbot, check_thread)
     assert args == [None]
 
@@ -27,7 +27,7 @@ def test_check_thread_emits_none_on_unexpected_exception(qtbot, check_thread):
 def test_check_thread_emits_none_on_request_exception(qtbot, check_thread):
     import requests
     with patch(
-        'src.components.update_checker.requests.get',
+        'swiss_windows_knife.components.update_checker.requests.get',
         side_effect=requests.ConnectionError("no network"),
     ):
         args = _wait_result(qtbot, check_thread)
@@ -44,7 +44,7 @@ def test_check_thread_emits_none_when_release_has_no_installer_asset(qtbot, chec
         def json(self):
             return {"tag_name": "9.9.9", "assets": []}
 
-    with patch('src.components.update_checker.requests.get', return_value=_FakeResp()):
+    with patch('swiss_windows_knife.components.update_checker.requests.get', return_value=_FakeResp()):
         args = _wait_result(qtbot, check_thread)
     assert args == [None]
 
@@ -65,14 +65,14 @@ def test_check_thread_emits_release_tuple_on_success(qtbot, check_thread):
                 ],
             }
 
-    with patch('src.components.update_checker.requests.get', return_value=_FakeResp()):
+    with patch('swiss_windows_knife.components.update_checker.requests.get', return_value=_FakeResp()):
         args = _wait_result(qtbot, check_thread)
     assert args == [("9.9.9", "https://example/9.9.9.exe")]
 
 
 def test_download_thread_emits_none_on_unexpected_exception(qtbot, tmp_path):
     thread = _DownloadThread("https://example/1.exe", str(tmp_path))
-    with patch('src.components.update_checker.requests.get', side_effect=RuntimeError("???")):
+    with patch('swiss_windows_knife.components.update_checker.requests.get', side_effect=RuntimeError("???")):
         args = _wait_result(qtbot, thread)
     assert args == [None]
 
@@ -81,7 +81,7 @@ def test_watchdog_clears_busy_when_worker_wedges(qtbot, fake_user_settings):
     """If the worker thread blocks indefinitely, the watchdog must restore
     the menu so the user can try again instead of having the action greyed
     out forever."""
-    from src.components.update_checker import UpdateChecker
+    from swiss_windows_knife.components.update_checker import UpdateChecker
 
     with patch.object(UpdateChecker, 'check_updates'):
         checker = UpdateChecker(parent=None)
@@ -97,7 +97,7 @@ def test_watchdog_clears_busy_when_worker_wedges(qtbot, fake_user_settings):
 def test_stale_result_after_watchdog_is_ignored(qtbot, fake_user_settings):
     """A late-returning worker after the watchdog cleared busy must not
     pop a misleading 'Update available' modal."""
-    from src.components.update_checker import UpdateChecker
+    from swiss_windows_knife.components.update_checker import UpdateChecker
 
     with patch.object(UpdateChecker, 'check_updates'):
         checker = UpdateChecker(parent=None)

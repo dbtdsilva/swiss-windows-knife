@@ -3,7 +3,7 @@ import pytest
 
 @pytest.fixture
 def panel(qtbot, fake_user_settings, silent_messagebox):
-    from src.plugins.home_assistant_mqtt_pub.mqtt_config_panel import MqttConfigPanel
+    from swiss_windows_knife.plugins.home_assistant_mqtt_pub.mqtt_config_panel import MqttConfigPanel
     p = MqttConfigPanel()
     qtbot.addWidget(p)
     return p
@@ -32,7 +32,7 @@ def test_init_loads_existing_values(qtbot, fake_user_settings):
     fake_user_settings.set('homeassistant_password', 'p')
     fake_user_settings.set('homeassistant_client_id', 'c')
 
-    from src.plugins.home_assistant_mqtt_pub.mqtt_config_panel import MqttConfigPanel
+    from swiss_windows_knife.plugins.home_assistant_mqtt_pub.mqtt_config_panel import MqttConfigPanel
     p = MqttConfigPanel()
     qtbot.addWidget(p)
 
@@ -44,7 +44,7 @@ def test_init_loads_existing_values(qtbot, fake_user_settings):
 
 
 def test_init_handles_completely_empty_settings(qtbot, fake_user_settings):
-    from src.plugins.home_assistant_mqtt_pub.mqtt_config_panel import MqttConfigPanel
+    from swiss_windows_knife.plugins.home_assistant_mqtt_pub.mqtt_config_panel import MqttConfigPanel
     p = MqttConfigPanel()
     qtbot.addWidget(p)
 
@@ -56,7 +56,7 @@ def test_init_handles_completely_empty_settings(qtbot, fake_user_settings):
 
 
 def test_apply_coerces_port_to_int(qtbot, fake_user_settings, silent_messagebox):
-    from src.plugins.home_assistant_mqtt_pub.mqtt_config_panel import MqttConfigPanel
+    from swiss_windows_knife.plugins.home_assistant_mqtt_pub.mqtt_config_panel import MqttConfigPanel
     panel = MqttConfigPanel(parent=None)
     qtbot.addWidget(panel)
     panel.host_field.setText("broker")
@@ -70,7 +70,7 @@ def test_apply_coerces_port_to_int(qtbot, fake_user_settings, silent_messagebox)
 
 
 def test_apply_rejects_non_numeric_port(qtbot, fake_user_settings, silent_messagebox):
-    from src.plugins.home_assistant_mqtt_pub.mqtt_config_panel import MqttConfigPanel
+    from swiss_windows_knife.plugins.home_assistant_mqtt_pub.mqtt_config_panel import MqttConfigPanel
     panel = MqttConfigPanel(parent=None)
     qtbot.addWidget(panel)
     panel.host_field.setText("broker")
@@ -83,7 +83,7 @@ def test_apply_rejects_non_numeric_port(qtbot, fake_user_settings, silent_messag
 
 
 def test_apply_rejects_empty_device_name(qtbot, fake_user_settings, silent_messagebox):
-    from src.plugins.home_assistant_mqtt_pub.mqtt_config_panel import MqttConfigPanel
+    from swiss_windows_knife.plugins.home_assistant_mqtt_pub.mqtt_config_panel import MqttConfigPanel
     panel = MqttConfigPanel(parent=None)
     qtbot.addWidget(panel)
     panel.host_field.setText("broker")
@@ -96,8 +96,8 @@ def test_apply_rejects_empty_device_name(qtbot, fake_user_settings, silent_messa
 
 
 def test_panel_shows_one_row_per_entity(qtbot, fake_user_settings, silent_messagebox):
-    from src.plugins.home_assistant_mqtt_pub.entities import build_entity_registry
-    from src.plugins.home_assistant_mqtt_pub.mqtt_config_panel import MqttConfigPanel
+    from swiss_windows_knife.plugins.home_assistant_mqtt_pub.entities import build_entity_registry
+    from swiss_windows_knife.plugins.home_assistant_mqtt_pub.mqtt_config_panel import MqttConfigPanel
     panel = MqttConfigPanel(parent=None)
     qtbot.addWidget(panel)
     expected_keys = {e.key for e in build_entity_registry()}
@@ -106,7 +106,7 @@ def test_panel_shows_one_row_per_entity(qtbot, fake_user_settings, silent_messag
 
 
 def test_apply_persists_entity_publish_and_interval(qtbot, fake_user_settings, silent_messagebox):
-    from src.plugins.home_assistant_mqtt_pub.mqtt_config_panel import MqttConfigPanel
+    from swiss_windows_knife.plugins.home_assistant_mqtt_pub.mqtt_config_panel import MqttConfigPanel
     panel = MqttConfigPanel(parent=None)
     qtbot.addWidget(panel)
     panel.host_field.setText("broker")
