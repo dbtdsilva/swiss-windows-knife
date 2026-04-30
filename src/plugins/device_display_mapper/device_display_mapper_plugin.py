@@ -37,13 +37,20 @@ class DeviceDisplayMapperPlugin(BaseWidget):
                      f"{self.user_settings.get(USER_SETTINGS_DISPLAY_USB_WATCHER_KEY)}")
 
         self.last_changed = 0
-        self.device_listener = DeviceListener(self)
-        self.device_listener.change_detected.connect(self.device_changed)
+        self.device_listener: DeviceListener | None = None
 
         self._usb_device_cache: list[Device] | None = None
         self._usb_fetch_subscriptions: list[tuple[Token, Callable[[list[Device]], None]]] = []
         self._usb_fetch_thread: QThread | None = None
 
+        if self.is_enabled():
+            self._start_runtime()
+
+    def _start_runtime(self) -> None:
+        """Spin up the USB watcher and warm caches. Idempotent."""
+        if self.device_listener is None:
+            self.device_listener = DeviceListener(self)
+            self.device_listener.change_detected.connect(self.device_changed)
         # Pre-warm both caches in the background so the first time the user
         # opens Configuration the panel populates instantly. Both calls
         # schedule work off the GUI thread (runner / QThread) and return
@@ -51,6 +58,18 @@ class DeviceDisplayMapperPlugin(BaseWidget):
         # cache. No-op callback because no live receiver is interested yet.
         runner().submit(self._prewarm_monitor_cache)
         self.request_usb_devices(lambda _devices: None)
+
+    def _stop_runtime(self) -> None:
+        """Tear down the USB watcher. Pre-warmed caches stay (harmless)."""
+        if self.device_listener is not None:
+            self.device_listener.close()
+            self.device_listener = None
+
+    def status_changed(self, status: bool) -> None:
+        if status:
+            self._start_runtime()
+        else:
+            self._stop_runtime()
 
     def _prewarm_monitor_cache(self) -> None:
         try:
@@ -157,5 +176,6 @@ class DeviceDisplayMapperPlugin(BaseWidget):
                                  f'input source to {input_source}')
 
     def closeEvent(self, event):
-        self.device_listener.close()
+        if self.device_listener is not None:
+            self.device_listener.close()
         event.accept()
