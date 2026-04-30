@@ -15,7 +15,7 @@ from ..plugins.display_image_tuner.image_tuner_plugin import DisplayImageTunerPl
 from ..plugins.home_assistant_mqtt_pub.home_assistant_mqtt_pub_plugin import HomeAssistantMqttPubPlugin
 from .about_dialog import AboutDialog
 from .configuration_dialog import ConfigurationDialog
-from .health_icons import icon_for_state
+from .health_icons import icon_for_state, tray_icon_for_state
 from .tray_logger import TrayLogger
 
 
@@ -67,11 +67,29 @@ class TrayWidget(QWidget):
         self._tray_icon.setToolTip(APP_INFO.APP_NAME)
         self._tray_icon.setIcon(QIcon(":/icons/coat-of-arms.ico"))
         self._tray_icon.show()
+        self._wire_health_signals()
+        self._refresh_tray_icon()
 
     def createMainMenu(self) -> QMenu:
         menu = QMenu(self)
         menu.aboutToShow.connect(lambda m=menu: self._populate_main_menu(m))
         return menu
+
+    def _wire_health_signals(self) -> None:
+        for plugin in self.child_components:
+            plugin.health_changed.connect(self._refresh_tray_icon)
+
+    @Slot()
+    def _refresh_tray_icon(self) -> None:
+        reports: list[HealthReport] = []
+        for plugin in self.child_components:
+            try:
+                reports.append(plugin.health())
+            except Exception:
+                logging.exception("plugin %s health() raised", plugin.__class__.__name__)
+                reports.append(HealthReport(HealthState.WARNING, "health() failed"))
+        worst_state, _ = aggregate_health(reports)
+        self._tray_icon.setIcon(tray_icon_for_state(worst_state))
 
     def _populate_main_menu(self, menu: QMenu) -> None:
         menu.clear()
