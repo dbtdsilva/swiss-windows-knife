@@ -99,6 +99,7 @@ class MqttConfigPanel(ConfigPanel):
 
         self._entity_settings = EntitySettings(self._user_settings)
         self._sampler = SamplerRunner()
+        self._sample_tokens: list = []
         self.entity_rows: dict[str, _EntityRow] = {}
 
         entities_box = QGroupBox("Entities", self)
@@ -175,12 +176,22 @@ class MqttConfigPanel(ConfigPanel):
         return True
 
     def _sample_into_row(self, row: _EntityRow) -> None:
-        self._sampler.submit(row.entity.sample, lambda result: row.sample_arrived.emit(result))
+        token = self._sampler.submit(row.entity.sample, lambda result: row.sample_arrived.emit(result))
+        self._sample_tokens.append(token)
 
     def _refresh_all(self) -> None:
         for row in self.entity_rows.values():
             row.value_label.setText("Loading…")
             self._sample_into_row(row)
+
+    def cleanup(self) -> None:
+        # Called by ConfigurationDialog when the dialog is closing, before
+        # widgets get torn down. Cancel pending samples so the SamplerRunner
+        # skips their `on_done` (which would otherwise emit on row widgets
+        # destroyed seconds later by Qt's parent-child cascade).
+        for token in self._sample_tokens:
+            token.cancel()
+        self._sample_tokens.clear()
 
     def _on_forget_device(self) -> None:
         confirm = QMessageBox.question(

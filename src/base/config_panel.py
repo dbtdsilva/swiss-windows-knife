@@ -14,3 +14,13 @@ class ConfigPanel(QWidget):
 
     def apply(self) -> bool:
         return True
+
+    def cleanup(self) -> None:
+        """Called by `ConfigurationDialog` once when the dialog is closing
+        (OK, Cancel, or X), *before* Qt's parent-child destruction cascade.
+
+        Override to cancel in-flight async work whose callbacks would emit
+        on widgets that are about to be torn down. Tests don't need to call
+        this; production wiring goes through `ConfigurationDialog.done`.
+        """
+        return None

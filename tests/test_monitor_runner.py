@@ -56,3 +56,39 @@ def test_runner_passes_args_and_kwargs():
 
     assert done.wait(timeout=2.0)
     assert captured == [((1, 2), {"foo": "bar"})]
+
+
+def test_runner_skips_cancelled_tasks():
+    runner = _MonitorRunner()
+
+    call_log: list[str] = []
+    drained = threading.Event()
+
+    def slow_task(name: str) -> None:
+        # Hold the worker so we can cancel later submissions before they run.
+        threading.Event().wait(0.05)
+        call_log.append(name)
+
+    def sentinel() -> None:
+        call_log.append("sentinel")
+        drained.set()
+
+    # First task occupies the worker; cancel the second; third should still run.
+    runner.submit(slow_task, "first")
+    cancel_me = runner.submit(slow_task, "should-not-run")
+    cancel_me.cancel()
+    runner.submit(sentinel)
+
+    assert drained.wait(timeout=2.0), "runner did not reach sentinel"
+    assert call_log == ["first", "sentinel"]
+
+
+def test_runner_submit_returns_token_for_each_call():
+    runner = _MonitorRunner()
+    t1 = runner.submit(lambda: None)
+    t2 = runner.submit(lambda: None)
+    assert t1 is not t2
+    assert not t1.is_cancelled
+    t1.cancel()
+    assert t1.is_cancelled
+    assert not t2.is_cancelled

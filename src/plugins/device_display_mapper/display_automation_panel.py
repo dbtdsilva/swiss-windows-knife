@@ -44,6 +44,7 @@ class DisplayAutomationConfigPanel(ConfigPanel):
 
         self._monitor_groups: dict[str, dict] = {}
         self._usb_combo: QComboBox | None = None
+        self._cleanup_callbacks: list[Callable[[], None]] = []
 
         if schedule_discovery is not None:
             schedule_discovery(self._populate)
@@ -130,28 +131,66 @@ class DisplayAutomationConfigPanel(ConfigPanel):
                 self._user_settings.set(key_prefix + device_id, data)
         return True
 
+    def cleanup(self) -> None:
+        for cb in self._cleanup_callbacks:
+            cb()
+        self._cleanup_callbacks.clear()
+
 
 class _DiscoveryBridge(QObject):
-    """Marshals discovery results from the runner / worker threads back to GUI."""
+    """Marshals discovery results from the runner / worker threads back to GUI.
+
+    Parented to the long-lived plugin (not the panel) so workers can always
+    emit on it without RuntimeError. When the panel dies, the bridge nulls
+    its panel reference, drops any not-yet-arrived results, and self-deletes
+    once both work paths have settled. Token cancellation at the runner
+    queue level skips queued (but not-yet-started) work to avoid wasting
+    cycles on results nobody will use.
+    """
 
     monitors_ready = Signal(list)
 
-    def __init__(self, panel: "DisplayAutomationConfigPanel") -> None:
-        super().__init__(panel)
-        self._panel = panel
+    def __init__(self, panel: "DisplayAutomationConfigPanel", plugin: QObject) -> None:
+        super().__init__(plugin)
+        self._panel: DisplayAutomationConfigPanel | None = panel
         self._monitors: list | None = None
         self._usb: list | None = None
+        self._monitor_pending = True
+        self._usb_pending = True
+        self._monitor_token = None
+        self._usb_token = None
         self.monitors_ready.connect(self._on_monitors, Qt.ConnectionType.QueuedConnection)
+        # `panel.destroyed` fires synchronously inside the panel's destructor
+        # on the GUI thread; bridge stays alive to absorb in-flight results.
+        panel.destroyed.connect(self._on_panel_destroyed)
+
+    def attach_tokens(self, monitor_token, usb_token) -> None:
+        self._monitor_token = monitor_token
+        self._usb_token = usb_token
+
+    def _on_panel_destroyed(self) -> None:
+        self._panel = None
+        if self._monitor_token is not None:
+            self._monitor_token.cancel()
+        if self._usb_token is not None:
+            self._usb_token.cancel()
+        self._reap_if_settled()
 
     def _on_monitors(self, monitors: list) -> None:
         self._monitors = monitors
+        self._monitor_pending = False
         self._maybe_finalize()
+        self._reap_if_settled()
 
     def _on_usb(self, devices: list) -> None:
         self._usb = devices
+        self._usb_pending = False
         self._maybe_finalize()
+        self._reap_if_settled()
 
     def _maybe_finalize(self) -> None:
+        if self._panel is None:
+            return
         if self._monitors is None or self._usb is None:
             return
         self._panel._monitors = self._monitors
@@ -161,13 +200,19 @@ class _DiscoveryBridge(QObject):
         for info in self._panel._monitors:
             self._panel._build_monitor_section(info)
 
+    def _reap_if_settled(self) -> None:
+        if self._panel is None and not self._monitor_pending and not self._usb_pending:
+            self.deleteLater()
+
 
 def _default_schedule(panel: "DisplayAutomationConfigPanel", plugin) -> None:
     """Real-world scheduler: monitor discovery on `runner()`, USB via the
-    plugin's cached `request_usb_devices`. Both results land back on the GUI
-    thread via queued Qt signals so the panel can rebuild widgets safely.
+    plugin's cached `request_usb_devices`. Bridge is parented to the plugin
+    so it outlives the panel; tokens cancel queued-but-unstarted work when
+    the panel goes away; in-flight work is allowed to complete and is then
+    silently dropped by the bridge.
     """
-    bridge = _DiscoveryBridge(panel)
+    bridge = _DiscoveryBridge(panel, plugin)
 
     def _read_monitors() -> None:
         try:
@@ -175,10 +220,9 @@ def _default_schedule(panel: "DisplayAutomationConfigPanel", plugin) -> None:
         except Exception:
             logging.exception("Monitor discovery failed")
             monitors = []
-        try:
-            bridge.monitors_ready.emit(monitors)
-        except RuntimeError:
-            logging.debug("Discovery bridge gone before monitor results landed")
+        bridge.monitors_ready.emit(monitors)
 
-    runner().submit(_read_monitors)
-    plugin.request_usb_devices(bridge._on_usb)
+    monitor_token = runner().submit(_read_monitors)
+    usb_token = plugin.request_usb_devices(bridge._on_usb)
+    bridge.attach_tokens(monitor_token, usb_token)
+    panel._cleanup_callbacks.append(lambda: (monitor_token.cancel(), usb_token.cancel()))
