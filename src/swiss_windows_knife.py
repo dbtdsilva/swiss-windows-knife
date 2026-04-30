@@ -1,4 +1,5 @@
 import ctypes
+import faulthandler
 import inspect
 import logging
 import signal
@@ -33,6 +34,7 @@ class SwissWindowsKnife:
 
     def __init__(self, dev_mode: bool = False) -> None:
         self.init_logging()
+        faulthandler.enable()  # native crashes print a C-stack to stderr
 
         signal.signal(signal.SIGINT, signal.SIG_DFL)
         _set_windows_app_user_model_id()
