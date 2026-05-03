@@ -77,12 +77,10 @@ class DisplayImageTunerPlugin(BaseWidget):
 
     def retrieve_menus(self) -> list[QMenu | QAction]:
         return [
-            self.create_value_control_menu('Brightness',
-                                           lambda: self.user_settings.get_optional_int('brightness'),
+            self.create_value_control_menu('Brightness', 'brightness',
                                            self.change_brightness_manual,
                                            self.change_brightness_automatic),
-            self.create_value_control_menu('Contrast',
-                                           lambda: self.user_settings.get_optional_int('contrast'),
+            self.create_value_control_menu('Contrast', 'contrast',
                                            self.change_contrast_manual,
                                            self.change_contrast_automatic),
         ]
@@ -168,15 +166,24 @@ class DisplayImageTunerPlugin(BaseWidget):
             logging.warning(f"Exception was caught while changing contrast: {e}")
             self._set_health(HealthState.WARNING, f"Monitor error: {e}")
 
-    def create_value_control_menu(self, title, property_get, manual_slot, automatic_slot) -> QMenu:
+    def create_value_control_menu(self, title, axis, manual_slot, automatic_slot) -> QMenu:
         menu = QMenu(title, self)
+
+        manual_value = self.user_settings.get_optional_int(axis)
+        current_value = self._last_emitted[axis] if self._last_emitted[axis] is not None else manual_value
+        current_label = f'Current: {current_value}' if current_value is not None else 'Current: —'
+        current_action = QAction(current_label, self)
+        current_action.setEnabled(False)
+        menu.addAction(current_action)
+        menu.addSeparator()
+
         group = QActionGroup(self)
         group.setExclusive(True)
 
         automatic_action = QAction('Automatic', self)
         automatic_action.setCheckable(True)
         automatic_action.toggled.connect(automatic_slot)
-        if property_get() is None:
+        if manual_value is None:
             automatic_action.setChecked(True)
 
         group.addAction(automatic_action)
@@ -186,7 +193,7 @@ class DisplayImageTunerPlugin(BaseWidget):
             action = QAction(str(value_entry), self)
             action.setCheckable(True)
             action.toggled.connect(partial(lambda is_checked, value=value_entry: manual_slot(is_checked, value)))
-            if value_entry == property_get():
+            if value_entry == manual_value:
                 action.setChecked(True)
             group.addAction(action)
             menu.addAction(action)
