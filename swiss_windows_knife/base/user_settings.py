@@ -83,11 +83,6 @@ def _coerce_enum(enum_cls: type[Enum], value: object) -> Enum | None:
         text = value.strip()
         if text == "":
             return None
-        # Legacy: settings persisted before the registry-aware serializer
-        # came in were written as str(EnumCls.MEMBER) → 'EnumCls.MEMBER'.
-        # Strip the class prefix so old registry entries still resolve.
-        if "." in text:
-            text = text.rsplit(".", 1)[-1]
         try:
             return enum_cls[text]
         except KeyError:
