@@ -19,7 +19,7 @@ class BaseWidget(HealthReporter):
         self._is_toggleable = is_toggleable
 
         settings = UserSettings.instance()
-        self._is_enabled = settings.get_bool(_settings_key(self.__class__), is_enabled)
+        self._is_enabled = settings.get(_settings_key(self.__class__), bool, is_enabled)
 
     def set_enabled(self, enabled: bool) -> None:
         if self._is_enabled == enabled:

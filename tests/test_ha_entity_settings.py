@@ -33,7 +33,7 @@ def test_set_publish_writes_under_namespaced_key(fake_user_settings):
     from swiss_windows_knife.plugins.home_assistant_mqtt_pub.entity_settings import EntitySettings
     s = EntitySettings(fake_user_settings)
     s.set_publish_enabled("cpu_usage", True)
-    assert fake_user_settings.get_bool("homeassistant_publish_cpu_usage", default=False) is True
+    assert fake_user_settings.get("homeassistant_publish_cpu_usage", bool, False) is True
 
 
 def test_command_enabled_default(fake_user_settings):

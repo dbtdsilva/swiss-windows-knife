@@ -33,8 +33,8 @@ class DisplayImageTunerPlugin(BaseWidget):
         self.user_settings = UserSettings.instance()
         self._seed_default_settings()
 
-        logging.info(f"Starting with the 'brightness' set to {self.user_settings.get_optional_int('brightness')}")
-        logging.info(f"Starting with the 'contrast' set to {self.user_settings.get_optional_int('contrast')}")
+        logging.info(f"Starting with the 'brightness' set to {self.user_settings.get('brightness', int)}")
+        logging.info(f"Starting with the 'contrast' set to {self.user_settings.get('contrast', int)}")
 
         self.sun_strength_plugin = SunStrengthNotifier(self)
 
@@ -53,7 +53,7 @@ class DisplayImageTunerPlugin(BaseWidget):
             self._tick_timer.start(TICK_MS)
 
     def _mode_message(self) -> str:
-        b = self.user_settings.get_optional_int('brightness')
+        b = self.user_settings.get('brightness', int)
         if b is None:
             return "Auto"
         return f"Manual {b}"
@@ -94,7 +94,7 @@ class DisplayImageTunerPlugin(BaseWidget):
     @Slot()
     def _tick(self) -> None:
         for axis in ('brightness', 'contrast'):
-            if self.user_settings.get_optional_int(axis) is not None:
+            if self.user_settings.get(axis, int) is not None:
                 continue
             target = self._auto_target(axis)
             new_value = max(0, min(100, int(round(target))))
@@ -103,12 +103,12 @@ class DisplayImageTunerPlugin(BaseWidget):
                 getattr(self, f'{axis}_changed').emit(new_value)
 
     def _auto_target(self, axis: str) -> float:
-        night = self.user_settings.get_float(f'{axis}_night_level', 0.0)
-        day = self.user_settings.get_float(f'{axis}_day_level', 100.0)
-        sunrise_offset = self.user_settings.get_float('auto_sunrise_offset_minutes', 0.0)
-        sunset_offset = self.user_settings.get_float('auto_sunset_offset_minutes', 0.0)
-        duration = self.user_settings.get_float('auto_ramp_duration_minutes', 60.0)
-        smoothness = self.user_settings.get_float('auto_ramp_smoothness', 0.0)
+        night = self.user_settings.get(f'{axis}_night_level', float, 0.0)
+        day = self.user_settings.get(f'{axis}_day_level', float, 100.0)
+        sunrise_offset = self.user_settings.get('auto_sunrise_offset_minutes', float, 0.0)
+        sunset_offset = self.user_settings.get('auto_sunset_offset_minutes', float, 0.0)
+        duration = self.user_settings.get('auto_ramp_duration_minutes', float, 60.0)
+        smoothness = self.user_settings.get('auto_ramp_smoothness', float, 0.0)
 
         sunrise_h, sunset_h = self._sun_events_for_today()
         _, _, tz = self.sun_strength_plugin.resolve_location()
@@ -169,7 +169,7 @@ class DisplayImageTunerPlugin(BaseWidget):
     def create_value_control_menu(self, title, axis, manual_slot, automatic_slot) -> QMenu:
         menu = QMenu(title, self)
 
-        manual_value = self.user_settings.get_optional_int(axis)
+        manual_value = self.user_settings.get(axis, int)
         current_value = self._last_emitted[axis] if self._last_emitted[axis] is not None else manual_value
         current_label = f'Current: {current_value}' if current_value is not None else 'Current: —'
         current_action = QAction(current_label, self)

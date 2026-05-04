@@ -31,6 +31,12 @@ def pytest_sessionfinish(session, exitstatus):
 
 
 class _FakeUserSettings:
+    """In-memory stand-in mirroring UserSettings' generic get/set API.
+
+    Storage applies the real serializer (so Enums round-trip via their .name)
+    and reads delegate to the real coercer registry, so behaviour matches
+    production exactly without spinning up QSettings."""
+
     def __init__(self) -> None:
         self._data: dict = {}
 
@@ -38,40 +44,13 @@ class _FakeUserSettings:
         return key in self._data
 
     def set(self, key, value) -> None:
-        self._data[key] = value
+        from swiss_windows_knife.base.user_settings import _serialize
+        self._data[key] = _serialize(value)
 
-    def get_bool(self, key, default):
-        from swiss_windows_knife.base.user_settings import _coerce_bool
-        return _coerce_bool(self._data.get(key), default)
-
-    def get_int(self, key, default):
-        from swiss_windows_knife.base.user_settings import _coerce_optional_int
-        out = _coerce_optional_int(self._data.get(key))
-        return default if out is None else out
-
-    def get_optional_int(self, key):
-        from swiss_windows_knife.base.user_settings import _coerce_optional_int
-        return _coerce_optional_int(self._data.get(key))
-
-    def get_float(self, key, default):
-        from swiss_windows_knife.base.user_settings import _coerce_optional_float
-        out = _coerce_optional_float(self._data.get(key))
-        return default if out is None else out
-
-    def get_optional_float(self, key):
-        from swiss_windows_knife.base.user_settings import _coerce_optional_float
-        return _coerce_optional_float(self._data.get(key))
-
-    def get_str(self, key, default=""):
-        value = self._data.get(key)
-        return default if value is None else str(value)
-
-    def get_optional_str(self, key):
-        value = self._data.get(key)
-        if value is None:
-            return None
-        text = str(value)
-        return text if text != "" else None
+    def get(self, key, type_, default=None):
+        from swiss_windows_knife.base.user_settings import _coerce
+        coerced = _coerce(type_, self._data.get(key))
+        return default if coerced is None else coerced
 
 
 @pytest.fixture

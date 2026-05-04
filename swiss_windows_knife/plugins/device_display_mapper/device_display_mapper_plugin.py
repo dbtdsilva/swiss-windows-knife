@@ -35,7 +35,7 @@ class DeviceDisplayMapperPlugin(BaseWidget):
         self.user_settings = UserSettings.instance()
 
         logging.info(f"Starting with the {USER_SETTINGS_DISPLAY_USB_WATCHER_KEY} set to "
-                     f"{self.user_settings.get_optional_str(USER_SETTINGS_DISPLAY_USB_WATCHER_KEY)}")
+                     f"{self.user_settings.get(USER_SETTINGS_DISPLAY_USB_WATCHER_KEY, str)}")
 
         self.last_changed = 0
         self.device_listener: DeviceListener | None = None
@@ -152,7 +152,7 @@ class DeviceDisplayMapperPlugin(BaseWidget):
         current_time = time.time()
         if current_time - self.last_changed < 1.0:
             return
-        if self.user_settings.get_optional_str(USER_SETTINGS_DISPLAY_USB_WATCHER_KEY) != usb_device.id:
+        if self.user_settings.get(USER_SETTINGS_DISPLAY_USB_WATCHER_KEY, str) != usb_device.id:
             return
         self.last_changed = current_time
 
@@ -167,11 +167,10 @@ class DeviceDisplayMapperPlugin(BaseWidget):
                     logging.warning('No monitor info not available')
                     continue
                 device_id = monitor_info.device_id
-                input_source = None
-                on_connect = self.user_settings.get_optional_str(
-                    USER_SETTINGS_DISPLAY_ON_CONNECT_KEY_FUNC(device_id))
-                on_disconnect = self.user_settings.get_optional_str(
-                    USER_SETTINGS_DISPLAY_ON_DISCONNECT_KEY_FUNC(device_id))
+                on_connect = self.user_settings.get(
+                    USER_SETTINGS_DISPLAY_ON_CONNECT_KEY_FUNC(device_id), monitorcontrol.InputSource)
+                on_disconnect = self.user_settings.get(
+                    USER_SETTINGS_DISPLAY_ON_DISCONNECT_KEY_FUNC(device_id), monitorcontrol.InputSource)
                 logging.debug(
                     f'Monitor {device_id} with settings: '
                     f'on connect {on_connect}; on disconnect {on_disconnect}')
@@ -179,6 +178,8 @@ class DeviceDisplayMapperPlugin(BaseWidget):
                     input_source = on_connect
                 elif device_notification_type == DeviceNotificationType.DELETION:
                     input_source = on_disconnect
+                else:
+                    input_source = None
 
                 if input_source is not None:
                     monitor.set_input_source(input_source)  # type: ignore

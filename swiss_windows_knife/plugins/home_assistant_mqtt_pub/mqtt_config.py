@@ -13,12 +13,12 @@ class MqttConfig:
     @staticmethod
     def load_from_settings(settings: UserSettings):
         return MqttConfig(
-            settings.get_optional_str("homeassistant_host"),
-            settings.get_optional_int("homeassistant_port"),
-            settings.get_optional_str("homeassistant_username"),
-            settings.get_optional_str("homeassistant_password"),
-            settings.get_optional_str("homeassistant_client_id"),
-            settings.get_optional_str("homeassistant_device_name"),
+            settings.get("homeassistant_host", str),
+            settings.get("homeassistant_port", int),
+            settings.get("homeassistant_username", str),
+            settings.get("homeassistant_password", str),
+            settings.get("homeassistant_client_id", str),
+            settings.get("homeassistant_device_name", str),
         )
 
     def save_to_settings(self, settings):

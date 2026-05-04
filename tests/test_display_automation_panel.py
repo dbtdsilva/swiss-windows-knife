@@ -1,4 +1,5 @@
 import pytest
+from monitorcontrol import InputSource
 
 
 class _FakeMonitorInfo:
@@ -41,7 +42,7 @@ def test_panel_with_no_monitors_or_devices_apply_is_noop(make_panel, fake_user_s
     panel = make_panel(monitors=[], usb_devices=[])
     assert panel.apply() is True
     # No settings should be written when there is nothing to choose from.
-    assert fake_user_settings.get_optional_str('display_usb_watcher') is None
+    assert fake_user_settings.get('display_usb_watcher', str) is None
 
 
 def test_panel_renders_usb_devices_and_persists_selection(make_panel, fake_user_settings):
@@ -57,7 +58,7 @@ def test_panel_renders_usb_devices_and_persists_selection(make_panel, fake_user_
 
     panel._usb_combo.setCurrentIndex(2)  # Select "Mouse"
     assert panel.apply() is True
-    assert fake_user_settings.get_optional_str('display_usb_watcher') == "USB\\VID_9999&PID_1111\\BBB"
+    assert fake_user_settings.get('display_usb_watcher', str) == "USB\\VID_9999&PID_1111\\BBB"
 
 
 def test_panel_preselects_existing_usb_watcher(make_panel, fake_user_settings):
@@ -79,22 +80,24 @@ def test_panel_apply_with_none_clears_usb_watcher(make_panel, fake_user_settings
     panel._usb_combo.setCurrentIndex(0)  # "(none)"
 
     assert panel.apply() is True
-    assert fake_user_settings.get_optional_str('display_usb_watcher') is None
+    assert fake_user_settings.get('display_usb_watcher', str) is None
 
 
 def test_panel_renders_per_monitor_input_choices_and_persists(make_panel, fake_user_settings):
+    # Mix in a raw int VCP code to verify the combo filters out anything
+    # that isn't a recognised InputSource member.
     monitors = [
         _FakeMonitorInfo(
             device_id="MON-A-DEVID",
             device_name="\\\\.\\DISPLAY1",
             model="Dell U2723QE",
-            inputs=["DP1", "HDMI1", "USBC"],
+            inputs=[InputSource.DP1, InputSource.HDMI1, 42],
         ),
         _FakeMonitorInfo(
             device_id="MON-B-DEVID",
             device_name="\\\\.\\DISPLAY2",
             model="LG 27UP850",
-            inputs=["DP1", "HDMI2"],
+            inputs=[InputSource.DP1, InputSource.HDMI2],
         ),
     ]
     panel = make_panel(monitors=monitors, usb_devices=[])
@@ -103,18 +106,19 @@ def test_panel_renders_per_monitor_input_choices_and_persists(make_panel, fake_u
     assert "MON-B-DEVID" in panel._monitor_groups
 
     a = panel._monitor_groups["MON-A-DEVID"]
-    # Each combobox has the inputs plus a "(unchanged)" sentinel at index 0.
-    assert a["connect_combo"].count() == 1 + 3
-    assert a["disconnect_combo"].count() == 1 + 3
+    # Each combobox shows the 2 enum entries (the int 42 is filtered) plus
+    # a "(unchanged)" sentinel at index 0.
+    assert a["connect_combo"].count() == 1 + 2
+    assert a["disconnect_combo"].count() == 1 + 2
 
-    a["connect_combo"].setCurrentIndex(2)     # "HDMI1" on connect
-    a["disconnect_combo"].setCurrentIndex(1)  # "DP1" on disconnect
+    a["connect_combo"].setCurrentIndex(2)     # HDMI1 on connect
+    a["disconnect_combo"].setCurrentIndex(1)  # DP1 on disconnect
 
     assert panel.apply() is True
-    assert fake_user_settings.get_optional_str('display_on_connect_MON-A-DEVID') == "HDMI1"
-    assert fake_user_settings.get_optional_str('display_on_disconnect_MON-A-DEVID') == "DP1"
+    assert fake_user_settings.get('display_on_connect_MON-A-DEVID', InputSource) is InputSource.HDMI1
+    assert fake_user_settings.get('display_on_disconnect_MON-A-DEVID', InputSource) is InputSource.DP1
     # Untouched monitor keeps its "(unchanged)" sentinel — no key written.
-    assert fake_user_settings.get_optional_str('display_on_connect_MON-B-DEVID') is None
+    assert fake_user_settings.get('display_on_connect_MON-B-DEVID', InputSource) is None
 
 
 def test_panel_populates_when_discovery_completes_async(qtbot, fake_user_settings, silent_messagebox):
@@ -145,19 +149,18 @@ def test_panel_populates_when_discovery_completes_async(qtbot, fake_user_setting
 
 
 def test_panel_preselects_existing_per_monitor_choice(make_panel, fake_user_settings):
-    fake_user_settings.set('display_on_connect_MON-A-DEVID', "HDMI1")
-    fake_user_settings.set('display_on_disconnect_MON-A-DEVID', "DP1")
+    fake_user_settings.set('display_on_connect_MON-A-DEVID', InputSource.HDMI1)
+    fake_user_settings.set('display_on_disconnect_MON-A-DEVID', InputSource.DP1)
     monitors = [
         _FakeMonitorInfo(
             device_id="MON-A-DEVID",
             device_name="\\\\.\\DISPLAY1",
             model="Dell U2723QE",
-            inputs=["DP1", "HDMI1", "USBC"],
+            inputs=[InputSource.DP1, InputSource.HDMI1],
         ),
     ]
     panel = make_panel(monitors=monitors, usb_devices=[])
 
     a = panel._monitor_groups["MON-A-DEVID"]
-    # "HDMI1" is index 2 (after the "(unchanged)" sentinel + "DP1" at index 1).
     assert a["connect_combo"].currentText() == "HDMI1"
     assert a["disconnect_combo"].currentText() == "DP1"
