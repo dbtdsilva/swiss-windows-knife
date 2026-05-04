@@ -2,6 +2,7 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
+from monitorcontrol import InputSource
 from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtWidgets import QComboBox, QFormLayout, QGroupBox, QLabel, QVBoxLayout, QWidget
 
@@ -84,13 +85,16 @@ class DisplayAutomationConfigPanel(ConfigPanel):
     def _make_input_combo(self, inputs, device_id, key_prefix, parent) -> QComboBox:
         combo = QComboBox(parent)
         combo.addItem(UNCHANGED_LABEL, userData=None)
+        # monitorcontrol exposes raw int VCP codes for inputs it doesn't
+        # know — we only offer ones we have a semantic name for.
         for entry in inputs:
-            combo.addItem(str(entry), userData=entry)
+            if isinstance(entry, InputSource):
+                combo.addItem(entry.name, userData=entry)
 
-        current = self._user_settings.get_optional_str(key_prefix + device_id)
-        if current is not None:
+        saved = self._user_settings.get(key_prefix + device_id, InputSource)
+        if saved is not None:
             for i in range(combo.count()):
-                if str(combo.itemData(i)) == current:
+                if combo.itemData(i) == saved:
                     combo.setCurrentIndex(i)
                     break
         return combo
@@ -105,7 +109,7 @@ class DisplayAutomationConfigPanel(ConfigPanel):
             label = f"{device.name} ({device.id})"
             combo.addItem(label, userData=device.id)
 
-        current = self._user_settings.get_optional_str(USB_WATCHER_KEY)
+        current = self._user_settings.get(USB_WATCHER_KEY, str)
         if current is not None:
             for i in range(combo.count()):
                 if combo.itemData(i) == current:

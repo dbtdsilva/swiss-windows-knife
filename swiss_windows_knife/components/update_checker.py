@@ -225,7 +225,7 @@ class UpdateChecker(HealthReporter):
         self._launch_installer(path)
 
     def _confirm_update(self, remote_version: str) -> bool:
-        skipped = self.user_settings.get_str(SKIP_VERSION_KEY, "")
+        skipped = self.user_settings.get(SKIP_VERSION_KEY, str, "")
         if skipped == remote_version:
             logging.info(f"User previously chose to skip version {remote_version}")
             return False
