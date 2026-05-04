@@ -111,13 +111,11 @@ class TestCoerceEnum:
         assert _coerce_enum(InputSource, "DP1") is InputSource.DP1
         assert _coerce_enum(InputSource, "HDMI1") is InputSource.HDMI1
 
-    def test_legacy_qualified_form_strips_class_prefix(self):
-        # Pre-refactor the registry persisted enums via str(), giving
-        # 'InputSource.DP1'. Old registry entries must still resolve.
-        assert _coerce_enum(InputSource, "InputSource.DP1") is InputSource.DP1
-
     def test_unknown_member_is_none(self):
         assert _coerce_enum(InputSource, "DOES_NOT_EXIST") is None
+        # The qualified str(EnumCls.MEMBER) form is not an accepted input;
+        # the writer only ever persists .name.
+        assert _coerce_enum(InputSource, "InputSource.DP1") is None
 
     def test_none_and_empty_are_none(self):
         assert _coerce_enum(InputSource, None) is None
