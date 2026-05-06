@@ -22,6 +22,10 @@ TICK_MS = 1000
 class DisplayImageTunerPlugin(BaseWidget):
 
     display_name = "Display brightness & contrast"
+    description = (
+        "Auto-adjusts monitor brightness and contrast over the day, "
+        "ramping smoothly around sunrise and sunset."
+    )
 
     brightness_changed = Signal(int)
     contrast_changed = Signal(int)

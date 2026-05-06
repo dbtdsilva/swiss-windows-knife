@@ -1,7 +1,41 @@
-from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QCheckBox, QLabel, QVBoxLayout, QWidget
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QVBoxLayout,
+    QWidget,
+)
 
 from ..base.config_panel import ConfigPanel
+
+
+class _PluginCard(QFrame):
+    """Title + description + toggle for one plugin row."""
+
+    def __init__(self, plugin, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setFrameShape(QFrame.Shape.StyledPanel)
+
+        title = QLabel(f"<b>{plugin.get_display_name()}</b>", self)
+        description = QLabel(getattr(plugin, 'description', '') or "", self)
+        description.setWordWrap(True)
+        description.setStyleSheet("color: palette(placeholder-text);")
+
+        text_col = QVBoxLayout()
+        text_col.setContentsMargins(0, 0, 0, 0)
+        text_col.setSpacing(2)
+        text_col.addWidget(title)
+        if description.text():
+            text_col.addWidget(description)
+
+        self.checkbox = QCheckBox(self)
+        self.checkbox.setChecked(plugin.is_enabled())
+
+        layout = QHBoxLayout(self)
+        layout.addLayout(text_col, 1)
+        layout.addWidget(self.checkbox, 0, Qt.AlignmentFlag.AlignTop)
 
 
 class PluginsConfigPanel(ConfigPanel):
@@ -34,12 +68,11 @@ class PluginsConfigPanel(ConfigPanel):
         for plugin in self._plugins:
             if not plugin.is_toggleable():
                 continue
-            box = QCheckBox(plugin.get_display_name(), self)
-            box.setChecked(plugin.is_enabled())
-            box.toggled.connect(
+            card = _PluginCard(plugin, self)
+            card.checkbox.toggled.connect(
                 lambda checked, p=plugin: self.plugin_toggled.emit(p, checked))
-            layout.addWidget(box)
-            self._checkboxes[plugin] = box
+            layout.addWidget(card)
+            self._checkboxes[plugin] = card.checkbox
 
         layout.addStretch(1)
 

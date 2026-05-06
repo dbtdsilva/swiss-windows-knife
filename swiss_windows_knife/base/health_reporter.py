@@ -19,6 +19,7 @@ class HealthReporter(QWidget):
     """
 
     display_name: str = ""
+    description: str = ""
 
     health_changed = Signal()
 

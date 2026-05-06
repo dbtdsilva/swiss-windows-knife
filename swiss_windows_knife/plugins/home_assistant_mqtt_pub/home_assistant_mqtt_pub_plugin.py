@@ -21,6 +21,10 @@ from .sampler_runner import SamplerRunner
 class HomeAssistantMqttPubPlugin(BaseWidget):
 
     display_name = "Home Assistant (MQTT)"
+    description = (
+        "Publishes Windows sensors and lock/sleep/shutdown commands to "
+        "Home Assistant via MQTT discovery."
+    )
 
     def __init__(self, parent: QWidget | None) -> None:
         super().__init__(parent, is_enabled=True)

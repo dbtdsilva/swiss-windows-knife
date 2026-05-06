@@ -27,6 +27,10 @@ def USER_SETTINGS_DISPLAY_ON_DISCONNECT_KEY_FUNC(device_id): return f'display_on
 class DeviceDisplayMapperPlugin(BaseWidget):
 
     display_name = "Monitor input switch on USB events"
+    description = (
+        "Switches a monitor's active input source whenever a paired USB "
+        "device connects or disconnects."
+    )
 
     def __init__(self, parent: QWidget) -> None:
         super().__init__(parent)
