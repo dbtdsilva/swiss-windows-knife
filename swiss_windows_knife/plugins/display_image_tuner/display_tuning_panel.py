@@ -13,6 +13,8 @@ from PySide6.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
     QLabel,
+    QMessageBox,
+    QPushButton,
     QSlider,
     QVBoxLayout,
     QWidget,
@@ -21,10 +23,12 @@ from PySide6.QtWidgets import (
 from ...base.config_panel import ConfigPanel
 from ...base.user_settings import UserSettings
 from .curve import compute_keyframe_value
+from .location_picker import LocationPickerWidget
 from .sun_strength_notifier import (
     DEFAULT_LATITUDE,
     DEFAULT_LONGITUDE,
     DEFAULT_TIMEZONE,
+    SunStrengthNotifier,
     find_sun_events,
 )
 
@@ -389,9 +393,62 @@ class DisplayTuningConfigPanel(ConfigPanel):
 
     title = "Display tuning"
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        sun_strength_notifier: SunStrengthNotifier,
+        parent: QWidget | None = None,
+    ) -> None:
         super().__init__(parent)
         self._user_settings = UserSettings.instance()
+        self._sun_strength = sun_strength_notifier
+
+        latitude = self._user_settings.get('sun_latitude', float)
+        longitude = self._user_settings.get('sun_longitude', float)
+        self._location_is_default = latitude is None or longitude is None
+        if self._location_is_default:
+            latitude, longitude = DEFAULT_LATITUDE, DEFAULT_LONGITUDE
+        self._pending_lat = float(latitude)
+        self._pending_lng = float(longitude)
+        self._pending_tz = str(
+            self._user_settings.get('sun_timezone', str, DEFAULT_TIMEZONE)
+        )
+
+        self._location_summary = QLabel()
+        self._location_summary.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        self._update_location_summary()
+        edit_button = QPushButton("Edit location…")
+        edit_button.clicked.connect(self._start_editing_location)
+
+        self._location_caption = QLabel(
+            "Sunrise and sunset times in the preview and the ramp "
+            "offsets below are computed from this location."
+        )
+        self._location_caption.setWordWrap(True)
+        self._location_caption.setStyleSheet(
+            "color: palette(placeholder-text); font-style: italic;"
+        )
+
+        zoom = 11 if not self._location_is_default else 6
+        self._location_picker = LocationPickerWidget(
+            self._pending_lat, self._pending_lng, self._pending_tz, self,
+            initial_zoom=zoom,
+        )
+        self._location_picker.setVisible(False)
+
+        back_btn = QPushButton("← Back")
+        back_btn.clicked.connect(self._cancel_location)
+        save_btn = QPushButton("Save")
+        save_btn.setDefault(True)
+        save_btn.clicked.connect(self._confirm_location)
+        picker_nav_layout = QHBoxLayout()
+        picker_nav_layout.addWidget(back_btn)
+        picker_nav_layout.addStretch(1)
+        picker_nav_layout.addWidget(save_btn)
+        self._picker_nav = QWidget()
+        self._picker_nav.setLayout(picker_nav_layout)
+        self._picker_nav.setVisible(False)
 
         self._brightness_ctrl = _AxisControls(self._user_settings, 'brightness')
         self._contrast_ctrl = _AxisControls(self._user_settings, 'contrast')
@@ -453,12 +510,12 @@ class DisplayTuningConfigPanel(ConfigPanel):
         self._day.valueChanged.connect(self._refresh_preview)
         self._day.valueChanged.connect(lambda v: self._day_label.setText(self._format_day(v)))
 
-        layout = QVBoxLayout(self)
-        layout.addWidget(self._preview)
-        columns = QHBoxLayout()
-        columns.addWidget(self._brightness_ctrl.build_group("Brightness"))
-        columns.addWidget(self._contrast_ctrl.build_group("Contrast"))
-        layout.addLayout(columns)
+        location_row_layout = QHBoxLayout()
+        location_row_layout.addWidget(QLabel("<b>Location:</b>"))
+        location_row_layout.addWidget(self._location_summary, 1)
+        location_row_layout.addWidget(edit_button)
+        self._location_row = QWidget()
+        self._location_row.setLayout(location_row_layout)
 
         ramp_box = QGroupBox("Ramp (shared)")
         ramp_form = QFormLayout(ramp_box)
@@ -467,7 +524,24 @@ class DisplayTuningConfigPanel(ConfigPanel):
         ramp_form.addRow("Duration", self._row(self._ramp_duration, self._ramp_duration_label))
         ramp_form.addRow("Smoothness", self._row(self._ramp_smoothness, self._ramp_smoothness_label))
         ramp_form.addRow("Preview day", self._row(self._day, self._day_label))
-        layout.addWidget(ramp_box)
+
+        tuning_layout = QVBoxLayout()
+        tuning_layout.setContentsMargins(0, 0, 0, 0)
+        tuning_layout.addWidget(self._preview)
+        columns = QHBoxLayout()
+        columns.addWidget(self._brightness_ctrl.build_group("Brightness"))
+        columns.addWidget(self._contrast_ctrl.build_group("Contrast"))
+        tuning_layout.addLayout(columns)
+        tuning_layout.addWidget(ramp_box)
+        self._tuning_container = QWidget()
+        self._tuning_container.setLayout(tuning_layout)
+
+        layout = QVBoxLayout(self)
+        layout.addWidget(self._location_row)
+        layout.addWidget(self._location_caption)
+        layout.addWidget(self._picker_nav)
+        layout.addWidget(self._location_picker, 1)
+        layout.addWidget(self._tuning_container)
 
         self._refresh_preview()
 
@@ -479,15 +553,45 @@ class DisplayTuningConfigPanel(ConfigPanel):
         return row
 
     def _resolve_location(self) -> tuple[float, float, pytz.tzinfo.BaseTzInfo]:
-        latitude = self._user_settings.get('sun_latitude', float)
-        longitude = self._user_settings.get('sun_longitude', float)
-        timezone_name = self._user_settings.get('sun_timezone', str, DEFAULT_TIMEZONE)
-        if latitude is None or longitude is None:
-            return DEFAULT_LATITUDE, DEFAULT_LONGITUDE, pytz.timezone(DEFAULT_TIMEZONE)
         try:
-            return latitude, longitude, pytz.timezone(timezone_name)
+            return self._pending_lat, self._pending_lng, pytz.timezone(self._pending_tz)
         except pytz.UnknownTimeZoneError:
             return DEFAULT_LATITUDE, DEFAULT_LONGITUDE, pytz.timezone(DEFAULT_TIMEZONE)
+
+    def _format_location_summary(self) -> str:
+        suffix = " (default — click Edit to set yours)" if self._location_is_default else ""
+        return (
+            f"{self._pending_lat:.4f}, {self._pending_lng:.4f} • "
+            f"{self._pending_tz or '(unknown timezone)'}{suffix}"
+        )
+
+    def _update_location_summary(self) -> None:
+        self._location_summary.setText(self._format_location_summary())
+
+    def _start_editing_location(self) -> None:
+        self._location_picker.set_location(
+            self._pending_lat, self._pending_lng, self._pending_tz,
+        )
+        self._set_editing_location(True)
+
+    def _confirm_location(self) -> None:
+        self._pending_lat = self._location_picker.latitude()
+        self._pending_lng = self._location_picker.longitude()
+        self._pending_tz = self._location_picker.timezone()
+        self._location_is_default = False
+        self._update_location_summary()
+        self._refresh_preview()
+        self._set_editing_location(False)
+
+    def _cancel_location(self) -> None:
+        self._set_editing_location(False)
+
+    def _set_editing_location(self, editing: bool) -> None:
+        self._location_row.setVisible(not editing)
+        self._location_caption.setVisible(not editing)
+        self._tuning_container.setVisible(not editing)
+        self._picker_nav.setVisible(editing)
+        self._location_picker.setVisible(editing)
 
     def _format_day(self, day_of_year: int) -> str:
         d = date(2024, 1, 1) + timedelta(days=day_of_year - 1)
@@ -527,6 +631,36 @@ class DisplayTuningConfigPanel(ConfigPanel):
         self._preview.set_contrast(self._contrast_ctrl.render())
 
     def apply(self) -> bool:
+        if not self._pending_tz:
+            QMessageBox.warning(
+                self, "Invalid input",
+                "No timezone could be resolved for the selected location. "
+                "Click 'Edit location…' to pick a different point.",
+            )
+            return False
+        try:
+            pytz.timezone(self._pending_tz)
+        except pytz.UnknownTimeZoneError:
+            QMessageBox.warning(
+                self, "Invalid input",
+                f"Unknown IANA timezone: {self._pending_tz!r}",
+            )
+            return False
+
+        prev_lat = self._user_settings.get('sun_latitude', float)
+        prev_lng = self._user_settings.get('sun_longitude', float)
+        prev_tz = self._user_settings.get('sun_timezone', str)
+        location_changed = (
+            prev_lat != self._pending_lat
+            or prev_lng != self._pending_lng
+            or prev_tz != self._pending_tz
+        )
+        if location_changed:
+            self._user_settings.set('sun_latitude', self._pending_lat)
+            self._user_settings.set('sun_longitude', self._pending_lng)
+            self._user_settings.set('sun_timezone', self._pending_tz)
+            self._sun_strength.calculate_sun_strength()
+
         self._brightness_ctrl.apply()
         self._contrast_ctrl.apply()
         self._user_settings.set('auto_sunrise_offset_minutes', self._sunrise_offset.value())
@@ -535,3 +669,5 @@ class DisplayTuningConfigPanel(ConfigPanel):
         self._user_settings.set('auto_ramp_smoothness',
                                 smoothness_from_slider(self._ramp_smoothness.value()))
         return True
+
+

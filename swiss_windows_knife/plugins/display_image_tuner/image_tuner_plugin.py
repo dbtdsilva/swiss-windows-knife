@@ -14,7 +14,6 @@ from ...base.monitor_runner import runner
 from ...base.user_settings import UserSettings
 from .curve import compute_keyframe_value
 from .display_tuning_panel import DisplayTuningConfigPanel
-from .sun_location_panel import SunLocationConfigPanel
 from .sun_strength_notifier import SunStrengthNotifier, find_sun_events
 
 TICK_MS = 1000
@@ -86,10 +85,7 @@ class DisplayImageTunerPlugin(BaseWidget):
         ]
 
     def retrieve_config_panels(self) -> list[ConfigPanel]:
-        return [
-            SunLocationConfigPanel(self.sun_strength_plugin, self),
-            DisplayTuningConfigPanel(self),
-        ]
+        return [DisplayTuningConfigPanel(self.sun_strength_plugin, self)]
 
     @Slot()
     def _tick(self) -> None:
