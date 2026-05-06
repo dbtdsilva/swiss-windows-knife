@@ -6,7 +6,7 @@ from datetime import date, datetime, timedelta
 
 import pytz
 from PySide6.QtCore import QPointF, QRectF, Qt
-from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen
+from PySide6.QtGui import QColor, QFont, QPainter, QPainterPath, QPalette, QPen
 from PySide6.QtWidgets import (
     QComboBox,
     QFormLayout,
@@ -109,9 +109,9 @@ class DisplayTuningPreview(QWidget):
 
         sunrise_h, sunset_h = self._sun_events
         if sunrise_h is not None:
-            self._draw_event_marker(painter, plot_rect, sunrise_h, "sunrise", COLOR_SUNRISE)
+            self._draw_event_line(painter, plot_rect, sunrise_h, COLOR_SUNRISE)
         if sunset_h is not None:
-            self._draw_event_marker(painter, plot_rect, sunset_h, "sunset", COLOR_SUNSET)
+            self._draw_event_line(painter, plot_rect, sunset_h, COLOR_SUNSET)
 
         b_path = self._build_axis_path(plot_rect, self._brightness)
         c_path = self._build_axis_path(plot_rect, self._contrast)
@@ -122,6 +122,11 @@ class DisplayTuningPreview(QWidget):
         painter.drawPath(c_path)
 
         self._draw_legend(painter, plot_rect)
+
+        if sunrise_h is not None:
+            self._draw_event_label(painter, plot_rect, sunrise_h, "Sunrise", COLOR_SUNRISE)
+        if sunset_h is not None:
+            self._draw_event_label(painter, plot_rect, sunset_h, "Sunset", COLOR_SUNSET)
 
         if self._show_now_marker:
             self._draw_now_marker(painter, plot_rect)
@@ -187,26 +192,95 @@ class DisplayTuningPreview(QWidget):
         return path
 
     def _draw_legend(self, painter: QPainter, rect: QRectF) -> None:
-        x = rect.right() - 130
-        y = rect.top() + 14
-        painter.setPen(QPen(COLOR_BRIGHTNESS, 3.0))
-        painter.drawLine(QPointF(x, y), QPointF(x + 18, y))
-        painter.setPen(QPen(COLOR_AXIS, 1.0))
-        painter.drawText(QPointF(x + 24, y + 4), "Brightness")
-        y += 14
-        painter.setPen(QPen(COLOR_CONTRAST, 3.0))
-        painter.drawLine(QPointF(x, y), QPointF(x + 18, y))
-        painter.setPen(QPen(COLOR_AXIS, 1.0))
-        painter.drawText(QPointF(x + 24, y + 4), "Contrast")
+        previous_font = painter.font()
+        legend_font = QFont(previous_font)
+        legend_font.setBold(True)
+        legend_font.setPointSizeF(previous_font.pointSizeF() + 1)
+        painter.setFont(legend_font)
+        fm = painter.fontMetrics()
 
-    def _draw_event_marker(
-        self, painter: QPainter, rect: QRectF, hour: float, label: str, color: QColor,
+        items = [(COLOR_BRIGHTNESS, "Brightness"), (COLOR_CONTRAST, "Contrast")]
+        line_w = 22
+        gap = 8
+        pad_h = 8
+        pad_v = 6
+        row_h = fm.height()
+        text_w = max(fm.horizontalAdvance(label) for _, label in items)
+        box_w = pad_h * 2 + line_w + gap + text_w
+        box_h = pad_v * 2 + row_h * len(items)
+        box_x = rect.left() + 6
+        box_y = rect.bottom() - box_h - 6
+        box = QRectF(box_x, box_y, box_w, box_h)
+
+        palette = self.palette()
+        backdrop = QColor(palette.color(QPalette.ColorRole.Base))
+        backdrop.setAlpha(220)
+        text_color = palette.color(QPalette.ColorRole.WindowText)
+
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(backdrop)
+        painter.drawRoundedRect(box, 4, 4)
+
+        for i, (color, label) in enumerate(items):
+            row_top = box_y + pad_v + row_h * i
+            center_y = row_top + row_h / 2
+            painter.setPen(QPen(color, 3.0))
+            painter.drawLine(
+                QPointF(box_x + pad_h, center_y),
+                QPointF(box_x + pad_h + line_w, center_y),
+            )
+            painter.setPen(QPen(text_color, 1.0))
+            painter.drawText(
+                QPointF(box_x + pad_h + line_w + gap, row_top + fm.ascent()),
+                label,
+            )
+
+        painter.setFont(previous_font)
+
+    def _draw_event_line(
+        self, painter: QPainter, rect: QRectF, hour: float, color: QColor,
     ) -> None:
         x = rect.left() + rect.width() * (hour / 24.0)
         painter.setPen(QPen(color, 1.0, Qt.PenStyle.DashLine))
         painter.drawLine(QPointF(x, rect.top()), QPointF(x, rect.bottom()))
+
+    def _draw_event_label(
+        self, painter: QPainter, rect: QRectF, hour: float, label: str, color: QColor,
+    ) -> None:
+        previous_font = painter.font()
+        chip_font = QFont(previous_font)
+        chip_font.setBold(True)
+        chip_font.setPointSizeF(previous_font.pointSizeF() + 1)
+        painter.setFont(chip_font)
+        fm = painter.fontMetrics()
+
+        pad_h = 6
+        pad_v = 3
+        text_w = fm.horizontalAdvance(label)
+        chip_w = text_w + pad_h * 2
+        chip_h = fm.height() + pad_v * 2
+
+        line_x = rect.left() + rect.width() * (hour / 24.0)
+        chip_x = line_x + 4
+        if chip_x + chip_w > rect.right() - 2:
+            chip_x = line_x - chip_w - 4
+        chip_x = max(chip_x, rect.left() + 2)
+        chip_y = rect.top() + 4
+        chip = QRectF(chip_x, chip_y, chip_w, chip_h)
+
+        backdrop = QColor(self.palette().color(QPalette.ColorRole.Base))
+        backdrop.setAlpha(220)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(backdrop)
+        painter.drawRoundedRect(chip, 3, 3)
+
         painter.setPen(QPen(color, 1.0))
-        painter.drawText(QPointF(x + 3, rect.top() + 12), label)
+        painter.drawText(
+            QPointF(chip_x + pad_h, chip_y + pad_v + fm.ascent()),
+            label,
+        )
+
+        painter.setFont(previous_font)
 
     def _draw_now_marker(self, painter: QPainter, rect: QRectF) -> None:
         now = datetime.now().astimezone()
@@ -380,9 +454,11 @@ class DisplayTuningConfigPanel(ConfigPanel):
         self._day.valueChanged.connect(lambda v: self._day_label.setText(self._format_day(v)))
 
         layout = QVBoxLayout(self)
-        layout.addWidget(self._brightness_ctrl.build_group("Brightness"))
-        layout.addWidget(self._contrast_ctrl.build_group("Contrast"))
         layout.addWidget(self._preview)
+        columns = QHBoxLayout()
+        columns.addWidget(self._brightness_ctrl.build_group("Brightness"))
+        columns.addWidget(self._contrast_ctrl.build_group("Contrast"))
+        layout.addLayout(columns)
 
         ramp_box = QGroupBox("Ramp (shared)")
         ramp_form = QFormLayout(ramp_box)
