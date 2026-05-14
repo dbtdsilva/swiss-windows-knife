@@ -61,11 +61,11 @@ def make_dialog(qtbot, fake_user_settings):
     return _make
 
 
-def test_dialog_includes_plugins_tab_first(make_dialog):
+def test_dialog_includes_general_tab_first(make_dialog):
     enabled = _FakePlugin("Enabled", True, [_NamedPanel("EnabledPanel")])
     dlg = make_dialog([enabled])
     tabs = dlg._tabs
-    assert tabs.tabText(0) == "Plugins"
+    assert tabs.tabText(0) == "General"
     assert tabs.tabText(1) == "EnabledPanel"
 
 
@@ -74,25 +74,25 @@ def test_disabled_plugin_panels_are_hidden_initially(make_dialog):
     disabled = _FakePlugin("D", False, [_NamedPanel("DPanel")])
     dlg = make_dialog([enabled, disabled])
     titles = [dlg._tabs.tabText(i) for i in range(dlg._tabs.count())]
-    assert titles == ["Plugins", "EPanel"]
+    assert titles == ["General", "EPanel"]
 
 
-def test_enabling_via_plugins_panel_inserts_tab(make_dialog):
+def test_enabling_via_general_panel_inserts_tab(make_dialog):
     enabled = _FakePlugin("E", True, [_NamedPanel("EPanel")])
     disabled = _FakePlugin("D", False, [_NamedPanel("DPanel")])
     dlg = make_dialog([enabled, disabled])
-    plugins_panel = dlg._plugins_panel
-    plugins_panel._checkboxes[disabled].setChecked(True)
+    general_panel = dlg._general_panel
+    general_panel._checkboxes[disabled].setChecked(True)
 
     titles = [dlg._tabs.tabText(i) for i in range(dlg._tabs.count())]
     assert "DPanel" in titles
 
 
-def test_disabling_via_plugins_panel_removes_tab(make_dialog):
+def test_disabling_via_general_panel_removes_tab(make_dialog):
     enabled = _FakePlugin("E", True, [_NamedPanel("EPanel")])
     dlg = make_dialog([enabled])
-    plugins_panel = dlg._plugins_panel
-    plugins_panel._checkboxes[enabled].setChecked(False)
+    general_panel = dlg._general_panel
+    general_panel._checkboxes[enabled].setChecked(False)
 
     titles = [dlg._tabs.tabText(i) for i in range(dlg._tabs.count())]
     assert "EPanel" not in titles
@@ -103,7 +103,7 @@ def test_per_plugin_tabs_render_in_alphabetical_order(make_dialog):
     p2 = _FakePlugin("Whatever", True, [_NamedPanel("Alpha"), _NamedPanel("Mu")])
     dlg = make_dialog([p1, p2])
     titles = [dlg._tabs.tabText(i) for i in range(dlg._tabs.count())]
-    assert titles == ["Plugins", "Alpha", "Mu", "Zeta"]
+    assert titles == ["General", "Alpha", "Mu", "Zeta"]
 
 
 def test_enabling_inserts_tab_at_alphabetical_position(make_dialog):
@@ -111,27 +111,27 @@ def test_enabling_inserts_tab_at_alphabetical_position(make_dialog):
     disabled = _FakePlugin("D", False, [_NamedPanel("Mike")])
     dlg = make_dialog([enabled, disabled])
     assert [dlg._tabs.tabText(i) for i in range(dlg._tabs.count())] == [
-        "Plugins", "Beta", "Yankee",
+        "General", "Beta", "Yankee",
     ]
 
-    dlg._plugins_panel._checkboxes[disabled].setChecked(True)
+    dlg._general_panel._checkboxes[disabled].setChecked(True)
     assert [dlg._tabs.tabText(i) for i in range(dlg._tabs.count())] == [
-        "Plugins", "Beta", "Mike", "Yankee",
+        "General", "Beta", "Mike", "Yankee",
     ]
 
 
-def test_apply_runs_per_plugin_panels_before_plugins_panel(make_dialog):
+def test_apply_runs_per_plugin_panels_before_general_panel(make_dialog):
     enabled = _FakePlugin("E", True, [_NamedPanel("EPanel")])
     dlg = make_dialog([enabled])
-    plugins_panel = dlg._plugins_panel
-    plugins_panel._checkboxes[enabled].setChecked(False)
+    general_panel = dlg._general_panel
+    general_panel._checkboxes[enabled].setChecked(False)
 
     dlg._on_accept()
 
-    # Per-plugin panel applied before the Plugins panel toggled the plugin off.
+    # Per-plugin panel applied before the General panel toggled the plugin off.
     panel_apply_call_index = [
         i for i, p in enumerate(dlg._all_panels) if p is enabled._panels[0]
     ][0]
-    plugins_panel_index = dlg._all_panels.index(plugins_panel)
-    assert panel_apply_call_index < plugins_panel_index
+    general_panel_index = dlg._all_panels.index(general_panel)
+    assert panel_apply_call_index < general_panel_index
     assert enabled.set_enabled_log == [False]
