@@ -59,7 +59,10 @@ class GeneralConfigPanel(ConfigPanel):
     Persistence happens in `apply()`: only changed checkboxes call into
     `plugin.set_enabled` so a no-op OK doesn't trigger restart side
     effects, and the color-scheme preference is only written when it
-    differs from the stored value.
+    differs from the stored value. Changing the color-scheme combo
+    applies the new scheme immediately so the user sees a live preview;
+    `cleanup()` reverts to `_initial_preference` if `apply()` never
+    committed the new value (Cancel / X path).
     """
 
     title = "General"
@@ -87,6 +90,11 @@ class GeneralConfigPanel(ConfigPanel):
         self._initial_preference = load_preference()
         self._color_scheme_combo.setCurrentIndex(
             self._color_scheme_combo.findData(self._initial_preference),
+        )
+        # Connect after the initial setCurrentIndex so we don't fire a
+        # redundant apply during construction.
+        self._color_scheme_combo.currentIndexChanged.connect(
+            self._on_color_scheme_changed,
         )
         form.addRow("Color scheme:", self._color_scheme_combo)
         layout.addLayout(form)
@@ -116,11 +124,15 @@ class GeneralConfigPanel(ConfigPanel):
     def _selected_preference(self) -> ColorSchemePreference:
         return self._color_scheme_combo.currentData()
 
+    def _on_color_scheme_changed(self) -> None:
+        apply_preference(self._selected_preference())
+
     def apply(self) -> bool:
         preference = self._selected_preference()
         if preference != self._initial_preference:
             save_preference(preference)
-            apply_preference(preference)
+            # Live preview already pushed the new scheme to QStyleHints;
+            # promote it to the committed baseline so cleanup() won't revert.
             self._initial_preference = preference
 
         for plugin, box in self._checkboxes.items():
@@ -128,3 +140,7 @@ class GeneralConfigPanel(ConfigPanel):
             if checked != plugin.is_enabled():
                 plugin.set_enabled(checked)
         return True
+
+    def cleanup(self) -> None:
+        if self._selected_preference() != self._initial_preference:
+            apply_preference(self._initial_preference)

@@ -100,7 +100,17 @@ def test_color_scheme_reads_persisted_preference(make_panel, fake_user_settings)
     assert panel._color_scheme_combo.currentData() is ColorSchemePreference.DARK
 
 
-def test_apply_persists_and_applies_changed_color_scheme(make_panel, fake_user_settings):
+def test_changing_combo_previews_color_scheme_live(make_panel, fake_user_settings):
+    from swiss_windows_knife.base.color_scheme import ColorSchemePreference
+
+    panel = make_panel([])
+    dark_index = panel._color_scheme_combo.findData(ColorSchemePreference.DARK)
+    panel._color_scheme_combo.setCurrentIndex(dark_index)
+    # Live preview pushed the new scheme to QStyleHints immediately, without apply().
+    assert panel._test_applied == [ColorSchemePreference.DARK]
+
+
+def test_apply_persists_changed_color_scheme(make_panel, fake_user_settings):
     from swiss_windows_knife.base.color_scheme import (
         SETTINGS_KEY,
         ColorSchemePreference,
@@ -112,6 +122,7 @@ def test_apply_persists_and_applies_changed_color_scheme(make_panel, fake_user_s
 
     assert panel.apply() is True
     assert fake_user_settings.get(SETTINGS_KEY, ColorSchemePreference) is ColorSchemePreference.DARK
+    # apply() itself doesn't reapply — the live preview already did.
     assert panel._test_applied == [ColorSchemePreference.DARK]
 
 
@@ -125,5 +136,30 @@ def test_apply_skips_color_scheme_when_unchanged(make_panel, fake_user_settings)
     panel = make_panel([])
 
     assert panel.apply() is True
-    # No re-apply because the combo still matches the persisted value.
+    # No re-apply because the user never touched the combo.
     assert panel._test_applied == []
+
+
+def test_cleanup_reverts_live_preview_when_apply_not_called(make_panel, fake_user_settings):
+    from swiss_windows_knife.base.color_scheme import ColorSchemePreference
+
+    panel = make_panel([])
+    dark_index = panel._color_scheme_combo.findData(ColorSchemePreference.DARK)
+    panel._color_scheme_combo.setCurrentIndex(dark_index)
+    assert panel._test_applied == [ColorSchemePreference.DARK]
+
+    # User cancels — cleanup runs, restoring whatever was the committed baseline.
+    panel.cleanup()
+    assert panel._test_applied == [ColorSchemePreference.DARK, ColorSchemePreference.SYSTEM]
+
+
+def test_cleanup_does_not_revert_after_apply(make_panel, fake_user_settings):
+    from swiss_windows_knife.base.color_scheme import ColorSchemePreference
+
+    panel = make_panel([])
+    dark_index = panel._color_scheme_combo.findData(ColorSchemePreference.DARK)
+    panel._color_scheme_combo.setCurrentIndex(dark_index)
+    panel.apply()
+    # The combo position now matches the committed baseline → no revert call.
+    panel.cleanup()
+    assert panel._test_applied == [ColorSchemePreference.DARK]
