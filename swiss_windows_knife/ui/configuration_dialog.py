@@ -27,8 +27,9 @@ class ConfigurationDialog(PersistentSizeDialog):
 
         # `_panels_by_plugin` is the persistent record of "which panels does
         # this plugin contribute" (queried once at construction). `_tab_index`
-        # tracks which of those are currently inserted in the QTabWidget so
-        # we can show/hide them as the user toggles checkboxes.
+        # maps each panel to its tab position in the QTabWidget; every panel
+        # is inserted once at construction and toggled via `setTabVisible`,
+        # so the index stays valid for the dialog's lifetime.
         self._panels_by_plugin: dict = {}
         self._tab_index: dict = {}
 
@@ -47,9 +48,10 @@ class ConfigurationDialog(PersistentSizeDialog):
         for plugin in self._plugins:
             panels = list(plugin.retrieve_config_panels())
             self._panels_by_plugin[plugin] = panels
-            if plugin.is_enabled():
-                for panel in panels:
-                    self._insert_plugin_panel(plugin, panel)
+            for panel in panels:
+                self._insert_plugin_panel(plugin, panel)
+            if not plugin.is_enabled():
+                self._set_plugin_tabs_visible(plugin, False)
 
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
@@ -107,21 +109,14 @@ class ConfigurationDialog(PersistentSizeDialog):
         self._tabs.insertTab(insert_at, self._wrap_in_scroll(panel), title)
         self._rebuild_tab_index()
 
-    def _remove_plugin_panel(self, panel: ConfigPanel) -> None:
-        index = self._tab_index.pop(panel, None)
-        if index is None:
-            return
-        self._tabs.removeTab(index)
-        self._rebuild_tab_index()
+    def _set_plugin_tabs_visible(self, plugin, visible: bool) -> None:
+        for panel in self._panels_by_plugin.get(plugin, []):
+            index = self._tab_index.get(panel)
+            if index is not None:
+                self._tabs.setTabVisible(index, visible)
 
     def _on_plugin_toggled(self, plugin, enabled: bool) -> None:
-        panels = self._panels_by_plugin.get(plugin, [])
-        if enabled:
-            for panel in panels:
-                self._insert_plugin_panel(plugin, panel)
-        else:
-            for panel in panels:
-                self._remove_plugin_panel(panel)
+        self._set_plugin_tabs_visible(plugin, enabled)
 
     def _on_accept(self) -> None:
         for panel in self._all_panels:

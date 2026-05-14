@@ -49,6 +49,10 @@ def _reset():
     _FakePlugin.instances.clear()
 
 
+def _visible_tab_titles(tabs) -> list[str]:
+    return [tabs.tabText(i) for i in range(tabs.count()) if tabs.isTabVisible(i)]
+
+
 @pytest.fixture
 def make_dialog(qtbot, fake_user_settings):
     from swiss_windows_knife.ui.configuration_dialog import ConfigurationDialog
@@ -73,8 +77,7 @@ def test_disabled_plugin_panels_are_hidden_initially(make_dialog):
     enabled = _FakePlugin("E", True, [_NamedPanel("EPanel")])
     disabled = _FakePlugin("D", False, [_NamedPanel("DPanel")])
     dlg = make_dialog([enabled, disabled])
-    titles = [dlg._tabs.tabText(i) for i in range(dlg._tabs.count())]
-    assert titles == ["General", "EPanel"]
+    assert _visible_tab_titles(dlg._tabs) == ["General", "EPanel"]
 
 
 def test_enabling_via_general_panel_inserts_tab(make_dialog):
@@ -84,8 +87,7 @@ def test_enabling_via_general_panel_inserts_tab(make_dialog):
     general_panel = dlg._general_panel
     general_panel._checkboxes[disabled].setChecked(True)
 
-    titles = [dlg._tabs.tabText(i) for i in range(dlg._tabs.count())]
-    assert "DPanel" in titles
+    assert "DPanel" in _visible_tab_titles(dlg._tabs)
 
 
 def test_disabling_via_general_panel_removes_tab(make_dialog):
@@ -94,28 +96,24 @@ def test_disabling_via_general_panel_removes_tab(make_dialog):
     general_panel = dlg._general_panel
     general_panel._checkboxes[enabled].setChecked(False)
 
-    titles = [dlg._tabs.tabText(i) for i in range(dlg._tabs.count())]
-    assert "EPanel" not in titles
+    assert "EPanel" not in _visible_tab_titles(dlg._tabs)
 
 
 def test_per_plugin_tabs_render_in_alphabetical_order(make_dialog):
     p1 = _FakePlugin("Whatever", True, [_NamedPanel("Zeta")])
     p2 = _FakePlugin("Whatever", True, [_NamedPanel("Alpha"), _NamedPanel("Mu")])
     dlg = make_dialog([p1, p2])
-    titles = [dlg._tabs.tabText(i) for i in range(dlg._tabs.count())]
-    assert titles == ["General", "Alpha", "Mu", "Zeta"]
+    assert _visible_tab_titles(dlg._tabs) == ["General", "Alpha", "Mu", "Zeta"]
 
 
 def test_enabling_inserts_tab_at_alphabetical_position(make_dialog):
     enabled = _FakePlugin("E", True, [_NamedPanel("Beta"), _NamedPanel("Yankee")])
     disabled = _FakePlugin("D", False, [_NamedPanel("Mike")])
     dlg = make_dialog([enabled, disabled])
-    assert [dlg._tabs.tabText(i) for i in range(dlg._tabs.count())] == [
-        "General", "Beta", "Yankee",
-    ]
+    assert _visible_tab_titles(dlg._tabs) == ["General", "Beta", "Yankee"]
 
     dlg._general_panel._checkboxes[disabled].setChecked(True)
-    assert [dlg._tabs.tabText(i) for i in range(dlg._tabs.count())] == [
+    assert _visible_tab_titles(dlg._tabs) == [
         "General", "Beta", "Mike", "Yankee",
     ]
 
