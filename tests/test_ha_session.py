@@ -84,3 +84,42 @@ def test_on_disconnect_callback_exceptions_are_swallowed(fake_paho_client):
     sess.on_disconnected = boom
     sess.start()
     fake_paho_client[0].fire_on_disconnect(rc=0)  # must not raise
+
+
+def test_reconnect_resubscribes_all_topics(fake_paho_client):
+    """Broker bounces are the main real-world failure mode: after a
+    disconnect+reconnect, every previously-registered topic must be
+    re-subscribed (paho drops subscriptions on disconnect)."""
+    sess = MqttSession(broker_config=_broker(), availability_topic=_ctx().availability_topic)
+    sess.subscribe("homeassistant/status", lambda payload: None)
+    sess.subscribe("homeassistant/button/swk_pc/lock/set", lambda payload: None)
+    sess.start()
+    client = fake_paho_client[0]
+
+    client.fire_on_connect(rc=0)
+    assert client.subscribed == [
+        "homeassistant/status",
+        "homeassistant/button/swk_pc/lock/set",
+    ]
+
+    client.subscribed.clear()
+    client.fire_on_disconnect(rc=0)
+    client.fire_on_connect(rc=0)
+
+    assert client.subscribed == [
+        "homeassistant/status",
+        "homeassistant/button/swk_pc/lock/set",
+    ]
+
+
+def test_failed_reconnect_does_not_resubscribe(fake_paho_client):
+    """An on_connect with non-zero rc means the broker rejected us — must
+    not call subscribe() on a non-connected client."""
+    sess = MqttSession(broker_config=_broker(), availability_topic=_ctx().availability_topic)
+    sess.subscribe("homeassistant/status", lambda payload: None)
+    sess.start()
+    client = fake_paho_client[0]
+
+    client.fire_on_connect(rc=5)
+
+    assert client.subscribed == []
