@@ -25,12 +25,18 @@ class _FakePlugin:
 
 
 @pytest.fixture
-def make_panel(qtbot, fake_user_settings):
-    from swiss_windows_knife.ui.plugins_config_panel import PluginsConfigPanel
+def make_panel(qtbot, fake_user_settings, monkeypatch):
+    from swiss_windows_knife.ui import general_config_panel
+    from swiss_windows_knife.ui.general_config_panel import GeneralConfigPanel
+
+    applied: list = []
+    monkeypatch.setattr(general_config_panel, "apply_preference",
+                        lambda pref: applied.append(pref))
 
     def _make(plugins):
-        panel = PluginsConfigPanel(plugins)
+        panel = GeneralConfigPanel(plugins)
         qtbot.addWidget(panel)
+        panel._test_applied = applied
         return panel
 
     return _make
@@ -74,3 +80,50 @@ def test_panel_emits_signal_when_a_checkbox_is_toggled(qtbot, make_panel):
 
     panel._checkboxes[plugin].setChecked(True)
     assert received == [(plugin, False), (plugin, True)]
+
+
+def test_color_scheme_defaults_to_follow_system(make_panel, fake_user_settings):
+    from swiss_windows_knife.base.color_scheme import ColorSchemePreference
+
+    panel = make_panel([])
+    assert panel._color_scheme_combo.currentData() is ColorSchemePreference.SYSTEM
+
+
+def test_color_scheme_reads_persisted_preference(make_panel, fake_user_settings):
+    from swiss_windows_knife.base.color_scheme import (
+        SETTINGS_KEY,
+        ColorSchemePreference,
+    )
+
+    fake_user_settings.set(SETTINGS_KEY, ColorSchemePreference.DARK)
+    panel = make_panel([])
+    assert panel._color_scheme_combo.currentData() is ColorSchemePreference.DARK
+
+
+def test_apply_persists_and_applies_changed_color_scheme(make_panel, fake_user_settings):
+    from swiss_windows_knife.base.color_scheme import (
+        SETTINGS_KEY,
+        ColorSchemePreference,
+    )
+
+    panel = make_panel([])
+    dark_index = panel._color_scheme_combo.findData(ColorSchemePreference.DARK)
+    panel._color_scheme_combo.setCurrentIndex(dark_index)
+
+    assert panel.apply() is True
+    assert fake_user_settings.get(SETTINGS_KEY, ColorSchemePreference) is ColorSchemePreference.DARK
+    assert panel._test_applied == [ColorSchemePreference.DARK]
+
+
+def test_apply_skips_color_scheme_when_unchanged(make_panel, fake_user_settings):
+    from swiss_windows_knife.base.color_scheme import (
+        SETTINGS_KEY,
+        ColorSchemePreference,
+    )
+
+    fake_user_settings.set(SETTINGS_KEY, ColorSchemePreference.LIGHT)
+    panel = make_panel([])
+
+    assert panel.apply() is True
+    # No re-apply because the combo still matches the persisted value.
+    assert panel._test_applied == []

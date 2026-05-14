@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
 
 from ..base.config_panel import ConfigPanel
 from ..base.persistent_dialog import PersistentSizeDialog
-from .plugins_config_panel import PluginsConfigPanel
+from .general_config_panel import GeneralConfigPanel
 
 DEFAULT_PADDING = QSize(80, 60)
 
@@ -37,11 +37,11 @@ class ConfigurationDialog(PersistentSizeDialog):
         self._tabs = QTabWidget(self)
         layout.addWidget(self._tabs)
 
-        self._plugins_panel = PluginsConfigPanel(self._plugins, self)
-        self._plugins_panel.plugin_toggled.connect(self._on_plugin_toggled)
+        self._general_panel = GeneralConfigPanel(self._plugins, self)
+        self._general_panel.plugin_toggled.connect(self._on_plugin_toggled)
         self._tabs.addTab(
-            self._wrap_in_scroll(self._plugins_panel),
-            self._plugins_panel.title or "Plugins",
+            self._wrap_in_scroll(self._general_panel),
+            self._general_panel.title or "General",
         )
 
         for plugin in self._plugins:
@@ -64,12 +64,12 @@ class ConfigurationDialog(PersistentSizeDialog):
 
     @property
     def _all_panels(self) -> list[ConfigPanel]:
-        """Apply order: every per-plugin panel, then the Plugins panel last
+        """Apply order: every per-plugin panel, then the General panel last
         so `set_enabled` runs after per-plugin settings have been saved."""
         out: list[ConfigPanel] = []
         for plugin in self._plugins:
             out.extend(self._panels_by_plugin.get(plugin, []))
-        out.append(self._plugins_panel)
+        out.append(self._general_panel)
         return out
 
     @staticmethod
@@ -84,7 +84,7 @@ class ConfigurationDialog(PersistentSizeDialog):
         return panel.title or panel.__class__.__name__
 
     def _alphabetical_insert_index(self, title: str) -> int:
-        """First tab index (>= 1, since Plugins is pinned at 0) whose title
+        """First tab index (>= 1, since General is pinned at 0) whose title
         sorts after `title`. Returns `count()` if `title` belongs at the end."""
         for i in range(1, self._tabs.count()):
             if self._tabs.tabText(i).lower() > title.lower():
@@ -96,7 +96,7 @@ class ConfigurationDialog(PersistentSizeDialog):
         for i in range(self._tabs.count()):
             scroll = self._tabs.widget(i)
             inner = scroll.widget() if isinstance(scroll, QScrollArea) else scroll
-            if isinstance(inner, ConfigPanel) and inner is not self._plugins_panel:
+            if isinstance(inner, ConfigPanel) and inner is not self._general_panel:
                 self._tab_index[inner] = i
 
     def _insert_plugin_panel(self, plugin, panel: ConfigPanel) -> None:

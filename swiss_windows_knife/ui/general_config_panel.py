@@ -1,6 +1,8 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
+    QComboBox,
+    QFormLayout,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -8,6 +10,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ..base.color_scheme import (
+    ColorSchemePreference,
+    apply_preference,
+    load_preference,
+    save_preference,
+)
 from ..base.config_panel import ConfigPanel
 
 
@@ -38,18 +46,23 @@ class _PluginCard(QFrame):
         layout.addWidget(self.checkbox, 0, Qt.AlignmentFlag.AlignTop)
 
 
-class PluginsConfigPanel(ConfigPanel):
-    """Master on/off switches for the toggleable plugins.
+def _section_label(text: str, parent: QWidget) -> QLabel:
+    return QLabel(f"<b>{text}</b>", parent)
 
-    `plugin_toggled(plugin, enabled)` fires every time a checkbox state
+
+class GeneralConfigPanel(ConfigPanel):
+    """Application-wide settings plus master on/off switches for the plugins.
+
+    `plugin_toggled(plugin, enabled)` fires every time a plugin checkbox state
     changes — `ConfigurationDialog` listens so it can insert/remove the
     matching per-plugin tab live, before the user clicks OK.
     Persistence happens in `apply()`: only changed checkboxes call into
     `plugin.set_enabled` so a no-op OK doesn't trigger restart side
-    effects.
+    effects, and the color-scheme preference is only written when it
+    differs from the stored value.
     """
 
-    title = "Plugins"
+    title = "General"
 
     plugin_toggled = Signal(object, bool)
 
@@ -59,11 +72,35 @@ class PluginsConfigPanel(ConfigPanel):
         self._checkboxes: dict = {}
 
         layout = QVBoxLayout(self)
-        intro = QLabel("Enable or disable individual plugins. Disabled "
-                       "plugins stop their work and are hidden from the "
-                       "tray menu and Configuration tabs.", self)
-        intro.setWordWrap(True)
-        layout.addWidget(intro)
+
+        layout.addWidget(_section_label("Appearance", self))
+        appearance_intro = QLabel(
+            "Override the system light/dark setting, or follow it.", self,
+        )
+        appearance_intro.setWordWrap(True)
+        layout.addWidget(appearance_intro)
+
+        form = QFormLayout()
+        self._color_scheme_combo = QComboBox(self)
+        for preference in ColorSchemePreference:
+            self._color_scheme_combo.addItem(preference.value, preference)
+        self._initial_preference = load_preference()
+        self._color_scheme_combo.setCurrentIndex(
+            self._color_scheme_combo.findData(self._initial_preference),
+        )
+        form.addRow("Color scheme:", self._color_scheme_combo)
+        layout.addLayout(form)
+
+        layout.addSpacing(12)
+        layout.addWidget(_section_label("Plugins", self))
+        plugins_intro = QLabel(
+            "Enable or disable individual plugins. Disabled plugins stop "
+            "their work and are hidden from the tray menu and Configuration "
+            "tabs.",
+            self,
+        )
+        plugins_intro.setWordWrap(True)
+        layout.addWidget(plugins_intro)
 
         for plugin in self._plugins:
             if not plugin.is_toggleable():
@@ -76,7 +113,16 @@ class PluginsConfigPanel(ConfigPanel):
 
         layout.addStretch(1)
 
+    def _selected_preference(self) -> ColorSchemePreference:
+        return self._color_scheme_combo.currentData()
+
     def apply(self) -> bool:
+        preference = self._selected_preference()
+        if preference != self._initial_preference:
+            save_preference(preference)
+            apply_preference(preference)
+            self._initial_preference = preference
+
         for plugin, box in self._checkboxes.items():
             checked = box.isChecked()
             if checked != plugin.is_enabled():

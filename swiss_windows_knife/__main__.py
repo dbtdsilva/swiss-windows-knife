@@ -10,6 +10,7 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 from swiss_windows_knife.app_info import APP_INFO
+from swiss_windows_knife.base.color_scheme import apply_persisted_preference
 from swiss_windows_knife.ui.tray_widget import TrayWidget
 
 
@@ -47,6 +48,7 @@ class SwissWindowsKnife:
         app.setApplicationName(APP_INFO.APP_NAME)
         app.setQuitOnLastWindowClosed(False)
         app.setWindowIcon(QIcon(":/icons/coat-of-arms.ico"))
+        apply_persisted_preference()
 
         logging.info("Starting widget..")
 
