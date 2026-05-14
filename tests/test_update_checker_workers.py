@@ -107,3 +107,25 @@ def test_stale_result_after_watchdog_is_ignored(qtbot, fake_user_settings):
     checker._set_busy(False)
     checker._on_check_finished(("99.99.99", "https://example/installer.exe"))
     assert checker._busy is False
+
+
+def test_new_check_can_start_after_watchdog_fires(qtbot, fake_user_settings):
+    """After the watchdog forces recovery, the user must be able to start a
+    fresh check — the menu cannot stay greyed out forever."""
+    from swiss_windows_knife.components.update_checker import UpdateChecker
+
+    with patch.object(UpdateChecker, 'check_updates'):
+        checker = UpdateChecker(parent=None)
+        qtbot.addWidget(checker)
+        qtbot.wait(20)
+
+    checker._set_busy(True)
+    checker._interactive = False
+    checker._check_watchdog()
+    assert checker._busy is False
+
+    with patch('swiss_windows_knife.components.update_checker._CheckThread') as MockThread:
+        checker.check_updates(interactive=True)
+
+    assert MockThread.called
+    assert checker._busy is True
