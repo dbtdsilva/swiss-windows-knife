@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-__version__ = "1.19.0"
+__version__ = "1.19.1"
 
 _AppInfo = namedtuple("AppInfo", [
     'APP_NAME',
