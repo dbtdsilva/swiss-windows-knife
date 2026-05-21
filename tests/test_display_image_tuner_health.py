@@ -54,3 +54,26 @@ def test_apply_brightness_success_restores_ok(plugin):
     with patch("monitorcontrol.get_monitors", return_value=[_stub_monitor(0)]):
         plugin._apply_brightness(50)
     assert plugin.health().state is HealthState.OK
+
+
+def test_apply_failure_invalidates_last_emitted_so_tick_retries(plugin):
+    # _tick advances _last_emitted before the async runner has tried to
+    # write — if the write fails, the dedup gate must not lock the plugin
+    # at the never-applied value, or auto mode stops updating the monitor.
+    plugin._last_emitted['brightness'] = 50
+    plugin._last_emitted['contrast'] = 70
+    with patch("monitorcontrol.get_monitors", side_effect=monitorcontrol.VCPError("boom")):
+        plugin._apply_brightness(50)
+        plugin._apply_contrast(70)
+    assert plugin._last_emitted['brightness'] is None
+    assert plugin._last_emitted['contrast'] is None
+
+
+def test_apply_success_preserves_last_emitted(plugin):
+    plugin._last_emitted['brightness'] = 50
+    plugin._last_emitted['contrast'] = 70
+    with patch("monitorcontrol.get_monitors", return_value=[_stub_monitor(0)]):
+        plugin._apply_brightness(50)
+        plugin._apply_contrast(70)
+    assert plugin._last_emitted['brightness'] == 50
+    assert plugin._last_emitted['contrast'] == 70

@@ -149,6 +149,9 @@ class DisplayImageTunerPlugin(BaseWidget):
             self._set_health(HealthState.OK, self._mode_message())
         except (ValueError, monitorcontrol.VCPError) as e:
             logging.warning(f"Exception was caught while changing brightness: {e}")
+            # Clear the dedup cache so _tick re-emits next tick; otherwise a
+            # transient VCP error leaves the monitor at its old value forever.
+            self._last_emitted['brightness'] = None
             self._set_health(HealthState.WARNING, f"Monitor error: {e}")
 
     def change_monitor_contrast(self, contrast):
@@ -164,6 +167,7 @@ class DisplayImageTunerPlugin(BaseWidget):
             self._set_health(HealthState.OK, self._mode_message())
         except (ValueError, monitorcontrol.VCPError) as e:
             logging.warning(f"Exception was caught while changing contrast: {e}")
+            self._last_emitted['contrast'] = None
             self._set_health(HealthState.WARNING, f"Monitor error: {e}")
 
     def create_value_control_menu(self, title, axis, manual_slot, automatic_slot) -> QMenu:
