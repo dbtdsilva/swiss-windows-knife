@@ -1,4 +1,5 @@
 import logging
+import re
 import time
 from collections.abc import Callable
 
@@ -18,6 +19,24 @@ from .discovery import UsbWorker, list_monitors
 from .monitor_info import MonitorInfoCtx
 
 USER_SETTINGS_DISPLAY_USB_WATCHER_KEY = 'display_usb_watcher'
+
+_VID_PID_RE = re.compile(r'VID_([0-9A-F]{4})&PID_([0-9A-F]{4})', re.IGNORECASE)
+
+
+def _vid_pid_key(device_id: str | None) -> str | None:
+    """Return a canonical `VID_xxxx&PID_xxxx` key, or None if absent.
+
+    Compatibility: the WM_DEVICECHANGE listener only emits the parent
+    USB function node, while the saved watcher id may point at a
+    composite-device interface child (`...&MI_00\\...`). Matching on
+    VID/PID lets either form select the same physical device.
+    """
+    if not device_id:
+        return None
+    m = _VID_PID_RE.search(device_id)
+    if not m:
+        return None
+    return f"VID_{m.group(1).upper()}&PID_{m.group(2).upper()}"
 
 
 def USER_SETTINGS_DISPLAY_ON_CONNECT_KEY_FUNC(device_id): return f'display_on_connect_{device_id}'
@@ -156,7 +175,8 @@ class DeviceDisplayMapperPlugin(BaseWidget):
         current_time = time.time()
         if current_time - self.last_changed < 1.0:
             return
-        if self.user_settings.get(USER_SETTINGS_DISPLAY_USB_WATCHER_KEY, str) != usb_device.id:
+        watcher_id = self.user_settings.get(USER_SETTINGS_DISPLAY_USB_WATCHER_KEY, str)
+        if _vid_pid_key(watcher_id) != _vid_pid_key(usb_device.id):
             return
         self.last_changed = current_time
 
