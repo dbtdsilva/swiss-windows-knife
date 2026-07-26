@@ -6,12 +6,13 @@ import tempfile
 import requests
 from PySide6.QtCore import QCoreApplication, QThread, QTimer, Signal, Slot
 from PySide6.QtGui import QAction
-from PySide6.QtWidgets import QCheckBox, QMenu, QMessageBox, QWidget
+from PySide6.QtWidgets import QDialog, QMenu, QMessageBox, QWidget
 
 from ..app_info import APP_INFO
 from ..base.health import HealthState
 from ..base.health_reporter import HealthReporter
 from ..base.user_settings import UserSettings
+from .update_prompt_dialog import UpdatePromptDialog
 
 LATEST_RELEASE_URL = 'https://api.github.com/repos/dbtdsilva/swiss-windows-knife/releases/latest'
 RELEASES_URL = 'https://api.github.com/repos/dbtdsilva/swiss-windows-knife/releases'
@@ -84,28 +85,23 @@ class _CheckThread(QThread):
     result_ready = Signal(object)
 
     def run(self) -> None:
-        logging.info("Update-check worker started; fetching %s", LATEST_RELEASE_URL)
+        logging.info("Update-check worker started; fetching %s", RELEASES_URL)
         try:
             response = requests.get(
-                LATEST_RELEASE_URL, timeout=(CONNECT_TIMEOUT_S, READ_TIMEOUT_S),
+                RELEASES_URL, timeout=(CONNECT_TIMEOUT_S, READ_TIMEOUT_S),
             )
             logging.info("Update-check HTTP status: %s", response.status_code)
             response.raise_for_status()
-            data = response.json()
+            releases = response.json()
 
-            installer_url: str | None = None
-            for asset in data.get('assets', []):
-                name = asset.get('name', '')
-                if name.endswith('.exe') and 'browser_download_url' in asset:
-                    installer_url = asset['browser_download_url']
-                    break
-
-            if installer_url is None or 'tag_name' not in data:
-                logging.warning("No installer asset in latest release")
+            target, installer_url, changelog = _releases_above(
+                releases, APP_INFO.APP_VERSION)
+            if target is None:
+                logging.warning("No stable release with an installer asset")
                 self.result_ready.emit(None)
                 return
 
-            self.result_ready.emit((data['tag_name'], installer_url))
+            self.result_ready.emit((target, installer_url, changelog))
         except Exception:
             logging.exception("Failed to query for updates")
             self.result_ready.emit(None)
@@ -141,6 +137,8 @@ class _DownloadThread(QThread):
 class UpdateChecker(HealthReporter):
 
     display_name = "Auto-updater"
+
+    notification_requested = Signal(str, str)
 
     def __init__(self, parent: QWidget) -> None:
         super().__init__(parent)
@@ -228,8 +226,6 @@ class UpdateChecker(HealthReporter):
     @Slot(object)
     def _on_check_finished(self, result) -> None:
         if not self._busy:
-            # The watchdog already fired; this is a late response from a
-            # worker we stopped waiting for. Do not surface it.
             logging.info("Ignoring stale update-check result (watchdog already fired)")
             return
         if self._check_action is not None:
@@ -243,9 +239,11 @@ class UpdateChecker(HealthReporter):
             self._set_health(HealthState.WARNING, "Check failed")
             self._set_busy(False)
             return
-        remote_version, installer_url = result
-        if _parse_version(remote_version) <= _parse_version(APP_INFO.APP_VERSION):
-            logging.info(f'No update is needed. Remote: {remote_version}, Local: {APP_INFO.APP_VERSION}')
+
+        target, installer_url, changelog = result
+        if _parse_version(target) <= _parse_version(APP_INFO.APP_VERSION):
+            logging.info('No update is needed. Remote: %s, Local: %s',
+                         target, APP_INFO.APP_VERSION)
             if self._interactive:
                 QMessageBox.information(
                     self, 'No update available',
@@ -254,12 +252,21 @@ class UpdateChecker(HealthReporter):
             self._set_busy(False)
             return
 
-        logging.info(f'Update available: {APP_INFO.APP_VERSION} -> {remote_version}')
-        self._set_health(HealthState.OK, f"Update available {remote_version}")
-        if not self._confirm_update(remote_version):
-            self._set_busy(False)
+        logging.info('Update available: %s -> %s', APP_INFO.APP_VERSION, target)
+        self._set_health(HealthState.OK, f"Update available {target}")
+
+        if self.user_settings.get(AUTO_UPDATE_KEY, bool, False):
+            self.notification_requested.emit(
+                APP_INFO.APP_NAME, f"Updating to {target}…")
+            self._start_download(installer_url)
             return
 
+        if not self._confirm_update(target, changelog):
+            self._set_busy(False)
+            return
+        self._start_download(installer_url)
+
+    def _start_download(self, installer_url: str) -> None:
         dest_dir = tempfile.mkdtemp(prefix='swk-update-')
         thread = _DownloadThread(installer_url, dest_dir, self)
         thread.result_ready.connect(self._on_download_finished)
@@ -274,25 +281,16 @@ class UpdateChecker(HealthReporter):
             return
         self._launch_installer(path)
 
-    def _confirm_update(self, remote_version: str) -> bool:
+    def _confirm_update(self, target_version: str, changelog_entries) -> bool:
         skipped = self.user_settings.get(SKIP_VERSION_KEY, str, "")
-        if skipped == remote_version:
-            logging.info(f"User previously chose to skip version {remote_version}")
+        if skipped == target_version:
+            logging.info("User previously chose to skip version %s", target_version)
             return False
 
-        msg_box = QMessageBox(self)
-        msg_box.setIcon(QMessageBox.Icon.Question)
-        msg_box.setWindowTitle('Update Available')
-        msg_box.setText(f'Version {remote_version} is available. Install now?')
-        msg_box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-        msg_box.setDefaultButton(QMessageBox.StandardButton.Yes)
-
-        skip_checkbox = QCheckBox(f"Don't ask again for version {remote_version}")
-        msg_box.setCheckBox(skip_checkbox)
-
-        accepted = msg_box.exec() == QMessageBox.StandardButton.Yes
-        if not accepted and skip_checkbox.isChecked():
-            self.user_settings.set(SKIP_VERSION_KEY, remote_version)
+        dialog = UpdatePromptDialog(target_version, changelog_entries, self)
+        accepted = dialog.exec() == QDialog.DialogCode.Accepted
+        if not accepted and dialog.skip_checked():
+            self.user_settings.set(SKIP_VERSION_KEY, target_version)
         return accepted
 
     def _launch_installer(self, installer_file: str) -> None:

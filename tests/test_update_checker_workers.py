@@ -42,7 +42,7 @@ def test_check_thread_emits_none_when_release_has_no_installer_asset(qtbot, chec
             return None
 
         def json(self):
-            return {"tag_name": "9.9.9", "assets": []}
+            return [{"tag_name": "9.9.9", "assets": []}]
 
     with patch('swiss_windows_knife.components.update_checker.requests.get', return_value=_FakeResp()):
         args = _wait_result(qtbot, check_thread)
@@ -57,17 +57,19 @@ def test_check_thread_emits_release_tuple_on_success(qtbot, check_thread):
             return None
 
         def json(self):
-            return {
+            return [{
                 "tag_name": "9.9.9",
+                "body": "shiny notes",
                 "assets": [
                     {"name": "irrelevant.zip"},
-                    {"name": "Installer-9.9.9.exe", "browser_download_url": "https://example/9.9.9.exe"},
+                    {"name": "Installer-9.9.9.exe",
+                     "browser_download_url": "https://example/9.9.9.exe"},
                 ],
-            }
+            }]
 
     with patch('swiss_windows_knife.components.update_checker.requests.get', return_value=_FakeResp()):
         args = _wait_result(qtbot, check_thread)
-    assert args == [("9.9.9", "https://example/9.9.9.exe")]
+    assert args == [("9.9.9", "https://example/9.9.9.exe", [("9.9.9", "shiny notes")])]
 
 
 def test_download_thread_emits_none_on_unexpected_exception(qtbot, tmp_path):
@@ -105,7 +107,7 @@ def test_stale_result_after_watchdog_is_ignored(qtbot, fake_user_settings):
         qtbot.wait(20)
 
     checker._set_busy(False)
-    checker._on_check_finished(("99.99.99", "https://example/installer.exe"))
+    checker._on_check_finished(("99.99.99", "https://example/installer.exe", []))
     assert checker._busy is False
 
 
