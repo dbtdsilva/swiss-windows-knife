@@ -1,5 +1,4 @@
 from PySide6.QtWidgets import (
-    QCheckBox,
     QDialog,
     QDialogButtonBox,
     QLabel,
@@ -10,15 +9,15 @@ from PySide6.QtWidgets import (
 
 class UpdatePromptDialog(QDialog):
     """Asks whether to install `target_version`, showing the concatenated
-    release notes for every version being skipped. `skip_checked()` lets the
-    caller persist a per-version skip when the user declines."""
+    release notes for every version being skipped. `skip_checked()` reports
+    whether the user chose 'Don't ask again for this version' (vs. simply
+    dismissing the dialog, which declines but re-prompts next check)."""
 
     def __init__(self, target_version, changelog_entries, parent=None):
         super().__init__(parent)
         self.setWindowTitle('Update Available')
 
-        self._skip_checkbox = QCheckBox(
-            f"Don't ask again for version {target_version}")
+        self._skip = False
 
         layout = QVBoxLayout(self)
         layout.addWidget(QLabel(
@@ -30,14 +29,19 @@ class UpdatePromptDialog(QDialog):
         browser.setMinimumSize(480, 320)
         layout.addWidget(browser)
 
-        layout.addWidget(self._skip_checkbox)
-
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Yes
-            | QDialogButtonBox.StandardButton.No)
+        buttons = QDialogButtonBox(self)
+        self._install_button = buttons.addButton(
+            'Install now', QDialogButtonBox.ButtonRole.AcceptRole)
+        self._skip_button = buttons.addButton(
+            "Don't ask again for this version",
+            QDialogButtonBox.ButtonRole.RejectRole)
         buttons.accepted.connect(self.accept)
-        buttons.rejected.connect(self.reject)
+        self._skip_button.clicked.connect(self._decline_and_skip)
         layout.addWidget(buttons)
+
+    def _decline_and_skip(self) -> None:
+        self._skip = True
+        self.reject()
 
     @staticmethod
     def _render_markdown(changelog_entries) -> str:
@@ -50,4 +54,4 @@ class UpdatePromptDialog(QDialog):
         return "\n\n---\n\n".join(blocks)
 
     def skip_checked(self) -> bool:
-        return self._skip_checkbox.isChecked()
+        return self._skip
