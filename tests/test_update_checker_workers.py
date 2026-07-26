@@ -1,5 +1,5 @@
 """Regression coverage for the update-checker worker threads."""
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -42,7 +42,7 @@ def test_check_thread_emits_none_when_release_has_no_installer_asset(qtbot, chec
             return None
 
         def json(self):
-            return {"tag_name": "9.9.9", "assets": []}
+            return [{"tag_name": "9.9.9", "assets": []}]
 
     with patch('swiss_windows_knife.components.update_checker.requests.get', return_value=_FakeResp()):
         args = _wait_result(qtbot, check_thread)
@@ -57,17 +57,19 @@ def test_check_thread_emits_release_tuple_on_success(qtbot, check_thread):
             return None
 
         def json(self):
-            return {
+            return [{
                 "tag_name": "9.9.9",
+                "body": "shiny notes",
                 "assets": [
                     {"name": "irrelevant.zip"},
-                    {"name": "Installer-9.9.9.exe", "browser_download_url": "https://example/9.9.9.exe"},
+                    {"name": "Installer-9.9.9.exe",
+                     "browser_download_url": "https://example/9.9.9.exe"},
                 ],
-            }
+            }]
 
     with patch('swiss_windows_knife.components.update_checker.requests.get', return_value=_FakeResp()):
         args = _wait_result(qtbot, check_thread)
-    assert args == [("9.9.9", "https://example/9.9.9.exe")]
+    assert args == [("9.9.9", "https://example/9.9.9.exe", [("9.9.9", "shiny notes")])]
 
 
 def test_download_thread_emits_none_on_unexpected_exception(qtbot, tmp_path):
@@ -90,7 +92,9 @@ def test_watchdog_clears_busy_when_worker_wedges(qtbot, fake_user_settings):
 
     checker._set_busy(True)
     checker._interactive = False
-    checker._check_watchdog()
+    fake_thread = MagicMock()
+    fake_thread.isFinished.return_value = False
+    checker._check_watchdog(fake_thread)
     assert checker._busy is False
 
 
@@ -105,7 +109,7 @@ def test_stale_result_after_watchdog_is_ignored(qtbot, fake_user_settings):
         qtbot.wait(20)
 
     checker._set_busy(False)
-    checker._on_check_finished(("99.99.99", "https://example/installer.exe"))
+    checker._on_check_finished(("99.99.99", "https://example/installer.exe", []))
     assert checker._busy is False
 
 
@@ -121,7 +125,9 @@ def test_new_check_can_start_after_watchdog_fires(qtbot, fake_user_settings):
 
     checker._set_busy(True)
     checker._interactive = False
-    checker._check_watchdog()
+    fake_thread = MagicMock()
+    fake_thread.isFinished.return_value = False
+    checker._check_watchdog(fake_thread)
     assert checker._busy is False
 
     with patch('swiss_windows_knife.components.update_checker._CheckThread') as MockThread:
@@ -129,3 +135,21 @@ def test_new_check_can_start_after_watchdog_fires(qtbot, fake_user_settings):
 
     assert MockThread.called
     assert checker._busy is True
+
+
+def test_watchdog_noop_when_check_thread_already_finished(qtbot, fake_user_settings):
+    """Once the check fetch has finished, the download/prompt phase owns
+    busy. A late watchdog must not clear busy or warn."""
+    from swiss_windows_knife.components.update_checker import UpdateChecker
+
+    with patch.object(UpdateChecker, 'check_updates'):
+        checker = UpdateChecker(parent=None)
+        qtbot.addWidget(checker)
+        qtbot.wait(20)
+
+    checker._set_busy(True)  # e.g. a download is in progress
+    checker._interactive = True
+    finished_thread = MagicMock()
+    finished_thread.isFinished.return_value = True
+    checker._check_watchdog(finished_thread)
+    assert checker._busy is True  # NOT cleared
