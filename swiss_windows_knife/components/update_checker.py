@@ -14,7 +14,6 @@ from ..base.health_reporter import HealthReporter
 from ..base.user_settings import UserSettings
 from .update_prompt_dialog import UpdatePromptDialog
 
-LATEST_RELEASE_URL = 'https://api.github.com/repos/dbtdsilva/swiss-windows-knife/releases/latest'
 RELEASES_URL = 'https://api.github.com/repos/dbtdsilva/swiss-windows-knife/releases'
 CHECK_INTERVAL_MS = 1000 * 30 * 60
 CONNECT_TIMEOUT_S = 5
