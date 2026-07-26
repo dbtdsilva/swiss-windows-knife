@@ -14,6 +14,7 @@ from ..base.health_reporter import HealthReporter
 from ..base.user_settings import UserSettings
 
 LATEST_RELEASE_URL = 'https://api.github.com/repos/dbtdsilva/swiss-windows-knife/releases/latest'
+RELEASES_URL = 'https://api.github.com/repos/dbtdsilva/swiss-windows-knife/releases'
 CHECK_INTERVAL_MS = 1000 * 30 * 60
 CONNECT_TIMEOUT_S = 5
 READ_TIMEOUT_S = 15
@@ -33,6 +34,38 @@ def _parse_version(text: str) -> tuple[int, ...]:
         except ValueError:
             break
     return tuple(out)
+
+
+def _releases_above(releases, current):
+    """From a GitHub /releases list, return
+    (target_tag, installer_url, changelog_entries).
+
+    Drafts and prereleases are ignored. `target_tag` is the highest stable
+    version; `installer_url` is its first `.exe` asset; `changelog_entries`
+    are (tag, body) for every stable release strictly newer than `current`,
+    newest-first. Returns (None, None, []) when no stable release carries an
+    installer asset.
+    """
+    current_v = _parse_version(current)
+    stable = [
+        r for r in releases
+        if not r.get('draft') and not r.get('prerelease') and 'tag_name' in r
+    ]
+    if not stable:
+        return None, None, []
+    target = max(stable, key=lambda r: _parse_version(r['tag_name']))
+    installer_url = None
+    for asset in target.get('assets', []):
+        name = asset.get('name', '')
+        if name.endswith('.exe') and 'browser_download_url' in asset:
+            installer_url = asset['browser_download_url']
+            break
+    if installer_url is None:
+        return None, None, []
+    newer = [r for r in stable if _parse_version(r['tag_name']) > current_v]
+    newer.sort(key=lambda r: _parse_version(r['tag_name']), reverse=True)
+    changelog = [(r['tag_name'], r.get('body', '') or '') for r in newer]
+    return target['tag_name'], installer_url, changelog
 
 
 class _CheckThread(QThread):
