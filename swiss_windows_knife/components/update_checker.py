@@ -21,8 +21,9 @@ READ_TIMEOUT_S = 15
 DOWNLOAD_TIMEOUT_S = 120
 WATCHDOG_MS = 30_000
 SKIP_VERSION_KEY = 'update_skip_version'
-CHECK_LABEL_IDLE = 'Check for updates'
+CHECK_LABEL_IDLE = 'Check for updates…'
 CHECK_LABEL_CHECKING = 'Checking…'
+AUTO_UPDATE_KEY = 'update_automatic'
 
 
 def _parse_version(text: str) -> tuple[int, ...]:
@@ -159,10 +160,26 @@ class UpdateChecker(HealthReporter):
         QTimer.singleShot(0, self.check_updates)
 
     def retrieve_menus(self) -> list[QMenu | QAction]:
+        menu = QMenu('Updates', self)
+
         self._check_action = QAction(CHECK_LABEL_IDLE, self)
         self._check_action.setEnabled(not self._busy)
-        self._check_action.triggered.connect(lambda: self.check_updates(interactive=True))
-        return [self._check_action]
+        self._check_action.triggered.connect(
+            lambda: self.check_updates(interactive=True))
+        menu.addAction(self._check_action)
+
+        auto_action = QAction('Automatic updates', self)
+        auto_action.setCheckable(True)
+        auto_action.setChecked(
+            self.user_settings.get(AUTO_UPDATE_KEY, bool, False))
+        auto_action.toggled.connect(self._on_auto_toggled)
+        menu.addAction(auto_action)
+
+        return [menu]
+
+    def _on_auto_toggled(self, checked: bool) -> None:
+        self.user_settings.set(AUTO_UPDATE_KEY, checked)
+        logging.info("Automatic updates set to %s", checked)
 
     def _set_busy(self, busy: bool) -> None:
         self._busy = busy
