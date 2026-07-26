@@ -1,5 +1,5 @@
 """Regression coverage for the update-checker worker threads."""
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -92,7 +92,9 @@ def test_watchdog_clears_busy_when_worker_wedges(qtbot, fake_user_settings):
 
     checker._set_busy(True)
     checker._interactive = False
-    checker._check_watchdog()
+    fake_thread = MagicMock()
+    fake_thread.isFinished.return_value = False
+    checker._check_watchdog(fake_thread)
     assert checker._busy is False
 
 
@@ -123,7 +125,9 @@ def test_new_check_can_start_after_watchdog_fires(qtbot, fake_user_settings):
 
     checker._set_busy(True)
     checker._interactive = False
-    checker._check_watchdog()
+    fake_thread = MagicMock()
+    fake_thread.isFinished.return_value = False
+    checker._check_watchdog(fake_thread)
     assert checker._busy is False
 
     with patch('swiss_windows_knife.components.update_checker._CheckThread') as MockThread:
@@ -131,3 +135,21 @@ def test_new_check_can_start_after_watchdog_fires(qtbot, fake_user_settings):
 
     assert MockThread.called
     assert checker._busy is True
+
+
+def test_watchdog_noop_when_check_thread_already_finished(qtbot, fake_user_settings):
+    """Once the check fetch has finished, the download/prompt phase owns
+    busy. A late watchdog must not clear busy or warn."""
+    from swiss_windows_knife.components.update_checker import UpdateChecker
+
+    with patch.object(UpdateChecker, 'check_updates'):
+        checker = UpdateChecker(parent=None)
+        qtbot.addWidget(checker)
+        qtbot.wait(20)
+
+    checker._set_busy(True)  # e.g. a download is in progress
+    checker._interactive = True
+    finished_thread = MagicMock()
+    finished_thread.isFinished.return_value = True
+    checker._check_watchdog(finished_thread)
+    assert checker._busy is True  # NOT cleared

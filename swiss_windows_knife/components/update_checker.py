@@ -196,9 +196,13 @@ class UpdateChecker(HealthReporter):
         thread.finished.connect(thread.deleteLater)
         self._active_thread = thread
         thread.start()
-        QTimer.singleShot(WATCHDOG_MS, self._check_watchdog)
+        QTimer.singleShot(WATCHDOG_MS, lambda t=thread: self._check_watchdog(t))
 
-    def _check_watchdog(self) -> None:
+    def _check_watchdog(self, thread) -> None:
+        if thread.isFinished():
+            # The check fetch completed; the download/prompt phase now owns
+            # `_busy`. Don't force a spurious "timed out" recovery over it.
+            return
         # If the worker thread wedged (e.g. requests.get blocked on a
         # network path that ignores its own timeout), `_busy` would stay
         # True forever and the menu item would stay greyed out. Force a

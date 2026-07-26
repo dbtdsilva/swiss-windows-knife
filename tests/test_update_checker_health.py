@@ -27,9 +27,12 @@ def test_health_warning_when_check_returns_none(checker):
 
 
 def test_health_warning_when_watchdog_fires(checker):
+    from unittest.mock import MagicMock
     checker._set_busy(True)
     checker._interactive = False
-    checker._check_watchdog()
+    fake_thread = MagicMock()
+    fake_thread.isFinished.return_value = False
+    checker._check_watchdog(fake_thread)
     assert checker.health().state is HealthState.WARNING
     assert checker.health().message == "Check timed out"
 
