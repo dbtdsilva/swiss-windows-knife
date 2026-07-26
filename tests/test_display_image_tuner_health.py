@@ -44,9 +44,9 @@ def _failing_monitor():
     cm.__enter__ = lambda self: self
     cm.__exit__ = lambda self, exc_type, exc, tb: None
     cm.get_luminance = MagicMock(side_effect=monitorcontrol.VCPError("asleep"))
-    cm.set_luminance = MagicMock()
+    cm.set_luminance = MagicMock(side_effect=monitorcontrol.VCPError("asleep"))
     cm.get_contrast = MagicMock(side_effect=monitorcontrol.VCPError("asleep"))
-    cm.set_contrast = MagicMock()
+    cm.set_contrast = MagicMock(side_effect=monitorcontrol.VCPError("asleep"))
     return cm
 
 
@@ -145,3 +145,74 @@ def test_manual_contrast_retries_after_failure(plugin, fake_user_settings):
     plugin._needs_retry['contrast'] = True
     plugin._tick()
     assert received == [80]
+
+
+def test_force_apply_writes_even_when_value_matches(plugin):
+    # Wake path: the monitor reports the target value (stale after a DDC
+    # reset), so the normal dedup would skip — force must write anyway.
+    mon = _stub_monitor(50)
+    with patch("monitorcontrol.get_monitors", return_value=[mon]):
+        plugin._apply_brightness(50, force=True)
+    mon.set_luminance.assert_called_once_with(50)
+
+
+def test_non_force_apply_skips_when_value_matches(plugin):
+    mon = _stub_monitor(50)
+    with patch("monitorcontrol.get_monitors", return_value=[mon]):
+        plugin._apply_brightness(50)
+    mon.set_luminance.assert_not_called()
+
+
+def test_force_cleared_after_successful_apply(plugin):
+    plugin._force_next['brightness'] = True
+    with patch("monitorcontrol.get_monitors", return_value=[_stub_monitor(50)]):
+        plugin._apply_brightness(50, force=True)
+    assert plugin._force_next['brightness'] is False
+
+
+def test_force_retained_after_failed_apply(plugin):
+    # If the forced write fails (monitor still waking), keep forcing so the
+    # retry doesn't fall back to the dedup-skipping normal path.
+    plugin._force_next['brightness'] = True
+    with patch("monitorcontrol.get_monitors", return_value=[_failing_monitor()]):
+        plugin._apply_brightness(50, force=True)
+    assert plugin._force_next['brightness'] is True
+    assert plugin._needs_retry['brightness'] is True
+
+
+def test_display_woke_forces_reapply_of_both_axes(plugin, fake_user_settings):
+    fake_user_settings.set('brightness', 30)
+    fake_user_settings.set('contrast', 70)
+    plugin.brightness_changed.disconnect(plugin.change_monitor_brightness)
+    plugin.contrast_changed.disconnect(plugin.change_monitor_contrast)
+    b_vals: list[int] = []
+    c_vals: list[int] = []
+    plugin.brightness_changed.connect(b_vals.append)
+    plugin.contrast_changed.connect(c_vals.append)
+
+    plugin._on_display_woke()
+
+    assert b_vals == [30] and c_vals == [70]
+    assert plugin._force_next['brightness'] is True
+    assert plugin._force_next['contrast'] is True
+
+
+def test_change_monitor_brightness_passes_force_flag(plugin):
+    plugin._force_next['brightness'] = True
+    module = "swiss_windows_knife.plugins.display_image_tuner.image_tuner_plugin"
+    with patch(f"{module}.runner") as mock_runner:
+        plugin.change_monitor_brightness(50)
+    mock_runner().submit.assert_called_once_with(plugin._apply_brightness, 50, True)
+
+
+def test_display_woke_noop_when_disabled(qtbot, fake_user_settings):
+    fake_user_settings.set('plugin_enabled_DisplayImageTunerPlugin', False)
+    from swiss_windows_knife.plugins.display_image_tuner.image_tuner_plugin import DisplayImageTunerPlugin
+    p = DisplayImageTunerPlugin(None)
+    qtbot.addWidget(p)
+    p.brightness_changed.disconnect(p.change_monitor_brightness)
+    received: list[int] = []
+    p.brightness_changed.connect(received.append)
+
+    p._on_display_woke()
+    assert received == []
