@@ -66,6 +66,20 @@ def fake_user_settings(monkeypatch):
     return fake
 
 
+@pytest.fixture(autouse=True)
+def stub_display_wake_listener(monkeypatch):
+    """Keep tests from registering a real Win32 power-setting notification.
+
+    The display tuner spins up a `DisplayWakeListener` on construction; its
+    `_register_for_notifications` calls into user32. Stub it so building the
+    plugin stays hermetic (the listener QWidget itself is harmless)."""
+    from swiss_windows_knife.plugins.display_image_tuner.display_wake_listener import (
+        DisplayWakeListener,
+    )
+    monkeypatch.setattr(
+        DisplayWakeListener, "_register_for_notifications", lambda self: None)
+
+
 @pytest.fixture
 def silent_messagebox(monkeypatch):
     """Suppress QMessageBox modals so apply()-style validation can run headless."""

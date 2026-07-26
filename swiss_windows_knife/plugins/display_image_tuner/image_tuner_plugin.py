@@ -14,6 +14,7 @@ from ...base.monitor_runner import runner
 from ...base.user_settings import UserSettings
 from .curve import compute_keyframe_value
 from .display_tuning_panel import DisplayTuningConfigPanel
+from .display_wake_listener import DisplayWakeListener
 from .sun_strength_notifier import SunStrengthNotifier, find_sun_events
 
 TICK_MS = 1000
@@ -43,11 +44,18 @@ class DisplayImageTunerPlugin(BaseWidget):
 
         self._last_emitted: dict[str, int | None] = {'brightness': None, 'contrast': None}
         self._needs_retry: dict[str, bool] = {'brightness': False, 'contrast': False}
+        # When set, the next apply for the axis writes unconditionally,
+        # bypassing the get_luminance() dedup. Set on display wake (monitors
+        # may report a stale value after a DDC-resetting power-cycle) and
+        # kept across retries until an apply lands.
+        self._force_next: dict[str, bool] = {'brightness': False, 'contrast': False}
         self._sun_events_cache_day: date | None = None
         self._sun_events_cache: tuple[float | None, float | None] = (None, None)
 
         self.brightness_changed.connect(self.change_monitor_brightness)
         self.contrast_changed.connect(self.change_monitor_contrast)
+
+        self._wake_listener: DisplayWakeListener | None = None
 
         self._set_health(HealthState.OK, self._mode_message())
 
@@ -55,6 +63,7 @@ class DisplayImageTunerPlugin(BaseWidget):
         self._tick_timer.timeout.connect(self._tick)
         if self.is_enabled():
             self._tick_timer.start(TICK_MS)
+            self._start_wake_listener()
 
     def _mode_message(self) -> str:
         b = self.user_settings.get('brightness', int)
@@ -146,9 +155,9 @@ class DisplayImageTunerPlugin(BaseWidget):
         return self._sun_events_cache
 
     def change_monitor_brightness(self, brightness):
-        runner().submit(self._apply_brightness, brightness)
+        runner().submit(self._apply_brightness, brightness, self._force_next['brightness'])
 
-    def _apply_brightness(self, brightness):
+    def _apply_brightness(self, brightness, force=False):
         try:
             monitors = list(enumerate(monitorcontrol.get_monitors()))
         except (ValueError, monitorcontrol.VCPError) as e:
@@ -158,7 +167,7 @@ class DisplayImageTunerPlugin(BaseWidget):
         for i, monitor in monitors:
             try:
                 with monitor:
-                    if monitor.get_luminance() != brightness:
+                    if force or monitor.get_luminance() != brightness:
                         monitor.set_luminance(brightness)
                         logging.info(f"Setting brightness to {brightness} on monitor {i}")
             except (ValueError, monitorcontrol.VCPError) as e:
@@ -169,12 +178,13 @@ class DisplayImageTunerPlugin(BaseWidget):
         if error is not None:
             self._on_apply_failed('brightness', error)
         else:
+            self._force_next['brightness'] = False
             self._set_health(HealthState.OK, self._mode_message())
 
     def change_monitor_contrast(self, contrast):
-        runner().submit(self._apply_contrast, contrast)
+        runner().submit(self._apply_contrast, contrast, self._force_next['contrast'])
 
-    def _apply_contrast(self, contrast):
+    def _apply_contrast(self, contrast, force=False):
         try:
             monitors = list(enumerate(monitorcontrol.get_monitors()))
         except (ValueError, monitorcontrol.VCPError) as e:
@@ -184,7 +194,7 @@ class DisplayImageTunerPlugin(BaseWidget):
         for i, monitor in monitors:
             try:
                 with monitor:
-                    if monitor.get_contrast() != contrast:
+                    if force or monitor.get_contrast() != contrast:
                         monitor.set_contrast(contrast)
                         logging.info(f"Setting contrast to {contrast} on monitor {i}")
             except (ValueError, monitorcontrol.VCPError) as e:
@@ -193,6 +203,7 @@ class DisplayImageTunerPlugin(BaseWidget):
         if error is not None:
             self._on_apply_failed('contrast', error)
         else:
+            self._force_next['contrast'] = False
             self._set_health(HealthState.OK, self._mode_message())
 
     def _on_apply_failed(self, axis: str, error: Exception) -> None:
@@ -200,9 +211,46 @@ class DisplayImageTunerPlugin(BaseWidget):
         # and clear the auto dedup cache so a never-applied value isn't
         # mistaken for already-on-screen. Otherwise a transient VCP error
         # (e.g. a monitor still waking) leaves it at its old value forever.
+        # _force_next is left set so the retry keeps forcing until it lands.
         self._needs_retry[axis] = True
         self._last_emitted[axis] = None
         self._set_health(HealthState.WARNING, f"Monitor error: {error}")
+
+    def _desired_value(self, axis: str) -> int:
+        manual = self.user_settings.get(axis, int)
+        if manual is not None:
+            return manual
+        return max(0, min(100, int(round(self._auto_target(axis)))))
+
+    def _start_wake_listener(self) -> None:
+        if self._wake_listener is not None:
+            return
+        try:
+            self._wake_listener = DisplayWakeListener(self)
+        except Exception:
+            # A missing wake listener only forfeits the on-wake re-assert;
+            # the periodic tick and retry path still work. Don't fail the
+            # whole plugin over it.
+            logging.exception("Failed to start display wake listener")
+            return
+        self._wake_listener.woke.connect(self._on_display_woke)
+
+    def _stop_wake_listener(self) -> None:
+        if self._wake_listener is not None:
+            self._wake_listener.close()
+            self._wake_listener = None
+
+    @Slot()
+    def _on_display_woke(self) -> None:
+        if not self.is_enabled():
+            return
+        logging.info("Display woke — re-asserting brightness and contrast")
+        for axis in ('brightness', 'contrast'):
+            value = self._desired_value(axis)
+            self._force_next[axis] = True
+            self._needs_retry[axis] = False
+            self._last_emitted[axis] = value
+            getattr(self, f'{axis}_changed').emit(value)
 
     def create_value_control_menu(self, title, axis, manual_slot, automatic_slot) -> QMenu:
         menu = QMenu(title, self)
@@ -271,10 +319,13 @@ class DisplayImageTunerPlugin(BaseWidget):
         if status:
             if not self._tick_timer.isActive():
                 self._tick_timer.start(TICK_MS)
+            self._start_wake_listener()
         else:
             self._tick_timer.stop()
+            self._stop_wake_listener()
 
     def closeEvent(self, event):
         self._tick_timer.stop()
+        self._stop_wake_listener()
         self.sun_strength_plugin.close()
         event.accept()
