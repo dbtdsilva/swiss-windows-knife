@@ -63,6 +63,9 @@ class TrayWidget(QWidget):
         self.update_checker: UpdateChecker | None = (
             None if dev_mode else UpdateChecker(self)
         )
+        if self.update_checker is not None:
+            self.update_checker.notification_requested.connect(
+                self._show_tray_message)
 
         self._tray_icon = QSystemTrayIcon(parent=parent)
         self._tray_icon.setContextMenu(self.createMainMenu())
@@ -99,6 +102,11 @@ class TrayWidget(QWidget):
                 reports.append(HealthReport(HealthState.WARNING, "health() failed"))
         worst_state, _ = aggregate_health(reports)
         self._tray_icon.setIcon(tray_icon_for_state(worst_state))
+
+    @Slot(str, str)
+    def _show_tray_message(self, title: str, message: str) -> None:
+        self._tray_icon.showMessage(
+            title, message, QSystemTrayIcon.MessageIcon.Information)
 
     def _add_menu_entries(self, menu: QMenu, entries) -> None:
         for action in entries:
