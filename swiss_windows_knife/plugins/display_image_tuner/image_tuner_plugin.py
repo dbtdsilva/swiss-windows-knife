@@ -42,6 +42,7 @@ class DisplayImageTunerPlugin(BaseWidget):
         self.sun_strength_plugin = SunStrengthNotifier(self)
 
         self._last_emitted: dict[str, int | None] = {'brightness': None, 'contrast': None}
+        self._needs_retry: dict[str, bool] = {'brightness': False, 'contrast': False}
         self._sun_events_cache_day: date | None = None
         self._sun_events_cache: tuple[float | None, float | None] = (None, None)
 
@@ -94,11 +95,19 @@ class DisplayImageTunerPlugin(BaseWidget):
     @Slot()
     def _tick(self) -> None:
         for axis in ('brightness', 'contrast'):
-            if self.user_settings.get(axis, int) is not None:
+            manual = self.user_settings.get(axis, int)
+            if manual is not None:
+                # Manual mode is otherwise passive, but a prior apply that
+                # failed on a monitor (e.g. still waking from suspend) must
+                # still be re-driven, or that monitor stays stale forever.
+                if self._needs_retry[axis]:
+                    self._needs_retry[axis] = False
+                    getattr(self, f'{axis}_changed').emit(manual)
                 continue
             target = self._auto_target(axis)
             new_value = max(0, min(100, int(round(target))))
-            if new_value != self._last_emitted[axis]:
+            if new_value != self._last_emitted[axis] or self._needs_retry[axis]:
+                self._needs_retry[axis] = False
                 self._last_emitted[axis] = new_value
                 getattr(self, f'{axis}_changed').emit(new_value)
 
@@ -141,34 +150,59 @@ class DisplayImageTunerPlugin(BaseWidget):
 
     def _apply_brightness(self, brightness):
         try:
-            for i, monitor in enumerate(monitorcontrol.get_monitors()):
+            monitors = list(enumerate(monitorcontrol.get_monitors()))
+        except (ValueError, monitorcontrol.VCPError) as e:
+            self._on_apply_failed('brightness', e)
+            return
+        error = None
+        for i, monitor in monitors:
+            try:
                 with monitor:
                     if monitor.get_luminance() != brightness:
                         monitor.set_luminance(brightness)
                         logging.info(f"Setting brightness to {brightness} on monitor {i}")
+            except (ValueError, monitorcontrol.VCPError) as e:
+                # Isolate per monitor: one still waking from suspend must not
+                # block the others (that left one screen updated, one stale).
+                logging.warning(f"Exception was caught while changing brightness on monitor {i}: {e}")
+                error = e
+        if error is not None:
+            self._on_apply_failed('brightness', error)
+        else:
             self._set_health(HealthState.OK, self._mode_message())
-        except (ValueError, monitorcontrol.VCPError) as e:
-            logging.warning(f"Exception was caught while changing brightness: {e}")
-            # Clear the dedup cache so _tick re-emits next tick; otherwise a
-            # transient VCP error leaves the monitor at its old value forever.
-            self._last_emitted['brightness'] = None
-            self._set_health(HealthState.WARNING, f"Monitor error: {e}")
 
     def change_monitor_contrast(self, contrast):
         runner().submit(self._apply_contrast, contrast)
 
     def _apply_contrast(self, contrast):
         try:
-            for i, monitor in enumerate(monitorcontrol.get_monitors()):
+            monitors = list(enumerate(monitorcontrol.get_monitors()))
+        except (ValueError, monitorcontrol.VCPError) as e:
+            self._on_apply_failed('contrast', e)
+            return
+        error = None
+        for i, monitor in monitors:
+            try:
                 with monitor:
                     if monitor.get_contrast() != contrast:
                         monitor.set_contrast(contrast)
                         logging.info(f"Setting contrast to {contrast} on monitor {i}")
+            except (ValueError, monitorcontrol.VCPError) as e:
+                logging.warning(f"Exception was caught while changing contrast on monitor {i}: {e}")
+                error = e
+        if error is not None:
+            self._on_apply_failed('contrast', error)
+        else:
             self._set_health(HealthState.OK, self._mode_message())
-        except (ValueError, monitorcontrol.VCPError) as e:
-            logging.warning(f"Exception was caught while changing contrast: {e}")
-            self._last_emitted['contrast'] = None
-            self._set_health(HealthState.WARNING, f"Monitor error: {e}")
+
+    def _on_apply_failed(self, axis: str, error: Exception) -> None:
+        # Flag a retry so _tick re-drives this axis next tick in either mode,
+        # and clear the auto dedup cache so a never-applied value isn't
+        # mistaken for already-on-screen. Otherwise a transient VCP error
+        # (e.g. a monitor still waking) leaves it at its old value forever.
+        self._needs_retry[axis] = True
+        self._last_emitted[axis] = None
+        self._set_health(HealthState.WARNING, f"Monitor error: {error}")
 
     def create_value_control_menu(self, title, axis, manual_slot, automatic_slot) -> QMenu:
         menu = QMenu(title, self)
